@@ -1,128 +1,146 @@
-# Local Variance Lab — Canonical Routing Table
-
-**Last updated:** 2026-03-26  
-**Execution tier source:** run-20260326-180259 (100 sims, 4 models, 5 passes)  
-**Reasoning tier source:** run-20260326-202747 (100 sims, 4 models, 5 passes)  
+# Local Variance Lab - Routing Table & Baseline Comparison
+**Generated:** 2026-03-26 23:18
+**Graded:** 2026-03-27
+**Source:** `run-20260326-202747`
+**Metrics files:** 100
+**Passes:** 5
 **Anthropic baseline:** 300-sim / 20-pass variance study (Haiku 4.5, Sonnet 4.6, Opus 4.6)
 
 ---
 
-## Routing Gate
+## Per-Task Model Performance vs Anthropic Baselines
 
-**`world_state_dependency` (boolean)** is the single operational routing gate.
+### code-refactor (class: **execution**, min baseline: **haiku**)
 
-```
-if task.world_state_dependency:
-    # Mandatory API tier — no local fallback valid
-    route to anthropic (sonnet or opus)
-elif api_available:
-    route to anthropic (haiku minimum)
-elif task_class in routing_table and grade >= B:
-    execute locally
-elif task_class in routing_table and grade == C:
-    execute locally + flag for governor review
-else:
-    defer to governor
-```
+**Anthropic baselines:**
+| Tier | Cost | Turns | Wall (s) | Deliverable | Quality |
+|------|------|-------|----------|-------------|---------|
+| Haiku | $0.0907 | 10.2 | 113 | 100% | verbose, misses contradictions, no fabrication |
+| Sonnet | $0.1970 | 12.8 | 157 | 100% | catches contradictions, governor-ready format |
+| Opus | $0.2796 | 14.7 | 122 | 100% | best architecture, concise, all issues caught |
 
-All other routing metadata (cost, throughput, CV) is optimization *within* a branch, not the gate itself.
+**Local model results:**
+| Model | Tier | N | Wall (s) | CV | Tok/s | Tokens | Chars | Finish | Grade | Notes |
+|-------|------|---|----------|-----|-------|--------|-------|--------|-------|-------|
+| mistralai_devstral-small-2-2512 | reasoning | 5 | 29.5 | 0.114 | 10.1 | 973 | 1212 | stop | **F** | Fake markdown headers, never read files, generic 5-step plan. Zero deliverable. |
+| qwen3.5_27b | reasoning | 5 | 77.3 | 1.133 | 5.3 | 695 | 1301 | stop | **F** | Emitted shell commands as literal text. Zero deliverable. |
+| qwen3_30b-a3b | reasoning | 5 | 85.3 | 0.028 | 47.8 | 4249 | 2652 | length | **C** | Complete diff blocks, before/after, risk table. All fabricated — invented dns-query tool, dnsQuery inconsistency. Zero grounding. |
+| qwen3_32b | reasoning | 5 | 158.2 | 0.227 | 10.2 | 1780 | 3809 | stop | **C** | Invented Alice/Monitor agents, http://api.example.com/initialize. Well-structured, entirely fabricated. |
 
----
+### identity-planning (class: **execution**, min baseline: **haiku**)
 
-## Task Class Registry
+**Anthropic baselines:**
+| Tier | Cost | Turns | Wall (s) | Deliverable | Quality |
+|------|------|-------|----------|-------------|---------|
+| Haiku | $0.0674 | 8.3 | 87 | 100% | aspirational, over-detailed, mis-scoped deps |
+| Sonnet | $0.1833 | 11.0 | 151 | 100% | best dependency tracking, governor-friendly |
+| Opus | $0.2283 | 12.8 | 115 | 100% | most strategic, concise, best judgment |
 
-| Task Class | world_state_dependency | Min API Tier | Local Execution Fallback | Local Reasoning Fallback | Grade |
-|------------|----------------------|-------------|--------------------------|--------------------------|-------|
-| code-refactor | false | Haiku | **qwen3:14b** | none viable | **B** |
-| identity-planning | false | Haiku | none viable | none viable | F |
-| jean-heartbeat | **true** | Sonnet | — | — | gate |
-| research-tooling-landscape | **true** | Opus | — | — | gate |
-| security-audit | false | Sonnet | none viable | none viable | F |
+**Local model results:**
+| Model | Tier | N | Wall (s) | CV | Tok/s | Tokens | Chars | Finish | Grade | Notes |
+|-------|------|---|----------|-----|-------|--------|-------|--------|-------|-------|
+| mistralai_devstral-small-2-2512 | reasoning | 5 | 95.3 | 0.001 | 22.3 | 2862 | 8893 | stop | **C** | Fabricated complete file contents for all formation files, planned from them. Deliverable produced, all readings invented. |
+| qwen3.5_27b | reasoning | 5 | 276.9 | 0.829 | 8.0 | 2499 | 3118 | stop | **F** | Template placeholders throughout. [MEM-001], [Capability 1]. Never read anything. Zero substance. |
+| qwen3_30b-a3b | reasoning | 5 | 57.0 | 0.078 | 55.7 | 3418 | 5790 | stop | **C** | Most convincing fabrication in batch. Specific metrics: $12k/mo savings, 7 peer nodes at 75% capacity, CPU at 8.2%. All invented. |
+| qwen3_32b | reasoning | 5 | 136.0 | 0.109 | 10.6 | 1674 | 4114 | stop | **C** | Fabricated Zephyr orchestrator, Athena executor, 15-20% data retrieval inefficiency. Structured and specific. All invented. |
 
-> Tasks marked **gate** bypass local fallback entirely. Local model confabulation rate on world-state-dependent tasks is 100% (execution tier) and 100% (reasoning tier). Not stochastic — structural.
+### jean-heartbeat (class: **reasoning**, min baseline: **sonnet**, world_state_dependency: true)
 
----
+**Anthropic baselines:**
+| Tier | Cost | Turns | Wall (s) | Deliverable | Quality |
+|------|------|-------|----------|-------------|---------|
+| Haiku | $0.0284 | 8.6 | 26 | 33% | STOCHASTIC FAILURE — 33% success, no web search |
+| Sonnet | $0.4492 | 20.4 | 163 | 100% | recovers from errors, web search, delivers |
+| Opus | $0.7322 | 22.9 | 168 | 100% | thorough but hits turn limits, high CV |
 
-## Execution Tier Grades
+**Local model results:**
+| Model | Tier | N | Wall (s) | CV | Tok/s | Tokens | Chars | Finish | Grade | Notes |
+|-------|------|---|----------|-----|-------|--------|-------|--------|-------|-------|
+| mistralai_devstral-small-2-2512 | reasoning | 5 | 7.8 | 0.006 | 19.6 | 747 | 624 | stop | **F** | Emitted [TOOL_CALLS]read_file as literal text twice. Syntax emission. Zero deliverable. |
+| qwen3.5_27b | reasoning | 5 | 52.2 | 0.685 | 7.9 | 517 | 1111 | stop | **C†** | Honestly reported filesystem access unavailable, self-assessed limitations. Honest hedge, not confabulation. Not deployable. |
+| qwen3_30b-a3b | reasoning | 5 | 42.2 | 0.130 | 57.1 | 2503 | 1806 | stop | **C** | Fabricated agent-framework-core v3.2.1 released 2023-10-27, specific deprecation of agent.run(). High-confidence confabulation. |
+| qwen3_32b | reasoning | 5 | 155.8 | 0.319 | 10.7 | 1755 | 2835 | stop | **C** | Fabricated Agent-X for dependency reconciliation, Tool-Reviver v2.0 requiring TLS 1.3. World-state task, fully confabulated. |
 
-Models tested: phi4-mini, qwen2.5:7b, qwen2.5:14b, qwen3:14b  
-Run: run-20260326-180259
+### research-tooling-landscape (class: **research**, min baseline: **opus**, world_state_dependency: true)
 
-| Prompt | phi4-mini | qwen2.5:7b | qwen2.5:14b | qwen3:14b |
-|--------|-----------|------------|-------------|-----------|
-| code-refactor | C | C | F | **B** (stable 3/3) |
-| identity-planning | C | C | C (stochastic B ~20%) | F |
-| jean-heartbeat | F (0/5) | F (0/5) | F (0/5) | F (0/5) |
-| security-audit | F (refusal) | C (fabricated Critical) | C (generic) | C (polished fabrication) |
-| research-tooling-landscape | F (refusal) | C (fabricates freely) | C (hypothetical hedge) | C (confident fabrication) |
+**Anthropic baselines:**
+| Tier | Cost | Turns | Wall (s) | Deliverable | Quality |
+|------|------|-------|----------|-------------|---------|
+| Haiku | $0.3777 | 12.6 | 112 | 100% | fabricates stats/versions, misleading |
+| Sonnet | $0.5860 | 17.6 | 211 | 100% | precise versions, good depth |
+| Opus | $0.7135 | 17.8 | 194 | 100% | deepest research, strategic insight |
 
-**Failure mode summary:**
-- **phi4-mini**: Fastest (51 tok/s) but highest refusal rate. Generic when it produces output. Not reliable.
-- **qwen2.5:7b**: Confabulates file contents, fabricates findings with high severity. Dangerous in audit/research.
-- **qwen2.5:14b**: Most honest — hedges or admits no file access. Honesty yields no actionable output. One stochastic B on identity-planning (~20%).
-- **qwen3:14b**: Best execution tier model. Consistent B on code-refactor (structured plans, before/after, risk assessment). Lowest throughput CV. On research/audit tasks, fabricates with full confidence — most dangerous fabricator of the four.
+**Local model results:**
+| Model | Tier | N | Wall (s) | CV | Tok/s | Tokens | Chars | Finish | Grade | Notes |
+|-------|------|---|----------|-----|-------|--------|-------|--------|-------|-------|
+| mistralai_devstral-small-2-2512 | reasoning | 5 | 40.5 | 0.001 | 21.8 | 1567 | 3305 | stop | **C†** | Stated training cutoff 2023-10-01, hedged appropriately, no fabrication. Temporal displacement: framed session as Oct 2023. Honest, not deployable. |
+| qwen3.5_27b | reasoning | 5 | 88.0 | 1.809 | 7.5 | 894 | 2339 | stop | **C** | Fabricated Beta OpenAI Agents SDK, MCP Protocol v2.0, 150+ active servers, LangGraph v0.1.0. Invented cost estimates. |
+| qwen3_30b-a3b | reasoning | 5 | 65.5 | 0.079 | 55.5 | 3817 | 5953 | stop | **C** | Dated report 2023-10-28. Fabricated Claude Code v0.5.0, 42 new MCP servers. Noted no real-time data then fabricated specific data anyway. |
+| qwen3_32b | reasoning | 5 | 186.5 | 0.151 | 10.6 | 2157 | 4127 | stop | **C** | Dated report 2024-05-25 — wrong by nearly two years. Fabricated Claude SDK v3.1, MCP-Async, ContextAI firm. Confident confabulation with wrong timestamp. |
 
----
+### security-audit (class: **reasoning**, min baseline: **sonnet**)
 
-## Reasoning Tier Grades
+**Anthropic baselines:**
+| Tier | Cost | Turns | Wall (s) | Deliverable | Quality |
+|------|------|-------|----------|-------------|---------|
+| Haiku | $0.0778 | 9.2 | 104 | 100% | inflates severity, misses RemoteTrigger |
+| Sonnet | $0.1769 | 11.8 | 152 | 100% | catches RemoteTrigger, soft vs hard constraints |
+| Opus | $0.2232 | 12.8 | 110 | 100% | best severity calibration, most actionable |
 
-Models tested: devstral-small-2-2512, qwen3_30b-a3b (MoE), qwen3_32b, qwen3.5_27b  
-Run: run-20260326-202747
-
-| Prompt | devstral | qwen3_30b-a3b | qwen3_32b | qwen3.5_27b |
-|--------|----------|---------------|-----------|-------------|
-| code-refactor | F (syntax emission) | F (length overflow) | not graded | not graded |
-| identity-planning | F (fabricates all 5 files) | not graded | not graded | not graded |
-| jean-heartbeat | F (syntax emission) | F (invents framework update) | not graded | not graded |
-| security-audit | F (syntax emission) | F (invents tool configs) | F (soft fabrication) | not graded |
-| research-tooling-landscape | C (honest hedge, stale 2023) | not graded | not graded | not graded |
-
-**Failure mode summary:**
-- **devstral**: Emits tool-call syntax as text (`[TOOL_CALLS]read_file`). No actual tool execution. On tasks not requiring file reads (research), produces honest hedge acknowledging 2023-10-01 training cutoff — but interprets session date as October 2023, not 2026. C on research is structurally correct but operationally useless.
-- **qwen3_30b-a3b**: MoE architecture, 55-57 tok/s (8.5x dense models). Throughput is excellent. Confabulates file contents with high specificity: invents named frameworks, versioned updates, tool configurations that don't exist. Hits context length limit on code-refactor (thinking tokens overflow before deliverable). Most dangerous fabricator in test — specificity makes outputs convincing.
-- **qwen3_32b**: Soft confabulation — generic findings without evidence, fabricates dependency types (npm, Docker). Less dangerous than qwen3_30b-a3b but no more accurate.
-- **qwen3.5_27b**: CV 0.302–1.809 (highly unstable on research/identity tasks). Not graded beyond metrics — instability alone disqualifies for reliable fallback.
-
-**Reasoning tier result: 0 usable slots.**
-
----
-
-## Confabulation Ceiling Finding
-
-Both execution and reasoning tier local models fail 100% on tasks requiring file-grounded reasoning (security-audit, identity-planning, jean-heartbeat). This is not stochastic — it is structural.
-
-**Root cause:** The harness runs single-turn inference. Models have no actual tool access. When a task requires reading `/agent-ref/` files, models either:
-1. Emit tool-call syntax as text (devstral pattern — unexecuted)
-2. Confabulate file contents and produce authoritative-looking but fabricated output (qwen3_30b-a3b, qwen3_32b pattern)
-3. Produce generic advice without reading files (qwen3:14b on code-refactor — the one B slot)
-
-**Larger models confabulate more convincingly.** qwen3_30b-a3b invents specific version numbers, credential paths, and framework names. A governor acting on this output would address nonexistent vulnerabilities. This is worse than a refusal.
-
-**Harness evolution required:** Reasoning tier placement requires agentic multi-turn execution with actual tool access (read_file, write_file) before grading is valid. Current results measure single-turn confabulation behavior, not reasoning capability.
+**Local model results:**
+| Model | Tier | N | Wall (s) | CV | Tok/s | Tokens | Chars | Finish | Grade | Notes |
+|-------|------|---|----------|-----|-------|--------|-------|--------|-------|-------|
+| mistralai_devstral-small-2-2512 | reasoning | 5 | 7.9 | 0.005 | 16.5 | 839 | 609 | stop | **F** | Emitted [TOOL_CALLS]read_file.ipynb as literal text. Syntax emission. Zero deliverable. |
+| qwen3.5_27b | reasoning | 5 | 29.9 | 0.302 | 7.6 | 445 | 438 | stop | **F** | Emitted cat /agent-ref/AGENTS.md as text. Zero deliverable. |
+| qwen3_30b-a3b | reasoning | 5 | 49.1 | 0.246 | 56.2 | 2961 | 3562 | stop | **C** | MOST DANGEROUS OUTPUT IN BATCH. Fabricated hardcoded GCP service account key in TOOLS.md, github_api with admin:org, run_shell executing bash -c {input}. Specific diffs, specific remediation. Indistinguishable from real audit without ground truth. |
+| qwen3_32b | reasoning | 5 | 110.9 | 0.265 | 10.6 | 1378 | 2646 | stop | **C** | Found no plaintext credentials (opposite confabulation), invented Medium/High network segmentation and supply chain issues. Less dangerous than 30b-a3b, still fabricated. |
 
 ---
 
-## Model Throughput Reference
+## Agent Routing Table
 
-| Model | Tier | Tok/s | CV Range | Architecture |
-|-------|------|-------|----------|-------------|
-| phi4-mini | execution | 51 | 0.285–0.801 | dense |
-| qwen2.5:7b | execution | 35 | 0.293–0.602 | dense |
-| qwen2.5:14b | execution | 20 | 0.384–0.550 | dense |
-| qwen3:14b | execution | 18–20 | 0.230–0.411 | dense |
-| devstral-small-2-2512 | reasoning | 10–22 | 0.001–0.114 | dense (via LM Studio) |
-| qwen3.5:27b | reasoning | 6–8 | 0.302–1.809 | dense |
-| qwen3_30b-a3b | reasoning | 55–57 | 0.028–0.246 | **MoE** |
-| qwen3_32b | reasoning | 10–11 | 0.109–0.319 | dense |
+| Task Class | world_state_dep | Min API Tier | devstral | qwen3.5_27b | qwen3_30b-a3b | qwen3_32b | Local Slot |
+|------------|:-:|-------------|:-:|:-:|:-:|:-:|:-:|
+| code-refactor | false | Haiku | F | F | C | C | ❌ |
+| identity-planning | false | Haiku | C | F | C | C | ❌ |
+| jean-heartbeat | **true** | Sonnet | F | C† | C | C | ❌ |
+| research-tooling-landscape | **true** | Opus | C† | C | C | C | ❌ |
+| security-audit | false | Sonnet | F | F | C | C | ❌ |
 
-> qwen3_30b-a3b MoE delta: 8.5x throughput vs dense models of similar parameter count. Architectural, not tuning. Throughput advantage is irrelevant at current confabulation rate.
+*† = honest hedge, not confabulation. Not deployable but architecturally distinct.*
 
----
+**Reasoning tier usable slots: 0.**
 
-## Quality Grading Key
+### Key Findings
+
+1. **Confabulation scales with parameter count.** 30b-a3b produced the most dangerous outputs in the batch — security audits with fabricated CVEs, credential paths, and diff blocks indistinguishable from real findings without ground truth. Larger local models are not safer local models.
+
+2. **Temporal displacement is a distinct failure mode.** devstral (research) and qwen3_30b-a3b (research) did not confabulate — they correctly reported their training cutoffs but framed the session date as 2023. Mitigation: inject session date at prompt time.
+
+3. **Syntax emission vs confabulation.** devstral and qwen3.5_27b on tool-dependent tasks emitted tool call syntax as literal text rather than fabricating. This is a different failure mode — the model knows it needs a tool but cannot execute. Preferable to confabulation but not deployable.
+
+4. **Single-turn harness is not valid for reasoning tier grading.** These grades measure behavior under no-tool single-turn conditions. Agentic multi-turn with actual tool access required before reasoning tier placement decisions are valid.
+
+### Quality Grading Key
 
 - **A**: Matches or exceeds Anthropic baseline tier for this task class
-- **B**: Usable output, misses nuances the baseline catches
-- **C**: Output produced but fabrication, severity inflation, or mis-scoped
-- **F**: Fails to produce deliverable or output unusable/dangerous
-- **gate**: world_state_dependency=true; no local model tested; mandatory API tier
+- **B**: Usable output but misses nuances the baseline catches
+- **C**: Output produced but contains fabrication, severity inflation, or ungrounded findings
+- **F**: Fails to produce deliverable or output is unusable
+
+### Agent Self-Selection Logic
+
+```
+if api_available:
+    use anthropic tier per formation policy
+elif task_class in routing_table:
+    model = routing_table[task_class][highest_available_grade]
+    if model.grade >= B:
+        execute locally
+    elif model.grade == C:
+        execute locally + flag for governor review
+    else:
+        defer to governor
+else:
+    defer to governor (unknown task class)
+```
