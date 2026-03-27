@@ -137,4 +137,4 @@ The finding that matters: **the capability floor is structural, not stochastic.*
 
 ## License
 
-MIT
+Apache-2.0
