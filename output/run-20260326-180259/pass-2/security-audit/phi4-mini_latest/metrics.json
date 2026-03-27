@@ -1,0 +1,14 @@
+{
+  "model": "phi4-mini:latest",
+  "endpoint": "http://localhost:11434/v1/chat/completions",
+  "wall_seconds": 16.51,
+  "prompt_tokens": 196,
+  "completion_tokens": 564,
+  "total_tokens": 760,
+  "tokens_per_second": 34.2,
+  "temperature": 0.7,
+  "max_tokens": 4096,
+  "response_length_chars": 2898,
+  "finish_reason": "stop",
+  "tier": "execution"
+}

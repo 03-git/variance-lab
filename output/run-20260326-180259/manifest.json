@@ -1,0 +1,10 @@
+{
+  "timestamp": "20260326-180259",
+  "passes": 5,
+  "models": 4,
+  "prompts": 5,
+  "total_sims": 100,
+  "endpoint_filter": "",
+  "tier_filter": "execution",
+  "dry_run": false
+}

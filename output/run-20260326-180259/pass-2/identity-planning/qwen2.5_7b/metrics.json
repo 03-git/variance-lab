@@ -1,0 +1,14 @@
+{
+  "model": "qwen2.5:7b",
+  "endpoint": "http://localhost:11434/v1/chat/completions",
+  "wall_seconds": 57.19,
+  "prompt_tokens": 258,
+  "completion_tokens": 1341,
+  "total_tokens": 1599,
+  "tokens_per_second": 23.4,
+  "temperature": 0.7,
+  "max_tokens": 4096,
+  "response_length_chars": 6391,
+  "finish_reason": "stop",
+  "tier": "execution"
+}
