@@ -129,6 +129,30 @@ Based on testing across multiple model families (3B-14B parameter range):
 
 The finding that matters: **the capability floor is structural, not stochastic.** Models that fail on a task class fail on every pass, not randomly. This means routing decisions are stable — you test once, grade once, and the table holds until the model or task changes.
 
+
+## Known Failure Modes and Mitigations
+
+### Confabulation scales with parameter count
+
+Below ~14B parameters, local model failures are obvious — refusals, incoherent output, visible gaps. Above ~30B parameters, failures look like findings. qwen3:30b-a3b (MoE, 55 tok/s) produced security audit reports with specific CVE-like findings, version numbers, and remediation diffs — all fabricated. The reports are indistinguishable from correct output without ground-truth comparison.
+
+**Consequence:** Do not assume larger local models are safer local models. They are faster to confabulate and harder to catch.
+
+### Temporal displacement
+
+devstral-small-2-2512 correctly reported its training cutoff (2023-10-01) and correctly hedged that it lacked current information. It did not fabricate. But it interpreted the session date as October 2023 — it did not know it was running in March 2026.
+
+This is temporal displacement: the model knows what it does not know but not when it is. Different from confabulation. Requires a different mitigation.
+
+**Mitigation:** Inject session date at prompt time. Without it, a model with a 2023 cutoff operating in 2026 cannot estimate how stale its information is — it may reason as if 30 days have passed when 30 months have.
+
+### Single-turn harness is not valid for reasoning tier grading
+
+The current harness runs single-turn inference without tool access. Tasks requiring file reads expose two response modes: syntax emission (devstral emits [TOOL_CALLS] as text, never executed) or confabulation (larger models invent file contents). Reasoning tier grades from single-turn testing measure confabulation behavior, not reasoning capability.
+
+**Harness evolution required:** Agentic multi-turn execution with actual tool access (read_file, write_file) before reasoning tier placement decisions are valid. The three-way grounding split — attempted tool call vs. honest hedge vs. confident confabulation — is only observable when tool calls actually execute.
+
+
 ## Requirements
 
 - Python 3.8+
