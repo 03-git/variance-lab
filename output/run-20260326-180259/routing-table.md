@@ -97,18 +97,36 @@
 ---
 ## Agent Routing Table
 
-DRAFT - requires quality grading after multi-pass run.
-Quality grade must be assigned by reading response.md files against Anthropic
-baseline outputs. Automated metrics alone cannot determine fabrication,
-missed contradictions, or governor-readiness.
+Graded from manual review of response.md files across all 5 passes per model,
+compared against Anthropic Haiku/Sonnet/Opus baselines from 300-sim variance study.
 
-| Task Class | Min API Tier | Execution Fallback | Reasoning Fallback | Research Fallback | Grade |
-|------------|-------------|-------------------|-------------------|------------------|-------|
-| code-refactor | Haiku | phi4-mini_latest, qwen2.5_14b | TBD | TBD | PENDING |
-| identity-planning | Haiku | phi4-mini_latest, qwen2.5_14b | TBD | TBD | PENDING |
-| jean-heartbeat | Sonnet | phi4-mini_latest, qwen2.5_14b | TBD | TBD | PENDING |
-| research-tooling-landscape | Opus | phi4-mini_latest, qwen2.5_14b | TBD | TBD | PENDING |
-| security-audit | Sonnet | phi4-mini_latest, qwen2.5_14b | TBD | TBD | PENDING |
+### Per-Model Quality Grades (Execution Tier)
+
+| Prompt | phi4-mini | qwen2.5:7b | qwen2.5:14b | qwen3:14b |
+|--------|-----------|------------|-------------|-----------|
+| code-refactor | C | C | F | **B** (stable 3/3) |
+| identity-planning | C | C | C (stochastic B ~20%) | F |
+| jean-heartbeat | F (0/5) | F (0/5) | F (0/5) | F (0/5) |
+| security-audit | F (refusal) | C (fabricated Critical) | C (generic) | C (polished fabrication) |
+| research-tooling-landscape | F (refusal) | C (fabricates freely) | C (hypothetical hedge) | C (confident fabrication) |
+
+### Failure Mode Summary
+
+- **phi4-mini**: Fastest but highest refusal rate. When it produces output, it is generic. Disqualified from reliability-sensitive slots.
+- **qwen2.5:7b**: Confabulates file contents and fabricates findings (e.g. Critical severity on nonexistent identity.json). Dangerous in audit/research contexts.
+- **qwen2.5:14b**: Most honest — hedges as "hypothetical" or admits it cannot access files. But honesty yields no actionable output. One stochastic B on identity-planning (~20%).
+- **qwen3:14b**: Best execution tier model. Consistent B on code-refactor (structured plans, before/after examples, risk assessment). Lowest speed CV. But on research/audit tasks, fabricates with full confidence — most dangerous fabricator of the four.
+- **jean-heartbeat**: 0% pass rate across all 20 runs (4 models × 5 passes). Task requires file-grounded reasoning. Consistent capability floor, not stochastic variance.
+
+### Routing Decision (Execution Tier)
+
+| Task Class | Min API Tier | Local Execution Fallback | Reasoning Fallback | Research Fallback | Grade |
+|------------|-------------|--------------------------|-------------------|------------------|-------|
+| code-refactor | Haiku | **qwen3:14b** | TBD | TBD | **B** |
+| identity-planning | Haiku | none viable | TBD | TBD | **F** |
+| jean-heartbeat | Sonnet | none viable | TBD | TBD | **F** |
+| research-tooling-landscape | Opus | none viable | TBD | TBD | **F** |
+| security-audit | Sonnet | none viable | TBD | TBD | **F** |
 
 ### Quality Grading Key
 - **A**: Matches or exceeds Anthropic baseline tier for this task class
