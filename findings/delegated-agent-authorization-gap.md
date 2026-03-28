@@ -1,7 +1,7 @@
 ---
 title: Delegated Agent Authorization Gap
 date: 2026-03-28
-source: production empirical (formation parallel research across 3 nodes)
+source: production empirical
 domain:
   - agent-authorization
   - oauth
@@ -14,9 +14,6 @@ keywords:
   - delegated agent authorization
   - OAuth agent access
   - agentic credential
-  - KEYMASTER
-  - credential subtraction
-  - via negativa security
   - RFC 8628 device flow
   - GNAP RFC 9635
   - CIBA OpenID
@@ -30,7 +27,7 @@ keywords:
 related_findings:
   - "variance-lab finding 5: instruction-based constraints do not override capability"
   - "variance-lab finding 6: cost inversion - dumber model + capability subtraction beats smarter model + instruction"
-methodology: parallel dispatch to 3 nodes (Rousseau/Jean/Emile) via Claude CLI on Max subscription, each researching a domain vertical
+methodology: parallel research across domain verticals
 ---
 
 # Delegated Agent Authorization Gap
@@ -112,19 +109,6 @@ No standard exists. Closest building blocks:
 3. **Liability framework** - loss allocation when agent acts within/outside scope
 4. **Real-time revocation** - OCSP-like for agent credentials
 5. **Cryptographic audit trail** - proof that specific agent took specific action under specific delegation
-
-## Empirical Validation: KEYMASTER v0
-
-This finding was validated in production on the same day it was researched. A 3-node formation (Rousseau/Jean/Emile) required cross-node SSH dispatch via Discord.
-
-| Approach | Cost/Call | Result |
-|----------|----------|--------|
-| Haiku + SSH credentials available | $0.41 | Failed (could not resolve SSH alias) |
-| Sonnet + SSH credentials available | $0.30-0.55 | Worked but ignored AGENTS.md instructions, SSHed directly |
-| Sonnet + AGENTS.md "do not SSH" instruction | $0.36 | Ignored instruction, SSHed anyway |
-| **Haiku + credential subtraction (KEYMASTER v0)** | **$0.02** | **Forced through governed skill invocation. Correct path.** |
-
-**Conclusion:** Instruction-based constraints do not override capability in frontier models. The only reliable constraint is capability subtraction - removing the credential from the agent reachable environment. This is the same pattern needed at internet scale: remove human-presence checks when machine-readable delegation exists; remove credentials from agents that should not hold them.
 
 ## Timeline Estimate
 
