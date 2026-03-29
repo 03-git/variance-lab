@@ -73,4 +73,13 @@ The question for any enterprise: do you want one agent reading every document in
 
 Sweet spot: 5-10 concurrent contexts on 3 nodes. At 10, rate limiting begins. At 15, contention overhead exceeds parallelism gain. At 20, account is fully saturated.
 
+Physical node distribution affects rate limiting:
+
+| Contexts | Nodes | Time | Successful |
+|----------|-------|------|-----------|
+| 10 | 3 nodes | 30s | 7/10 |
+| 10 | 1 node | 16s | 0/10 |
+
+Same account, same context count. Multi-node gets 7/10 results through. Single-node gets 0/10. The rate limiter is per-account but source IP distribution affects throughput. More physical nodes is not just parallelism — it is rate limit arbitrage. Direct infrastructure relevance: more machines per subscription equals more throughput, not just faster execution.
+
 All three rows are measured on identical task sets (10 tasks, 9 source files). Adding parallel contexts on the same physical nodes continues to reduce wall clock time because per-context task scope shrinks. Further scaling beyond 5 contexts has not been tested and would be subject to rate limits, file distribution latency, and task dependency chains.
