@@ -60,11 +60,4 @@ The question for any enterprise: do you want one agent reading every document in
 
 ## Scaling projection
 
-| Nodes | Estimated time (10 tasks) | Estimated time (100 tasks) |
-|-------|--------------------------|---------------------------|
-| 1 | 126s | ~1,260s (21 min) |
-| 3 | 65s | ~420s (7 min) |
-| 10 | ~20s | ~126s (2 min) |
-| 100 | ~13s | ~13s |
-
-Time approaches the duration of the single longest task as node count increases. This is standard parallel computing -- the novelty is applying it to LLM agent execution where the industry default is single-context.
+Only the 1-node and 3-node rows are empirically measured. Further scaling is hypothetical and would be subject to: rate limits per account, file distribution latency, result aggregation overhead, task dependency chains that resist parallelism, and uneven task duration. Do not cite the projection without additional empirical runs at higher node counts.
