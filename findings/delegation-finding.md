@@ -62,10 +62,15 @@ The question for any enterprise: do you want one agent reading every document in
 
 ## Empirical scaling data
 
-| Contexts | Nodes | Wall clock | vs Inline |
-|----------|-------|-----------|-----------|
-| 1 (inline) | 1 | 126s | baseline |
-| 3 (delegated) | 3 | 65s | 48% |
-| 5 (delegated) | 3 | 43s | 34% |
+| Contexts | Nodes | Wall clock | Successful | Rate-limited | vs Inline |
+|----------|-------|-----------|-----------|--------------|-----------|
+| 1 (inline) | 1 | 126s | 10/10 | 0 | baseline |
+| 3 | 3 | 65s | 10/10 | 0 | 48% |
+| 5 | 3 | 43s | 10/10 | 0 | 34% |
+| 10 | 3 | 30s | 7/10 | 3 | 24% |
+| 15 | 3 | 48s | 13/15 | 2 | 38% |
+| 20 | 3 | 25s | 0/20 | 20 | wall |
+
+Sweet spot: 5-10 concurrent contexts on 3 nodes. At 10, rate limiting begins. At 15, contention overhead exceeds parallelism gain. At 20, account is fully saturated.
 
 All three rows are measured on identical task sets (10 tasks, 9 source files). Adding parallel contexts on the same physical nodes continues to reduce wall clock time because per-context task scope shrinks. Further scaling beyond 5 contexts has not been tested and would be subject to rate limits, file distribution latency, and task dependency chains.
