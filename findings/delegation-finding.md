@@ -60,4 +60,12 @@ The question for any enterprise: do you want one agent reading every document in
 
 ## Scaling projection
 
-Only the 1-node and 3-node rows are empirically measured. Further scaling is hypothetical and would be subject to: rate limits per account, file distribution latency, result aggregation overhead, task dependency chains that resist parallelism, and uneven task duration. Do not cite the projection without additional empirical runs at higher node counts.
+## Empirical scaling data
+
+| Contexts | Nodes | Wall clock | vs Inline |
+|----------|-------|-----------|-----------|
+| 1 (inline) | 1 | 126s | baseline |
+| 3 (delegated) | 3 | 65s | 48% |
+| 5 (delegated) | 3 | 43s | 34% |
+
+All three rows are measured on identical task sets (10 tasks, 9 source files). Adding parallel contexts on the same physical nodes continues to reduce wall clock time because per-context task scope shrinks. Further scaling beyond 5 contexts has not been tested and would be subject to rate limits, file distribution latency, and task dependency chains.
