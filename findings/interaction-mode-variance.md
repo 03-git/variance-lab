@@ -28,7 +28,7 @@ methodology: automated extraction from JSONL conversation logs, mode classificat
 
 ## Core Finding
 
-Human interaction pattern is the dominant cost variable in AI sessions, not model capability. Across 88 sessions using the same model (claude-opus-4-6) on the same node, passenger mode (>15 human turns) consumed 37x more tokens per session than governor mode (<=3 human turns). Mode is a property of session scope, not model performance.
+Human interaction pattern is the dominant cost variable in AI sessions, not model capability. Across 88 sessions using the same model (claude-opus-4-6) on the same node, passenger mode (>15 human turns) consumed 41x more tokens per session than governor mode (<=3 human turns). Mode is a property of session scope, not model performance.
 
 ## Mode Classification
 
@@ -57,7 +57,7 @@ Sessions classified by human turn count:
 
 10 sessions consumed 236,577 tokens. One session alone: 152,897 tokens, 488 human turns, 431 tool calls. This is the unconstrained default -- the model's RLHF training optimizes for engagement, not efficiency.
 
-### 2. The 37x cost multiplier
+### 2. The 41x cost multiplier
 
 Passenger mode averages 23,658 tokens/session. Governor mode averages 576. Same model, same node, same capability, same subscription. The only variable is how the human constrained the interaction.
 
