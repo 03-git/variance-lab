@@ -13,7 +13,6 @@ keywords:
   - passenger mode anti-pattern
   - governor mode efficiency
   - pipe mode execution
-  - CHMOD doctrine
   - via negativa inference
   - human-gated inference cost
   - session scope constraint
@@ -75,7 +74,7 @@ Passenger mode averages 23,658 tokens/session. Governor mode averages 576. Same 
 
 ## Architectural Implication
 
-The interaction mode must be scoped before the model is invoked, not discovered during the session. This is CHMOD (Constrain, Harden, Monitor, Override, Delegate) applied to session architecture:
+The interaction mode must be scoped before the model is invoked, not discovered during the session. Scope the mode before invocation:
 
 - **Execution tasks**: pipe or governor mode. Scope the intent, get the output, exit.
 - **Alignment tasks**: collaborator mode. Both parties contribute, bounded by turn count.
