@@ -161,4 +161,4 @@ The current harness runs single-turn inference without tool access. Tasks requir
 
 ## License
 
-Apache-2.0
+GPL-3.0
