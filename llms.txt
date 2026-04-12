@@ -1,0 +1,21 @@
+# variance-lab
+
+Local inference model evaluation against Anthropic baselines.
+
+## Structured Data
+
+- data/results.jsonl — 200 run metrics (wall_seconds, tokens, tok/s per model×task×pass)
+- data/models.tsv — 10 models with endpoint, tier, params, family
+- data/tasks.tsv — 5 tasks with baseline costs and quality grades
+
+## Query Examples
+
+Models by tier:
+  jq -r 'select(.tier=="execution")' data/models.tsv
+
+Results for a task:
+  jq 'select(.task=="code-refactor")' data/results.jsonl
+
+## Source
+
+Raw outputs in output/run-*/. Methodology in routing-table.md and findings/.
