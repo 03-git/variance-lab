@@ -1,0 +1,11 @@
+model_id	display_name	endpoint	tier	param_size	param_active	context_window	family
+qwen2.5_7b	Qwen 2.5 7B	ollama	execution	7B	7B	32768	qwen
+phi4-mini_latest	Phi-4 Mini	ollama	execution	3.8B	3.8B	16384	phi
+qwen3_14b	Qwen 3 14B	ollama	execution	14B	14B	32768	qwen
+qwen2.5_14b	Qwen 2.5 14B	ollama	execution	14B	14B	32768	qwen
+qwen3_30b-a3b	Qwen 3 30B A3B	ollama	reasoning	30B	3B	32768	qwen
+qwen3.5_27b	Qwen 3.5 27B	ollama	reasoning	27B	27B	32768	qwen
+qwen3_32b	Qwen 3 32B	ollama	reasoning	32B	32B	32768	qwen
+qwen3.5_35b-a3b	Qwen 3.5 35B A3B	ollama	research	35B	3B	32768	qwen
+deepseek-r1_32b	DeepSeek R1 32B	ollama	research	32B	32B	32768	deepseek
+llama3.3_70b	Llama 3.3 70B	ollama	research	70B	70B	131072	llama

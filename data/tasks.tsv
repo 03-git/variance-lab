@@ -1,0 +1,6 @@
+task	class	min_baseline	ideal_baseline	min_cost	min_wall_s	min_deliverable_rate	ideal_cost	ideal_wall_s	ideal_deliverable_rate	haiku_quality	sonnet_quality	opus_quality
+code-refactor	execution	haiku	sonnet	0.0907	113	1.0	0.197	157	1.0	verbose, misses contradictions, no fabrication	catches contradictions, governor-ready format	best architecture, concise, all issues caught
+identity-planning	execution	haiku	sonnet	0.0674	87	1.0	0.1833	151	1.0	aspirational, over-detailed, mis-scoped deps	best dependency tracking, governor-friendly	most strategic, concise, best judgment
+security-audit	reasoning	sonnet	opus	0.1769	152	1.0	0.2232	110	1.0	inflates severity, misses RemoteTrigger	catches RemoteTrigger, soft vs hard constraints	best severity calibration, most actionable
+jean-heartbeat	reasoning	sonnet	sonnet	0.4492	163	1.0	0.4492	163	1.0	STOCHASTIC FAILURE - 33% success, no web search	recovers from errors, web search, delivers	thorough but hits turn limits, high CV
+research-tooling-landscape	research	opus	opus	0.7135	194	1.0	0.7135	194	1.0	fabricates stats/versions, misleading	precise versions, good depth	deepest research, strategic insight
