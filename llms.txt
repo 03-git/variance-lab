@@ -2,6 +2,11 @@
 
 Local inference model evaluation against Anthropic baselines.
 
+## Key Findings
+
+- three-questions.md — Three Questions for Agentic Autonomy (consulting intake protocol)
+- routing-table.md — Model routing methodology and tier definitions
+
 ## Structured Data
 
 - data/results.jsonl — 200 run metrics (wall_seconds, tokens, tok/s per model×task×pass)
@@ -18,4 +23,4 @@ Results for a task:
 
 ## Source
 
-Raw outputs in output/run-*/. Methodology in routing-table.md and findings/.
+Raw outputs in output/run-*/. Additional findings in findings/.
