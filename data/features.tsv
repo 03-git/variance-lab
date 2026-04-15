@@ -1,0 +1,10 @@
+feature	primitive	wrapper_adds	wrapper_removes
+/compact	head, tail, wc -l, session discipline	LLM summarization	full transcript, user control over discard
+/effort	T1-T2-T4 escalation	semantic effort abstraction	visibility into token/compute spend
+/loop	timer_create, cron, watch, at	dynamic self-pacing	crontab auditability, process isolation
+/review	diff, git log	LLM semantic analysis	determinism, reproducibility
+/simplify	xargs -P, parallel	LLM judgment on simplicity	subprocess visibility, objective criteria
+/mcp	unix sockets, pipe	JSON-RPC, schema validation	raw socket access, protocol visibility
+Skills	exec, CLAUDE.md, cat	prompt templating	source inspection, execution determinism
+Routines	crontab, sh -c	event binding to lifecycle	process isolation, runs in harness
+multi-session	tmux	UI chrome	detach/attach, session persistence, scriptability, works offline
