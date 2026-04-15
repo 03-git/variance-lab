@@ -8,15 +8,15 @@ Test results from native-tools-testing.md. Ran 2026-04-14 on Rousseau.
 |---------|---------|-----------|
 | effort | INVALIDATED | `--model` flag |
 | mcp | PRIMITIVE WINS | llama-server tool API |
+| loop | PRIMITIVE WINS | while/sleep |
+| skills | NOT JUSTIFIED | cat + CLAUDE.md |
+| review | MARGINALLY JUSTIFIED | diff + grep |
+| simplify | FEATURE JUSTIFIED | xargs -P + grep |
 | compact | BLOCKED | session discipline |
-| review | NOT TESTED | diff(1), git log |
-| simplify | NOT TESTED | xargs -P |
-| loop | NOT TESTED | cron, at |
-| routines | NOT TESTED | crontab |
-| skills | NOT TESTED | CLAUDE.md, exec |
 | multi-session | NOT TESTED | tmux |
+| routines | BLOCKED | crontab (needs harness) |
 
-**Score: 1 invalidated, 1 primitive wins, 1 blocked, 6 not tested.**
+**Score: 2 primitive wins, 1 invalidated, 1 feature justified, 1 marginally justified, 1 not justified, 1 blocked, 2 not tested.**
 
 **Structural finding:** Every feature wraps IPC, timers, or diff. Wrappers add LLM judgment, remove determinism and auditability.
 
@@ -91,6 +91,85 @@ tail -100 ~/.claude/projects/{project}/{uuid}.jsonl
 
 **Recommendation:** Run test during natural high-context session, not artificially constructed.
 
+### loop: PRIMITIVE WINS
+
+**Feature path:** `/loop` with 60s minimum interval. Tokens charged per wakeup. State in platform context.
+
+**Primitive path:** `while/sleep` loop.
+```bash
+while ! check_condition; do sleep 10; done
+```
+
+**Results:**
+```
+Primitive: 0 tokens, any interval, full log preserved, sovereign
+Feature:   1800 tokens/min, 60s min interval, state in platform
+```
+
+**Quality:** Primitive 1.0, Feature 0.4 (min interval constraint limits utility).
+
+**Conclusion:** Primitive wins. while/sleep is zero-cost, any interval, fully observable.
+
+### skills: NOT JUSTIFIED
+
+**Finding:** Skills ARE markdown files. The primitive `cat` works on them.
+
+**Primitive path:**
+```bash
+cat ~/.claude/plugins/**/SKILL.md  # 0.02s
+claude -p "$(cat template.md)"
+```
+
+**Feature path:** Skill tool loads same markdown with LLM inference overhead.
+
+**Falsification results:**
+- "Skills provide capability CLAUDE.md cannot express" → FALSE
+- "Template discovery faster than file glob" → FALSE (glob: 0.02s)
+
+**Conclusion:** Skills add indirection without capability gain. Store templates in files, cat them.
+
+### review: MARGINALLY JUSTIFIED
+
+**Primitive path:**
+```bash
+git diff --staged
+git log --oneline -5
+git diff --staged | grep -E '(password|secret|token)'
+```
+
+**Feature path:** `/review` with semantic analysis.
+
+**Falsification results:**
+- "human_effort > 5 min per 100 lines" → TRUE for shell scripts
+- "feature catches issue human missed" → INCONCLUSIVE
+- "primitive requires 3+ commands" → TRUE
+
+**True positives:** 3 (quoting bugs in shell)
+**False positives:** 1
+**Intent comprehension:** Feature 0.9, Primitive 0.5
+
+**Conclusion:** Feature justified for shell scripts where quoting/safety issues are subtle. Primitive sufficient for simple diffs.
+
+### simplify: FEATURE JUSTIFIED
+
+**Primitive path:**
+```bash
+grep -rn "pattern" . | sort | uniq -c | sort -rn  # find dupes
+find . -name "*.js" | xargs -P4 eslint            # parallel lint
+```
+Result: Found dupes, missed loop→map/reduce refactoring. 8 human minutes. Quality 0.8.
+
+**Feature path:** `/simplify`
+Result: 60% line reduction, caught semantic patterns (loop→reduce, dead code, reuse opportunities). 0 human minutes. Quality 1.0.
+
+**Cost delta:**
+```
+Feature: 1200 in + 800 out tokens, 39s wall
+Primitive: 0 tokens, 8 min human effort
+```
+
+**Conclusion:** Feature justified. Catches semantic patterns (loop refactoring, function reuse) that grep/sed cannot express. Human effort savings significant.
+
 ## Raw Data
 
 Results logged to: `~/human/variance-lab/data/feature-results.jsonl`
@@ -99,9 +178,9 @@ Test fixtures at: `~/human/variance-lab/feature-tests/`
 
 ## Next Steps
 
-1. Test remaining features (review, simplify, loop, routines, skills, multi-session)
-2. Run compact test during natural high-context session
-3. Update spec with effort correction
+1. Run compact test during natural high-context session
+2. Test multi-session (tmux vs sidebar) when opportunity arises
+3. Routines blocked until harness lifecycle events testable
 
 ## Sources
 
