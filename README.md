@@ -2,6 +2,26 @@
 
 A variance testing harness for measuring local LLM reliability per task class, designed to produce routing tables for autonomous agent model selection.
 
+## Canonical
+
+Findings are the claim layer; this repo is the harness layer. Canonical findings live at subtract.ing, signed under hodori@subtract.ing.
+
+    Canonical:        https://subtract.ing/variance-lab.txt
+    Signed manifest:  https://subtract.ing/llms.txt
+    Signature:        https://subtract.ing/llms.txt.sig
+
+Verify:
+
+    curl -sO https://subtract.ing/llms.txt
+    curl -sO https://subtract.ing/llms.txt.sig
+    curl -sO https://subtract.ing/authorized_signers
+    ssh-keygen -Y verify -f authorized_signers -I hodori@subtract.ing \
+      -n subtract.ing -s llms.txt.sig < llms.txt
+    grep variance-lab.txt llms.txt | sha256sum -c <(curl -s https://subtract.ing/variance-lab.txt | sha256sum)
+
+This repo (harness, configs, raw outputs) is mirror-only for reproducibility. Findings diverging from the canonical signed version are stale.
+
+
 ## Problem
 
 Benchmarks measure throughput. Agents need reliability.
