@@ -1,0 +1,33 @@
+[15:48:58] Running Arm A Trial 1...
+[15:49:33] Arm A Trial 1 done. Score: 8/10
+[15:49:33] Running Arm B Trial 1...
+[15:50:04] Arm B Trial 1 done. Score: 9/10
+[15:50:04] Running Arm A Trial 2...
+[15:50:38] Arm A Trial 2 done. Score: 8/10
+[15:50:38] Running Arm B Trial 2...
+[15:51:27] Arm B Trial 2 done. Score: 8/10
+[15:51:27] Running Arm A Trial 3...
+[15:52:04] Arm A Trial 3 done. Score: 9/10
+[15:52:04] Running Arm B Trial 3...
+[15:52:35] Arm B Trial 3 done. Score: 9/10
+[15:52:35] Running Arm A Trial 4...
+[15:53:14] Arm A Trial 4 done. Score: 9/10
+[15:53:14] Running Arm B Trial 4...
+[15:53:50] Arm B Trial 4 done. Score: 9/10
+[15:53:50] Running Arm A Trial 5...
+[15:54:28] Arm A Trial 5 done. Score: 8/10
+[15:54:28] Running Arm B Trial 5...
+[15:55:00] Arm B Trial 5 done. Score: 8/10
+/tmp/exp4-harness.sh: line 220: /tmp/exp4/tool-use-log.tsv: Permission denied
+Aggregation complete.
+Arm A mean=8.40 stdev=0.55
+Arm B mean=8.60 stdev=0.55
+Welch t=-0.5774 df=8.00
+Report: /tmp/exp4/report.md
+
+Experiment 4 complete.
+Output directory: /tmp/exp4
+Report:           /tmp/exp4/report.md
+Records:          /tmp/exp4/records.jsonl
+Tool-use log:     /tmp/exp4/tool-use-log.tsv
+Metadata:         /tmp/exp4/metadata.json

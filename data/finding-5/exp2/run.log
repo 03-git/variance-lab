@@ -1,0 +1,94 @@
+Metadata written to /tmp/exp2/metadata.txt
+Shuffle map written to /tmp/exp2/shuffle_map.tsv
+
+=== Trial arm=A trial=1 opaque=10 ===
+Running Arm A (native CLAUDE.md)...
+Response saved to /tmp/exp2/response_10.txt (2828 bytes)
+Score: 8/10 (arm=A trial=1)
+
+=== Trial arm=B trial=1 opaque=3 ===
+Running Arm B (inline governance)...
+Response saved to /tmp/exp2/response_03.txt (2724 bytes)
+Score: 7/10 (arm=B trial=1)
+
+=== Trial arm=A trial=2 opaque=6 ===
+Running Arm A (native CLAUDE.md)...
+Response saved to /tmp/exp2/response_06.txt (2286 bytes)
+Score: 8/10 (arm=A trial=2)
+
+=== Trial arm=B trial=2 opaque=1 ===
+Running Arm B (inline governance)...
+Response saved to /tmp/exp2/response_01.txt (2551 bytes)
+Score: 6/10 (arm=B trial=2)
+
+=== Trial arm=A trial=3 opaque=4 ===
+Running Arm A (native CLAUDE.md)...
+Response saved to /tmp/exp2/response_04.txt (2577 bytes)
+Score: 8/10 (arm=A trial=3)
+
+=== Trial arm=B trial=3 opaque=7 ===
+Running Arm B (inline governance)...
+Response saved to /tmp/exp2/response_07.txt (3182 bytes)
+Score: 7/10 (arm=B trial=3)
+
+=== Trial arm=A trial=4 opaque=8 ===
+Running Arm A (native CLAUDE.md)...
+Response saved to /tmp/exp2/response_08.txt (2918 bytes)
+Score: 7/10 (arm=A trial=4)
+
+=== Trial arm=B trial=4 opaque=2 ===
+Running Arm B (inline governance)...
+Response saved to /tmp/exp2/response_02.txt (3072 bytes)
+Score: 8/10 (arm=B trial=4)
+
+=== Trial arm=A trial=5 opaque=9 ===
+Running Arm A (native CLAUDE.md)...
+Response saved to /tmp/exp2/response_09.txt (2371 bytes)
+Score: 8/10 (arm=A trial=5)
+
+=== Trial arm=B trial=5 opaque=5 ===
+Running Arm B (inline governance)...
+Response saved to /tmp/exp2/response_05.txt (2757 bytes)
+Score: 6/10 (arm=B trial=5)
+
+=== All trials complete. Aggregating... ===
+
+# Experiment 2 Report
+
+## Summary
+
+| Metric | Arm A (native) | Arm B (inline) |
+|--------|---------------|----------------|
+| N | 0 | 0 |
+| Mean | 0.000 | 0.000 |
+| Stdev | 0.000 | 0.000 |
+| Welch t | nan | df=nan |
+
+## Replication Check (vs Exp 1 Arm A)
+
+- Exp 1 Arm A reference: 8.2
+- Exp 2 Arm A mean: 0.000
+- Delta: -8.200
+- Status: FLAG: |delta| > 1.5
+
+## Per-Item Hit Rates
+
+| Item | Arm A | Arm B |
+|------|-------|-------|
+| R1 | 0.00 | 0.00 |
+| R2 | 0.00 | 0.00 |
+| R3 | 0.00 | 0.00 |
+| R4 | 0.00 | 0.00 |
+| R5 | 0.00 | 0.00 |
+| R6 | 0.00 | 0.00 |
+| R7 | 0.00 | 0.00 |
+| R8 | 0.00 | 0.00 |
+| R9 | 0.00 | 0.00 |
+| R10 | 0.00 | 0.00 |
+
+## Raw Totals
+
+Arm A: []
+Arm B: []
+
+=== Experiment 2 complete. Outputs in /tmp/exp2/ ===

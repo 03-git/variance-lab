@@ -1,0 +1,13 @@
+numerator_mode	denominator_mode	ratio_mean_total	ratio_median_total	ratio_mean_outlier_removed
+pipe	governor	0.227	0.042	0.209
+pipe	collaborator	0.022	0.009	0.032
+pipe	passenger	0.004	0.002	0.004
+governor	pipe	4.405	23.654	4.781
+governor	collaborator	0.096	0.214	0.155
+governor	passenger	0.019	0.046	0.020
+collaborator	pipe	45.889	110.551	30.770
+collaborator	governor	10.418	4.674	6.436
+collaborator	passenger	0.198	0.216	0.128
+passenger	pipe	232.029	512.051	240.881
+passenger	governor	52.677	21.647	50.380
+passenger	collaborator	5.056	4.632	7.828

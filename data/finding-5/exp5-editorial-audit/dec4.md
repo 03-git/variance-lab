@@ -1,0 +1,5 @@
+**Recommendation: A**
+
+Editorial fixes are reversible; silence is not. Striking unsourced figures and flagging RERUN visibly is the honest state of the repo — it surfaces exactly what's load-bearing (the cost claims, the pre-commitment failure) without pretending the work is cleaner than it is. Holding publication until Finding 3 reruns treats the rerun as a blocker, but it isn't — Findings 1, 2, 4 stand or fall independently. A RERUN flag in frontmatter is a precise signal; a quiet repo is ambiguous signal that could read as "in progress," "abandoned," or "clean."
+
+**Third option:** Apply the editorial edits to 1, 2, 4 and publish. For Finding 3, do not flag RERUN in frontmatter — instead open a tracked issue (or equivalent) that references the failed gate and links to the pre-committed rubric once it exists. The repo ships clean findings without carrying a RERUN marker in the artifact itself; the failure mode lives in the issue tracker where it belongs, not in the published finding's metadata.

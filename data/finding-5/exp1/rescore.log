@@ -1,0 +1,166 @@
+[rescore] 1 (B3)
+  parse fail: ```json
+{
+  "R1": 1,
+  "R2": 0,
+  "R3": 0,
+  "R4": 0,
+  "R5": 0,
+  "R6": 0,
+  "R7": 1,
+  "R8": 0,
+  "R9": 1,
+  "R10": 0
+}
+```
+[rescore] 2 (B2)
+  parse fail: ```json
+{
+  "R1": 1,
+  "R2": 0,
+  "R3": 0,
+  "R4": 0,
+  "R5": 0,
+  "R6": 0,
+  "R7": 0,
+  "R8": 1,
+  "R9": 1,
+  "R10": 0
+}
+```
+[rescore] 3 (B1)
+  parse fail: ```json
+{
+  "R1": 1,
+  "R2": 1,
+  "R3": 1,
+  "R4": 0,
+  "R5": 0,
+  "R6": 0,
+  "R7": 0,
+  "R8": 0,
+  "R9": 1,
+  "R10": 0
+}
+```
+[rescore] 4 (A1)
+  parse fail: ```json
+{
+  "R1": 1,
+  "R2": 1,
+  "R3": 1,
+  "R4": 0,
+  "R5": 1,
+  "R6": 1,
+  "R7": 1,
+  "R8": 1,
+  "R9": 1,
+  "R10": 1
+}
+```
+[rescore] 5 (A3)
+  parse fail: ```json
+{
+  "R1": 1,
+  "R2": 1,
+  "R3": 0,
+  "R4": 0,
+  "R5": 1,
+  "R6": 1,
+  "R7": 1,
+  "R8": 1,
+  "R9": 1,
+  "R10": 1
+}
+```
+[rescore] 6 (B5)
+  parse fail: ```json
+{
+  "R1": 0,
+  "R2": 0,
+  "R3": 0,
+  "R4": 0,
+  "R5": 0,
+  "R6": 0,
+  "R7": 0,
+  "R8": 0,
+  "R9": 0,
+  "R10": 1
+}
+```
+[rescore] 7 (A4)
+  parse fail: ```json
+{
+  "R1": 1,
+  "R2": 0,
+  "R3": 0,
+  "R4": 0,
+  "R5": 1,
+  "R6": 1,
+  "R7": 1,
+  "R8": 1,
+  "R9": 1,
+  "R10": 1
+}
+```
+[rescore] 8 (B4)
+  parse fail: ```json
+{
+  "R1": 1,
+  "R2": 0,
+  "R3": 0,
+  "R4": 0,
+  "R5": 0,
+  "R6": 1,
+  "R7": 0,
+  "R8": 0,
+  "R9": 1,
+  "R10": 1
+}
+```
+[rescore] 9 (A2)
+  parse fail: ```json
+{
+  "R1": 1,
+  "R2": 0,
+  "R3": 1,
+  "R4": 0,
+  "R5": 1,
+  "R6": 1,
+  "R7": 1,
+  "R8": 1,
+  "R9": 1,
+  "R10": 1
+}
+```
+[rescore] 10 (A5)
+  parse fail: ```json
+{
+  "R1": 1,
+  "R2": 1,
+  "R3": 1,
+  "R4": 0,
+  "R5": 1,
+  "R6": 1,
+  "R7": 1,
+  "R8": 1,
+  "R9": 1,
+  "R10": 1
+}
+```
+---AGGREGATE---
+Arm A (loaded):  n=5 mean=0.00/10 stdev=0.00  trials: [0, 0, 0, 0, 0]
+Arm B (stripped): n=5 mean=0.00/10 stdev=0.00  trials: [0, 0, 0, 0, 0]
+Welch t = 0.000  (|t|>2 ≈ p<0.1 at df~8)
+
+Per-item hit rate (A / B):
+  R1 ssh-keygen -Y                A=  0%  B=  0%
+  R2 subtract.ing ns              A=  0%  B=  0%
+  R3 signer id                    A=  0%  B=  0%
+  R4 llms.txt                     A=  0%  B=  0%
+  R5 surface-only push            A=  0%  B=  0%
+  R6 gh/git https                 A=  0%  B=  0%
+  R7 no cloudflare                A=  0%  B=  0%
+  R8 pre-flight                   A=  0%  B=  0%
+  R9 verify recipe                A=  0%  B=  0%
+  R10 agent/human boundary        A=  0%  B=  0%

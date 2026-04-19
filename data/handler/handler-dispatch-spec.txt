@@ -1,0 +1,90 @@
+# handler.sh modifications — dispatch spec
+
+You are being given a standalone implementation task. No prior conversation context is assumed. Respond with ONLY the bash code requested, no commentary, no markdown fences, no explanation before or after.
+
+## Context
+
+`handler.sh` is a subtract.ing runtime file sourced into bash/zsh startup (hooks/bash.sh, hooks/zsh.sh). It already defines:
+
+- `SUBTRACT_DIR="$HOME/.subtract"` exported
+- `SUBTRACT_LOOKUP="$SUBTRACT_DIR/lookdown.tsv"` exported
+- `__subtract_handle` — called from `command_not_found_handle` (bash) and `command_not_found_handler` (zsh) to translate natural-language intents via lookdown.tsv and execute the resolved command
+- `__subtract_capture` — runs before each prompt via `PROMPT_COMMAND` (bash) or `precmd_functions` (zsh). Uses `fc -ln -1` to capture the last command into `SUBTRACT_LAST_OUTPUT`
+
+Function naming convention: `__subtract_*` prefix for internal helpers.
+
+Canonical log format spec: https://subtract.ing/session-log.spec.txt
+
+## Task 1: log writer
+
+Add a function `__subtract_log` that appends one TSV row per user input to a per-session log file. Called from the existing hooks:
+- `__subtract_handle` at end-of-invocation (intent case, `behavior` prefix `i:`)
+- pre-prompt hook (direct command case, `behavior` prefix `c:`)
+
+### Row format (tab-separated, no quoting):
+
+```
+timestamp<TAB>antecedent<TAB>behavior<TAB>consequence<TAB>next_behavior
+```
+
+- **timestamp**: ISO 8601 UTC, e.g. `2026-04-18T18:30:15Z`
+- **antecedent**: `cwd=REL;last=WORD;exit=CODE`
+  - `REL` = path relative to `$HOME` (prefix `~`), or `/` if outside
+  - `WORD` = first whitespace-separated word of previous user command (from `SUBTRACT_LAST_OUTPUT` or `fc -ln -1`); empty string if no prior command
+  - `CODE` = `$?` at hook fire (exit of previous command); `0` if session start
+- **behavior**: `{i|c|m}:raw_string`
+  - `i:` intent routed through lookdown (`__subtract_handle` path)
+  - `c:` direct command as-typed (pre-prompt path)
+  - `m:` reserved for readline-completed partials (leave `c:` if unclear, best-effort)
+  - any literal tab in raw_string must be escaped as `\t`
+- **consequence**: `exit_code:outcome:resolved`
+  - `exit_code` numeric if known post-execution; otherwise literal `pending`
+  - `outcome` starts as `pending`; deferred scan will resolve later
+  - `resolved` is the command actually executed (for `i:` case only); empty string otherwise
+- **next_behavior**: `none_yet` at write time; deferred scan fills later
+
+### Session file:
+
+```
+$SUBTRACT_DIR/logs/session-$$-<EPOCH_AT_SESSION_START>.tsv
+```
+
+Session start epoch captured once when handler.sh is sourced; used for all rows in this shell session.
+
+## Task 2: personal overlay read
+
+Modify `__subtract_handle` (or wherever lookdown is searched) to read `$SUBTRACT_DIR/lookdown.personal.tsv` first, falling through to `$SUBTRACT_LOOKUP` if no match. Overlay file uses the same format as lookdown.tsv:
+
+```
+glob_pattern<TAB>[tag]<TAB>command
+```
+
+(two-column rows without tag default to `[stdout]`, same as main lookdown).
+
+If overlay file does not exist, proceed as today.
+
+## Required behaviors
+
+1. Runs in bash 4+ AND zsh 5+. No bash-4-only features unless also valid in zsh.
+2. Creates `$SUBTRACT_DIR/logs/` if it does not exist.
+3. Concurrent append safety: rely on POSIX append atomicity for small writes (`printf >> file`); do not implement locking unless you believe it's required and explain why inline in a single comment.
+4. SIGINT mid-write must not leave partial rows. Use trap or ensure the printf is a single atomic call.
+5. Tab in command: escape `\t` → literal `\t` in behavior and resolved fields.
+6. If `fc -ln -1` or HISTFILE is unavailable, log the row with empty `last=` field; do not error.
+7. Do not leak helper variables into the user's shell (use `local` or equivalent).
+
+## Output format
+
+Respond with ONLY the bash code for the additions/modifications to handler.sh. No commentary, no markdown fences, no explanation.
+
+For new functions: provide complete function definitions.
+For modifications to existing functions: provide the complete replacement function with a leading comment `# changed: <brief what/why>`.
+For hook registration changes: provide the exact additions to PROMPT_COMMAND / precmd_functions / command_not_found_handle setup.
+
+## Reference
+
+Current handler.sh body (for integration context, especially the bodies of `__subtract_handle` and `__subtract_capture`):
+
+https://subtract.ing/runtime/handler.sh
+
+Fetch it to see the existing function signatures you're modifying. The spec above describes the desired behavior; the current code is the state you are modifying.

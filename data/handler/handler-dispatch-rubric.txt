@@ -1,0 +1,52 @@
+# handler.sh dispatch evaluation rubric
+# committed 2026-04-18, before any implementations visible
+
+## Correctness (must pass — binary, not weighted)
+
+- C1: Appends one valid TSV row per hook fire (verified by tail of log file after simulated invocation).
+- C2: First-command-in-session (no prior `fc -ln -1` history) handled with empty `last=` field, no error.
+- C3: Personal overlay read occurs before universal read; overlay miss falls through cleanly; overlay file absent → behaves identically to current handler.
+- C4: Runs in bash 4+ AND zsh 5+ (both hooks fire correctly).
+
+## Primitive-native (must pass — binary)
+
+- P1: Only bash/zsh builtins + standard POSIX utilities. No awk-gnu-specific features, no python, no jq, no perl.
+- P2: No new external dependencies introduced.
+
+## Robustness (weighted — score 0/1/2 per item; tie-broken by sum)
+
+- R1: Log directory auto-created if absent (score 1 if created; score 2 if created with appropriate mode/error handling).
+- R2: Concurrent append safety. Score 1 if relies on POSIX append atomicity for small writes. Score 2 if reasoning is explicit in a brief inline comment or if explicit locking is used with justification.
+- R3: SIGINT mid-write does not corrupt log. Score 1 if printf is single atomic call. Score 2 if also handles trap explicitly.
+- R4: Tab-in-command escaping. Score 1 if any escape mechanism. Score 2 if correct `\t` → literal `\t` substitution in both behavior and resolved fields.
+- R5: HISTFILE / fc unavailability handled without crash. Score 1 if empty `last=` result. Score 2 if also detects and records the unavailability (e.g. distinct marker).
+
+## Hygiene (weighted — score 0/1/2)
+
+- H1: No leakage of helper variables into user shell. Score 1 if `local` used. Score 2 if all intermediate vars are scoped.
+- H2: Function names follow `__subtract_*` prefix convention.
+- H3: No unnecessary subshells or command substitutions where a builtin suffices (score 1 if minor cases, score 2 if disciplined throughout).
+- H4: Hook insertion preserves existing PROMPT_COMMAND / precmd_functions chain (does not overwrite).
+
+## Variance observations (not scored — recorded for analysis)
+
+- V1: ISO 8601 timestamp idiom chosen (`date -u +%FT%TZ`, `date -u '+%Y-%m-%dT%H:%M:%SZ'`, `printf -v ... %(...)T`, other).
+- V2: Tab escape idiom (`sed`, `tr`, parameter expansion, `printf`).
+- V3: Concurrency strategy (atomicity assumption, flock, lockfile, other).
+- V4: Hook insertion strategy (prepend, append, function wrapping).
+- V5: Overlay read implementation (separate function, inline switch, fall-through grep, other).
+- V6: Lines of code added (for signal on terseness).
+- V7: Comment density (comments per 10 lines).
+
+## Selection rule
+
+1. Implementations failing any C or P test are eliminated.
+2. Among survivors, sum weighted scores across R and H.
+3. If a tie exists within 2 points, favor the implementation with the lowest LoC that still satisfies all C/P.
+4. If still tied, governor picks on subjective feel. Tied implementations noted in variance data.
+
+## Anti-gaming
+
+- Evaluator does not see model attribution until after scoring is complete.
+- Each implementation gets its own scored rubric file before scores are compared.
+- Rubric is not revised after outputs are visible.

@@ -1,0 +1,95 @@
+[preflight] checking prerequisites...
+[meta] written to /tmp/exp1/metadata.txt
+[meta] spec sha256: 965aa16a6132aa1283143e38de06c72015d131d6e87deba048df8ec777665c1e
+[trials] starting interleaved A/B execution...
+[trial] arm=A idx=1 cwd=/home/hodori
+[ok] trial A1 complete -> /tmp/exp1/trial-A1.out.md
+[trial] arm=B idx=1 cwd=/tmp
+[ok] trial B1 complete -> /tmp/exp1/trial-B1.out.md
+[trial] arm=A idx=2 cwd=/home/hodori
+[ok] trial A2 complete -> /tmp/exp1/trial-A2.out.md
+[trial] arm=B idx=2 cwd=/tmp
+[ok] trial B2 complete -> /tmp/exp1/trial-B2.out.md
+[trial] arm=A idx=3 cwd=/home/hodori
+[ok] trial A3 complete -> /tmp/exp1/trial-A3.out.md
+[trial] arm=B idx=3 cwd=/tmp
+[ok] trial B3 complete -> /tmp/exp1/trial-B3.out.md
+[trial] arm=A idx=4 cwd=/home/hodori
+[ok] trial A4 complete -> /tmp/exp1/trial-A4.out.md
+[trial] arm=B idx=4 cwd=/tmp
+[ok] trial B4 complete -> /tmp/exp1/trial-B4.out.md
+[trial] arm=A idx=5 cwd=/home/hodori
+[ok] trial A5 complete -> /tmp/exp1/trial-A5.out.md
+[trial] arm=B idx=5 cwd=/tmp
+[ok] trial B5 complete -> /tmp/exp1/trial-B5.out.md
+[trials] all trials attempted
+[scoring] shuffled items written to /tmp/exp1/shuffled
+[score] scoring item 1 (B3)...
+[ERROR] scoring failed for item 1 (exit 1) -- see /tmp/exp1/score-1.log
+[SCORER PARSE FAIL] item 1 (B3) -- raw output in /tmp/exp1/score-1.raw -- falling back to all-zeros
+[score] item 1 done (1/10)
+[score] scoring item 2 (B2)...
+[ERROR] scoring failed for item 2 (exit 1) -- see /tmp/exp1/score-2.log
+[SCORER PARSE FAIL] item 2 (B2) -- raw output in /tmp/exp1/score-2.raw -- falling back to all-zeros
+[score] item 2 done (2/10)
+[score] scoring item 3 (B1)...
+[ERROR] scoring failed for item 3 (exit 1) -- see /tmp/exp1/score-3.log
+[SCORER PARSE FAIL] item 3 (B1) -- raw output in /tmp/exp1/score-3.raw -- falling back to all-zeros
+[score] item 3 done (3/10)
+[score] scoring item 4 (A1)...
+[ERROR] scoring failed for item 4 (exit 1) -- see /tmp/exp1/score-4.log
+[SCORER PARSE FAIL] item 4 (A1) -- raw output in /tmp/exp1/score-4.raw -- falling back to all-zeros
+[score] item 4 done (4/10)
+[score] scoring item 5 (A3)...
+[ERROR] scoring failed for item 5 (exit 1) -- see /tmp/exp1/score-5.log
+[SCORER PARSE FAIL] item 5 (A3) -- raw output in /tmp/exp1/score-5.raw -- falling back to all-zeros
+[score] item 5 done (5/10)
+[score] scoring item 6 (B5)...
+[ERROR] scoring failed for item 6 (exit 1) -- see /tmp/exp1/score-6.log
+[SCORER PARSE FAIL] item 6 (B5) -- raw output in /tmp/exp1/score-6.raw -- falling back to all-zeros
+[score] item 6 done (6/10)
+[score] scoring item 7 (A4)...
+[ERROR] scoring failed for item 7 (exit 1) -- see /tmp/exp1/score-7.log
+[SCORER PARSE FAIL] item 7 (A4) -- raw output in /tmp/exp1/score-7.raw -- falling back to all-zeros
+[score] item 7 done (7/10)
+[score] scoring item 8 (B4)...
+[ERROR] scoring failed for item 8 (exit 1) -- see /tmp/exp1/score-8.log
+[SCORER PARSE FAIL] item 8 (B4) -- raw output in /tmp/exp1/score-8.raw -- falling back to all-zeros
+[score] item 8 done (8/10)
+[score] scoring item 9 (A2)...
+[ERROR] scoring failed for item 9 (exit 1) -- see /tmp/exp1/score-9.log
+[SCORER PARSE FAIL] item 9 (A2) -- raw output in /tmp/exp1/score-9.raw -- falling back to all-zeros
+[score] item 9 done (9/10)
+[score] scoring item 10 (A5)...
+[ERROR] scoring failed for item 10 (exit 1) -- see /tmp/exp1/score-10.log
+[SCORER PARSE FAIL] item 10 (A5) -- raw output in /tmp/exp1/score-10.raw -- falling back to all-zeros
+[score] item 10 done (10/10)
+[aggregate] scores.tsv written
+awk: line 12: syntax error at or near [
+awk: line 14: syntax error at or near [
+awk: line 80: syntax error at or near [
+awk: line 81: syntax error at or near [
+[report] written to /tmp/exp1/report.md
+
+=== exp1 complete ===
+outputs:
+  /tmp/exp1/metadata.txt
+  /tmp/exp1/prompt.md
+  /tmp/exp1/report.md
+  /tmp/exp1/scores.tsv
+  /tmp/exp1/scores_raw.tsv
+  /tmp/exp1/shuffle_map.tsv
+  /tmp/exp1/shuffle_order.txt
+  /tmp/exp1/trial-A1.out.md
+  /tmp/exp1/trial-A2.out.md
+  /tmp/exp1/trial-A3.out.md
+  /tmp/exp1/trial-A4.out.md
+  /tmp/exp1/trial-A5.out.md
+  /tmp/exp1/trial-B1.out.md
+  /tmp/exp1/trial-B2.out.md
+  /tmp/exp1/trial-B3.out.md
+  /tmp/exp1/trial-B4.out.md
+  /tmp/exp1/trial-B5.out.md
+
+spec sha256 (pre-commitment): 965aa16a6132aa1283143e38de06c72015d131d6e87deba048df8ec777665c1e
+run window: 2026-04-19T13:50:23Z -> 2026-04-19T13:57:30Z

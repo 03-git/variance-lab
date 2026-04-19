@@ -1,0 +1,5 @@
+mode	n_sessions	sum_total_tokens	mean_total_tokens	median_total_tokens	sum_input_tokens	mean_input_tokens	median_input_tokens	sum_output_tokens	mean_output_tokens	median_output_tokens	total_human_turns	total_tool_calls	total_correction_flags	correction_rate	mean_total_tokens_outlier_removed	median_total_tokens_outlier_removed	largest_session_id_dropped	largest_session_total_tokens
+pipe	394	296054	751	136	21851	55	4	274203	696	132	394	93	362	0.918782	631	136	-home-hodori/4166cccb-3598-452b-8692-a1681bec069d.jsonl	48072
+governor	9	29768	3308	3217	779	87	46	28989	3221	3181	21	67	5	0.238095	3017	2899	-home-hodori/7cecd2fb-1e65-4d58-b6d8-e7a83c078635.jsonl	5633
+collaborator	28	964975	34463	15035	22152	791	413	942823	33672	14545	238	862	65	0.273109	19416	14855	-home-hodori/e95d0b87-dcda-4110-b884-10ca25b2381c.jsonl	440735
+passenger	70	12197814	174254	69639	199255	2846	1133	11998559	171408	68670	5363	14823	1467	0.273541	151996	69398	-home-hodori/5e5a3487-7d0d-4245-b04a-9df126fa542f.jsonl	1710089
