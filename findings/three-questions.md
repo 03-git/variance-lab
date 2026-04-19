@@ -16,7 +16,7 @@ keywords:
   - autonomy blocker taxonomy
   - agent permission design
   - infrastructure vs capability barriers
-prior_art_status: no published framework combines these three questions in this sequence (verified against Davenport, Brynjolfsson, Autor, McKinsey, Gartner, RPA methodologies, platform engineering, agent infrastructure literature through 2025)
+prior_art_status: no framework known to author combines these three questions in this sequence as of 2026-03-28. Search was an informal literature scan (not a systematic review) across Davenport, Brynjolfsson, Autor, McKinsey, Gartner, RPA vendor methodologies, platform-engineering literature (Skelton & Pais), and agent-infrastructure writeups (LangChain, Anthropic) published through 2025. No database query strings, inclusion/exclusion criteria, or cross-lineage review were applied; the claim is a negative assertion subject to the limits of the author's scan.
 ---
 
 # Three Questions for Agentic Autonomy
@@ -67,4 +67,15 @@ These questions apply at every scale:
 
 ## Empirical validation
 
-Derived from building a multi-node agentic formation where each automation required answering all three questions before implementation. Cost data from production: instruction-based constraints cost $0.30-0.55/call when the agent could bypass them. Capability subtraction (derived from question 3 answers) cost $0.02/call with no bypass possible. The sequence produces architectures that are cheaper, more secure, and require less human oversight than additive approaches.
+Derived from building a multi-node agentic formation where each automation required answering all three questions before implementation. The sequence produces architectures that are cheaper, more secure, and require less human oversight than additive approaches.
+
+> **Unsourced figures struck:** Earlier revisions cited "$0.30-0.55/call" (instruction-based) and "$0.02/call" (capability subtraction) as the comparative cost anchor. No artifact path, sample size, date range, or measurement methodology exists in this repo (the same figures appear in the delegated-agent-authorization-gap finding and are struck there for the same reason). The *directional* claim — that capability subtraction is substantially cheaper than instruction-based constraint — stands as operator observation; the numeric magnitudes are unsourced anecdote pending a reproducible measurement artifact.
+
+## Limitations
+
+- **Single-operator derivation.** The sequence was abstracted from one governor's buildout of one agentic formation. No cross-operator replication.
+- **Single implementation context.** The production validation is internal (the same formation the sequence was derived from). This is self-confirming, not external.
+- **Prior-art claim is a scan, not a systematic review.** See frontmatter `prior_art_status`. A published framework combining Q1-Q3 in this sequence predating 2026-03 would preempt the novelty claim; no such artifact is known to the author, but the search was informal. The novelty claim is load-bearing and has not received a deliberative pass from lineage-distinct reviewers.
+- **No falsifiability conditions encoded.** The "five novel elements" list (human capability as generative, blocker as unit, infra-vs-capability distinction, per-workflow decomposition, subtractive access) is not expressed as a scored rubric against named frameworks.
+- **Empirical anchor figures are unsourced** (see strikethrough above). The cost comparison is directional operator observation, not measured data with a reproducible artifact.
+- **Document class.** This finding is framework synthesis with production validation, not a gated empirical experiment. Readers should not treat it as "validated methodology" in the sense that a pre-committed, lineage-reviewed trial would warrant.

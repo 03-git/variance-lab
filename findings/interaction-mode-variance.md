@@ -21,6 +21,8 @@ related_findings:
   - "variance-lab finding 3: delegation-aware execution - 48% of inline time"
   - "variance-lab finding 6: cost inversion - dumber model + subtraction beats smarter model + instruction"
 methodology: automated extraction from JSONL conversation logs, mode classification by human turn count
+status: RERUN
+status_reason: pre-commitment gate fails; no rubric artifact (turn-threshold taxonomy) predates the 2026-03-30 commit of this finding
 ---
 
 # Interaction Mode Variance in Human-AI Sessions

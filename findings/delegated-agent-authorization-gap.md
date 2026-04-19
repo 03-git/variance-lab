@@ -28,6 +28,7 @@ related_findings:
   - "variance-lab finding 5: instruction-based constraints do not override capability"
   - "variance-lab finding 6: cost inversion - dumber model + capability subtraction beats smarter model + instruction"
 methodology: parallel research across domain verticals
+finding_class: survey/taxonomy
 ---
 
 # Delegated Agent Authorization Gap
@@ -38,7 +39,9 @@ Every human-first service uses human-presence signals as a proxy for authorizati
 
 When a valid machine-readable authorization exists, the human-presence check is redundant. The fix is always the same structural subtraction: **remove the human-presence verification when bearer authorization already proves delegation.**
 
-This was derived empirically from a production KEYMASTER implementation where SSH credential subtraction ($0.02/call) outperformed instruction-based constraints ($0.30-0.55/call) on identical cross-node dispatch tasks.
+This was derived empirically from a production KEYMASTER implementation where SSH credential subtraction outperformed instruction-based constraints on identical cross-node dispatch tasks.
+
+> **Unsourced figures struck:** Earlier revisions cited "$0.02/call" (capability subtraction) and "$0.30-0.55/call" (instruction-based) as the comparative cost. No artifact path, sample size, date range, or measurement methodology exists in this repo to ground those figures. Treat the *direction* of the comparison as the load-bearing claim; treat the numeric magnitudes as unsourced operator anecdote pending a reproducible measurement artifact.
 
 ## Per-Domain Findings
 
@@ -119,3 +122,21 @@ No standard exists. Closest building blocks:
 ## Infrastructure Implication
 
 Every enterprise deploying agents needs a credential authority under their control. Not a vendor sandbox. Not a cloud guardrail. A KEYMASTER that issues delegation credentials, enforces TTL, and provides physical revocation. The infrastructure where that authority runs is the sovereignty surface.
+
+## Methodology
+
+This finding is a **landscape survey / taxonomy**, not a gated experiment. The per-domain tables are the product of secondary research (vendor documentation, RFCs, public API references) compiled by a single researcher against published sources as of 2026-03-28. The KEYMASTER cost comparison is the only empirical claim in the document, and it is not independently reproduced in this repo.
+
+Gates from the variance-lab handler methodology do not apply uniformly:
+- *Pre-committed rubric* — inapplicable: this is a survey, not a scored comparison.
+- *Deliberative pass across lineage-distinct reviewers* — not executed for the survey portion.
+- *Artifact path for empirical claim* — **missing** for the KEYMASTER cost comparison (see struck figures above); this is a gate miss, not a gate inapplicability.
+
+## Limitations
+
+- Single researcher; single production deployment informing the empirical anchor.
+- No controlled experiment: the KEYMASTER comparison is production observation, not an A/B with randomized trial structure.
+- No cross-operator replication of either the survey results or the cost comparison.
+- API-status claims in domain tables are time-dependent; each row reflects status as of 2026-03-28 and will decay. Timestamps per row were not captured at compile time.
+- Reviewer deliberation across lineage-distinct auditors not executed; verdicts in tables are the author's reading of primary-source documentation.
+- The KEYMASTER cost claim and the domain taxonomy are epistemically distinct — the former is (unreproduced) measurement, the latter is secondary research. A single "verified" label does not cover both; readers should treat them separately.

@@ -22,7 +22,7 @@ keywords:
 
 ## Core Finding
 
-Delegated parallel execution across multiple nodes completed identical task volume in 48% of the time compared to single-context inline execution. The only variable was topology.
+Delegated parallel execution across multiple nodes completed identical task volume in 48% of the time compared to single-context inline execution. Topology was the intended independent variable; rate-limit state, peak-hour load, and account-level throttling are unrecorded covariates (see Limitations).
 
 ## Test Design
 
@@ -62,6 +62,8 @@ The question for any enterprise: do you want one agent reading every document in
 
 ## Empirical scaling data
 
+Rows below were collected on 2026-03-28 by a single operator on a single Max subscription. Exact per-row UTC timestamps were not captured at run time; all rows fall within a single same-day session and therefore share an uncontrolled time-of-day / rate-limit-state covariate. "Successful" denotes non-empty, apparently-on-task output — quality adjudication was not performed.
+
 | Contexts | Nodes | Wall clock | Successful | Rate-limited | vs Inline |
 |----------|-------|-----------|-----------|--------------|-----------|
 | 1 (inline) | 1 | 126s | 10/10 | 0 | baseline |
@@ -83,3 +85,13 @@ Physical node distribution affects rate limiting:
 Same account, same context count. Multi-node gets 7/10 results through. Single-node gets 0/10. The rate limiter is per-account but source IP distribution affects throughput. More physical nodes is not just parallelism — it is rate limit arbitrage. Direct infrastructure relevance: more machines per subscription equals more throughput, not just faster execution.
 
 All three rows are measured on identical task sets (10 tasks, 9 source files). Adding parallel contexts on the same physical nodes continues to reduce wall clock time because per-context task scope shrinks. Further scaling beyond 5 contexts has not been tested and would be subject to rate limits, file distribution latency, and task dependency chains.
+
+## Limitations
+
+- **Single lineage, single operator, single subscription, single day.** All runs were executed against one Max account by one operator on 2026-03-28. No cross-operator replication.
+- **No pre-committed rubric.** The 10-task spec was not recorded as a pre-commitment artifact with a timestamp predating execution. Evaluation criteria (what counts as "successful") were applied post-hoc. If the spec is unrecoverable from session logs, treat the success column as post-hoc coding rather than pre-committed grading.
+- **"Successful" is non-empty output, not quality-verified.** No deliberative-pass or lineage-distinct review was run on the outputs. The 22% line-count divergence between inline (134 lines) and delegated (104 lines) is unresolved: it may be broader coverage, verbosity, or — if the delegated run did not complete the same 10 items — a scope-completeness failure that would invalidate the timing comparison. This was not audited.
+- **Peak-hour load uncontrolled.** The 48% wall-clock headline is load-dependent. Rate-limit state, account-level throttling, and time-of-day effects are unrecorded covariates. The claim survives as a directional observation on one day; it is not certified as a reproducible effect size.
+- **Rate-limit wall at 20 contexts is single-shot.** The 0/20 result was observed once; reproducibility across days or accounts is not established.
+- **Model identity recorded as "subscription default"**, not as an explicit model ID. Reproducibility against a named model is limited.
+- **No deliberative pass.** No lineage-distinct reviewer checked the methodology or the output quality.
