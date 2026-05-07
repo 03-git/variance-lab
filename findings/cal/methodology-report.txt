@@ -6,6 +6,20 @@
 # Empirical result: model reviews produced 26 findings; 2 (8%)
 # confirmed by build/run. Functional verification produced 6
 # findings; 6 (100%) confirmed by direct observation.
+#
+# Three claims:
+#   1. Model review yield vs functional verification: 2/26 (8%) vs 6/6 (100%).
+#      Functional verification found the bug that blocked testing all other bugs.
+#   2. sonnet-4-6 at low effort caught the only confirmed crash (F01) that
+#      opus-4-7 at xhigh missed twice. Replicates handler-methodology Finding 1
+#      on a different spec (1768 lines C, DRM/evdev/signals) and task class
+#      (systems code, not shell). The falsification condition did not falsify.
+#   3. autonomy.1 empirically demonstrated: the agent had full sensor surface
+#      (DRM ioctls, mmap, process status) and missed the display bug three times.
+#      The human had one sensor (eyes on screen) and resolved it in one second,
+#      three times. There exist failure modes where agent observability is strictly
+#      insufficient and human observation is strictly sufficient.
+
 
   Source:       ~/human/via-negativa/{cal.h, cal.c, platform_linux.c, platform_macos.m}
   Total:        1768 lines (165 + 1117 + 247 + 239)
