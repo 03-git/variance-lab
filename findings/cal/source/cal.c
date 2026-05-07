@@ -1,5 +1,15 @@
-/* cal.c — framebuffer computing for humans
-   named for Callum. the first user.
+/*
+ * cal.c — framebuffer computing for humans
+ * Named for Callum. The first user.
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
 
    Linux:  cc -O2 -o cal cal.c platform_linux.c -ldrm
    macOS:  cc -O2 -o cal cal.c platform_macos.m -framework Cocoa

@@ -1,3 +1,10 @@
+/*
+ * cal.h — framebuffer computing for humans
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 #ifndef CAL_H
 #define CAL_H
 

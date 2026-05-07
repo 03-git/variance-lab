@@ -1,4 +1,9 @@
-/* platform_macos.m — one window, one bitmap, zero frameworks beyond Cocoa */
+/*
+ * platform_macos.m — one window, one bitmap, zero frameworks beyond Cocoa
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
 #import <Cocoa/Cocoa.h>
 #include "cal.h"

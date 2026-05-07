@@ -1,4 +1,9 @@
-/* platform_linux.c — DRM dumb buffer + evdev */
+/*
+ * platform_linux.c — DRM dumb buffer + evdev
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
 #include "cal.h"
 #include <fcntl.h>
