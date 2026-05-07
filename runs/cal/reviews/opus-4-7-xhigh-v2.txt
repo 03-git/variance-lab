@@ -1,0 +1,331 @@
+# surface-4-7-xhigh-findings-v2.txt
+
+Reviewer: Opus 4.7, xhigh effort
+Surface: governor (laptop, Claude Code)
+Files reviewed:
+  ~/human/via-negativa/cal.h            (165 lines, unchanged from v1)
+  ~/human/via-negativa/cal.c            (1117 lines, +61 from v1)
+  ~/human/via-negativa/platform_linux.c (247 lines, +9 from v1)
+  ~/human/via-negativa/platform_macos.m (239 lines, unchanged from v1)
+Date: 2026-05-07
+Prior: surface-4-7-xhigh-findings.txt (spec-stage review)
+
+This is the implementation-stage review. The v1 spec findings have
+been addressed in code; the deltas between v1 and v2 are six
+corrections in cal.c and one correction in platform_linux.c. All
+of them are surgical — no reorganization, no abstraction layer
+added, no scope creep. Each fixes one failure path that would have
+bitten in the first hour of clinical use.
+
+This document is the second-pass review for the other nodes
+(rousseau on m1studio, emile on M2 mini, future contributors)
+to read alongside the source. Read this after the source, not
+before — the source is shorter than the review.
+
+
+## What was corrected since v1 (and why each was load-bearing)
+
+### 1. Shared json_escape() helper
+
+Previously inlined in handle_ask_key only. cal_infer() and
+cal_infer_stream() passed prompts directly into a sprintf()
+JSON template — meaning any " \ \n in the user's prompt would
+corrupt the request body. Now every call site escapes through
+the same helper, which also handles \r \t and \u00xx for C0
+control characters.
+
+Why this mattered: the first time a kid typed don't or it's
+into ask mode, llama.cpp would have returned a JSON parse
+error and cal would have shown (no response). The corrupted
+request would have looked like an inference failure when it
+was actually a string-handling bug.
+
+### 2. Identifiers or/og/ob renamed to ro/go/bo, alpha math fixed
+
+or is an alternate operator spelling under iso646.h and a
+keyword under -std=c++; either way, gcc with the wrong flags
+was going to refuse to compile this. Renamed all three.
+
+The blend itself also moved from
+    (cr - dr) * a >> 8
+to
+    ((int)cr - (int)dr) * a / 255
+
+Two fixes in one line: the cast lifts the subtraction out of
+unsigned arithmetic (cr < dr would have wrapped to ~255), and
+255 as the denominator matches the actual range of the alpha
+byte (0..255, not 0..256).
+
+Why this mattered: anti-aliased glyph edges would have rendered
+with subtly wrong colors, most visibly on dark-on-light text
+where the wrap-around on (cr - dr) lit up edge pixels at
+random hues. Bitmap fonts rasterized through stb_truetype look
+fine without anti-aliasing because the rasterizer covers full
+pixels at large sizes — but cal will be rendering at variable
+sizes (20px status, 48px clinical) and the edge pixels are
+where the bug shows.
+
+### 3. tcp_connect() switched to getaddrinfo()
+
+inet_pton() only parses dotted-quad IPv4 literals. After this
+change, hostnames work — cal -h emile resolves through
+/etc/hosts or DNS. The change also leaves the door open for
+IPv6 by changing AF_INET to AF_UNSPEC if needed later (it's
+currently still pinned to AF_INET, which is correct for the
+formation today).
+
+Why this mattered: hosuni.sh reads INFERENCE_HOST from
+~/.subtract/inference_host. That file holds names, not IPs,
+because the formation expects MagicDNS or /etc/hosts to
+resolve them. Without getaddrinfo, cal couldn't have used the
+same config file as the rest of the runtime.
+
+### 4. malloc failure paths throughout
+
+Every allocation in cal.c now checks for NULL, frees prior
+allocations, closes any open fd, and returns -1. Previously
+the code assumed allocation succeeds — which is fine on a
+laptop with 32GB free, but a kiosk box running for days under
+inference load with no swap and a model mmapped into 80% of
+RAM is exactly where allocation starts failing in non-obvious
+ways.
+
+Why this mattered: a single failed malloc inside cal_infer()
+in the v1 code would have leaked the socket fd, then the body
+buffer, then the request buffer, in cascading sequence. After
+a few hours of fragmentation the process would have died with
+a useless OOM trace instead of a recoverable -1.
+
+### 5. fread() return value checked in cal_font_init
+
+Silent partial reads on the font file were possible (network
+filesystems, FS corruption, signal interruption). v2 bails
+cleanly with -1 if fread doesn't return the full file size.
+
+Why this mattered: a partial read produces a font blob that
+stbtt_InitFont accepts but glyph extraction fails halfway
+through, somewhere deep in the rasterizer, producing either
+zero glyphs or a SIGSEGV depending on where the truncation
+fell. Either way cal would have appeared blank and given no
+diagnostic.
+
+### 6. Ask mode is now actually streaming
+
+The biggest behavioral change. v1 ask mode called
+cal_infer() (synchronous, blocks until full response). v2
+calls cal_infer_stream() and lets the main loop drain the
+socket via non-blocking select() per frame. Tokens appear on
+screen as llama.cpp emits them.
+
+The implementation pattern is the one specified in v1
+findings item 3: at the top of each frame, after handling
+input but before redrawing, check if a stream is active and
+select() with timeout=0 on the inference socket. If readable,
+recv one chunk and append. If recv returns <=0, close and
+unset streaming. The main event loop's existing 16ms
+platform_event timeout provides the pacing — no busy-wait.
+
+Why this mattered: an 8-second response with no visible
+progress is the difference between a tool that feels alive
+and a tool that feels broken. For Callum specifically — a
+7-year-old whose anxiety attaches to unresponsive surfaces —
+the streaming display is the difference between cal being
+usable and cal being abandoned.
+
+
+## What was corrected in platform_linux.c
+
+### 7. Signal handlers route through sig_restore
+
+In kiosk mode, vt_lock() calls KDSKBMODE = K_OFF on the TTY,
+which disables VT switching at the kernel keyboard driver
+level. If cal then crashes before vt_unlock() runs, the
+kernel keyboard stays in K_OFF — meaning the parent walks up
+to a console where Ctrl+Alt+F1 doesn't switch VTs and there's
+no obvious way to recover short of SSH-in-and-fix or reboot.
+
+v2 installs handlers for SIGTERM, SIGINT, SIGSEGV, SIGABRT
+that call vt_unlock() + platform_cleanup() and then re-raise
+the signal with the default disposition. The TTY is restored
+even on segfault.
+
+Why this mattered: the supervisor pattern from v1 findings
+item 8 (launchd / systemd restart on crash) is only safe if
+the previous instance cleaned up its kernel-level state. Now
+it does. Without this, the supervisor's first crash-restart
+would leave the box in a state where the user can't escape
+to a shell.
+
+These handlers are only installed in kiosk mode — dev mode
+leaves SIGINT alone so Ctrl+C still kills cal cleanly during
+iteration.
+
+
+## What still needs attention before first clinical session
+
+These are smaller blast-radius items, all noticed during the
+v2 read. Not blocking; worth picking up during or after the
+first build session.
+
+### A. Output buffer truncation is silent
+
+ask mode's output buffer is 65536 bytes. The streaming drain
+checks remaining space and writes min(n, space), then keeps
+draining the socket and discarding the overflow. The user
+sees the text simply stop. No indication of whether the model
+finished or the buffer ran out.
+
+Fix: when the cap is hit, append literal "[truncated]" once
+and stop the drain. ~5 lines.
+
+Or: bump to 256KB. Cheaper if memory pressure isn't a concern
+on the target nodes.
+
+For clinical use the first option is more honest — a BCBA
+reading session logs needs to know when content was truncated
+versus when the model stopped of its own accord.
+
+### B. SSE parser drops content across read boundaries
+
+cal_infer_recv reads up to 4096 bytes per call and runs
+strstr(\"content\":\") against that buffer. If a read happens
+to end mid-string — bytes A..N have "content":"the answer
+is so" and bytes N+1..M are mething good then\n\ndata:
+{\"content\":\" — the parser finds the first "content"
+field, dumps everything up to the truncation, and the rest
+is parsed in the next read as if it were a fresh message.
+Anything after the unterminated " in the first read gets
+silently dropped.
+
+In practice llama.cpp emits one chunk per token at ~10ms and
+TCP buffers usually contain whole chunks. Under load or paused
+inference the parser will drop characters. A small persistent
+read buffer that holds across calls and parses complete SSE
+events would close this. ~30 lines.
+
+Not urgent. Worth a TODO comment in the function so the next
+person knows.
+
+### C. Modifier keys aren't tracked
+
+Multiple sites in cal.c have variations of:
+    if (code == KEY_1) c = '!'; /* shift not tracked yet */
+
+The alias KEY_SEMICOLON → : (because shift isn't available
+to produce real :) means typing ; in ex commands is impossible
+and typing : in inserted text is impossible. For Hannah's
+typed observations during clinical sessions this will bite.
+
+Fix: track shift state with a static bool toggled on
+KEY_LEFTSHIFT/KEY_RIGHTSHIFT press/release. Build a 128-entry
+shifted-character table. Apply when shift is held. Same
+pattern for caps lock if wanted. ~40 lines.
+
+This unlocks : ? ! " * ( ) etc. Should land before the first
+clinical session because BCBA notes contain real punctuation.
+
+### D. vi_load doesn't initialize gap_buf
+
+Currently safe because main calls vi_init before vi_load.
+The pattern is fragile — anyone who later calls vi_load on
+a freshly-zeroed cal_app gets a SIGSEGV when gap_insert
+dereferences a NULL buf pointer.
+
+Fix: either assert v->buf != NULL at the top of vi_load,
+or have vi_load call vi_init itself if g->cap == 0.
+
+### E. platform_macos.m has no SIGTERM cleanup
+
+The Linux side now restores TTY mode on signal. The macOS
+side leaves [NSCursor hide] and [NSMenu setMenuBarVisible:NO]
+in their hidden state if cal crashes. Less catastrophic than
+Linux because the user can usually Cmd-Tab out, the menu bar
+returns when another app activates, and the cursor reappears
+on next mouse motion in another window — but it's asymmetric
+with the Linux side and worth fixing for cleanliness.
+
+Fix: install a SIGTERM/SIGSEGV handler in platform_init
+that calls platform_cleanup before re-raising. ~15 lines.
+
+### F. Socket leak if user spams Enter while streaming
+
+The streaming-flag guard at the top of handle_ask_key
+(if (app->ask.streaming) return;) probably already prevents
+this in practice — keypresses during streaming are dropped.
+Worth confirming during the first build session that the
+guard fires before the second cal_infer_stream call. If not,
+the previous infer_sock leaks each time.
+
+Defensive fix: at the top of cal_infer_stream callsite, if
+infer_sock >= 0 close it before opening a new one. ~3 lines.
+
+
+## What's right about the v1→v2 trajectory
+
+The corrections are scoped exactly to what would fail in the
+first hour. None of them invent new abstractions. None of them
+add a feature. Each one is the smallest change that closes a
+specific failure mode:
+
+  json_escape       → smallest helper that fixes every call site
+  or → ro           → mechanical rename, zero behavior change
+  getaddrinfo       → one function swap, one freeaddrinfo added
+  malloc checks     → uniform pattern applied everywhere
+  fread check       → one if-statement
+  streaming         → 22 lines in main, simpler handle_ask_key
+  signal handlers   → one helper, four signal() calls
+
+Total delta: ~70 lines added across two files for six
+correctness fixes and one behavior change. That ratio — bug
+fixes per line of churn — is the metric to maintain.
+
+
+## Subtract-fit re-check (still passes, with a note)
+
+  library to kernel       PASS — the changes don't add libraries
+  format to signature     N/A   — renderer concern
+  action to verification  PASS — signal handlers ARE the
+                                 verification of cleanup; the TTY
+                                 lock is now provably reversible
+  source to signing domain PASS — files are still in via-negativa,
+                                 will move under signing domain
+                                 when the .sig discipline extends
+
+One subtractor note: cal.c is ~1100 lines and the source files
+together are ~1700. That's still small enough that a person
+can read the whole thing in a sitting. The rule to maintain:
+if the next round of corrections pushes total source past 2500
+lines, something has been added that should have been removed
+instead. The check isn't "did we ship the feature" — it's "did
+the line count stay honest."
+
+
+## Recommended sequence for the next iteration
+
+If items A through F land in priority order, the sequence is:
+
+  1. C (modifier keys) — blocks first clinical session
+  2. A (truncation marker) — visible in session logs
+  3. D (vi_load init) — easy, removes a footgun
+  4. E (macOS signal cleanup) — symmetry with Linux
+  5. F (socket-leak guard) — defensive, probably already safe
+  6. B (SSE boundary parser) — only matters under load
+
+After C and A, cal is shippable to Hannah for a first session.
+B can wait until after the first session reveals whether SSE
+boundary drops actually happen in practice.
+
+
+## Closing read
+
+cal.c after these corrections is the cleanest demonstration
+of subtract that the project has produced. The v1→v2 delta is
+exactly the kind of careful second pass that distinguishes
+software that ships from software that prototypes. The
+corrections were not "while we're here let's also" — they were
+"this would have failed and we caught it before it did."
+
+Implementation is on track. Hannah's first clinical session
+on cal is not far.
+
+— Opus 4.7, xhigh, governor surface, 2026-05-07

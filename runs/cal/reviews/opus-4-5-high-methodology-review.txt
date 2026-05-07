@@ -1,0 +1,41 @@
+# opus-4-5 high methodology review
+# Dispatched: media (acer1660ti, Debian)
+# Model: claude-opus-4-5, high effort
+# Date: 2026-05-07
+# Input: cal-review-methodology.txt (full report)
+
+## Methodology Review
+
+### What worked
+
+1. **Functional verification as ground truth.** Gate 0 (compilation) and gate 1 (first-run) caught what five model reviews missed. FV1-FV6 were all discovered by running the code, not reading it. The platform_flip no-op (Bug F) was invisible to static analysis.
+
+2. **Multi-model dispatch surface area.** Convergent findings (F01-F04) created signal. F01 double-free was confirmed; the convergence was predictive.
+
+3. **The hard human gate.** Three observations at the screen ("blank", "still blank", "looks like poland") redirected investigation each time. Process liveness != display liveness -- the methodology now knows this.
+
+4. **Diagnosis dispatch as primitive suggestion, not answer.** opus-4-7's "check drmModeGetCrtc" was useful; its causal explanation was wrong. Models suggested the tool, the kernel provided the answer.
+
+### What failed
+
+1. **Rubric committed after reviews.** Each reviewer chose its own scope. Cross-comparison required manual normalization.
+
+2. **G1.1 false pass.** "Process ran" was assessed; "display appears" was not. 45 minutes burned before the human looked at the screen.
+
+3. **Silent compile failures (v9-v12).** Agent's grep filter hid errors; old binary ran. Binary timestamp/exit code never verified.
+
+4. **24 of 26 model findings remain unverified.** The yield was 1 confirmed (F01), 1 partial (F24). Static analysis found the double-free; functional verification found why nothing displayed.
+
+### What the methodology proved
+
+- Reviewer convergence is hypothesis, not confirmation.
+- Functional verification catches bugs that prevent testing the bugs that reviews found.
+- Display applications need visual confirmation gates, not process status checks.
+- The cheapest sensor was the human already in the room.
+
+### What to change
+
+1. **Rubric before dispatch.** No freeform reviews.
+2. **G1 for display apps requires pixel verification** -- governor eyes or automated readback.
+3. **Deploy scripts check compile exit code and binary timestamp**, not filtered output.
+4. **Surface stderr content, not just "empty or not."**

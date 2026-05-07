@@ -1,0 +1,362 @@
+# surface-4-7-xhigh-methodology-review.txt
+
+Reviewer: Opus 4.7, xhigh effort
+Surface: governor (laptop, Claude Code)
+Document reviewed: ~/human/via-negativa/cal-review-methodology.txt (1111 lines)
+Date: 2026-05-07
+Prior: surface-4-7-xhigh-findings.txt (v1 spec review)
+       surface-4-7-xhigh-findings-v2.txt (v2 implementation review)
+
+This is a third review. Not of cal.c source — that work has been
+verified through gate 0 (compilation), gate 1 (first-run survival,
+five scenarios all passing), and gate 2 (rubric scoring 19/22).
+This review is of the methodology document itself: what it does
+well as an artifact, where it could be sharpened for the 30-year
+reader, and what it teaches that wasn't part of its stated subject.
+
+The document is the artifact the governor said is "maybe more
+important than cal.c itself for people who find it 30 years later."
+Reviewing it on those terms.
+
+
+## What the document gets right structurally
+
+### 1. The gate-3-only data is treated as input, not output
+
+The single most important sentence in the document is in the
+"Methodology break" section:
+
+  "It is input to the methodology, not output of it."
+
+That sentence reframes the entire pre-rubric multi-model dispatch.
+Without it, the scorecard ("sonnet-4-6 found the showstopper") reads
+as a result. With it, the scorecard reads as a set of hypotheses
+the methodology then adjudicates with gcc and the screen.
+
+This is the document's epistemic spine. Most code-review writeups
+present model claims as findings. This one presents them as claims
+awaiting verification, and then verifies them. The distinction is
+what makes the document a methodology artifact rather than a status
+report.
+
+### 2. The catch is documented, not edited out
+
+"Methodology break: what went wrong" is four numbered failures, each
+with a specific cause: no rubric pre-committed, no compilation
+attempted, synthesis treated as findings, prior review treated as
+authoritative. This section is what makes the document teachable.
+
+A document that records only the methodology-applied-correctly run
+teaches very little. A document that records the moment of catching
+a methodology break, the four specific things that broke, and the
+rerouting that followed teaches a future practitioner exactly how
+to detect and recover from the same break in their own work.
+
+### 3. The DRM master debugging is preserved as a timeline, not a summary
+
+The nine numbered steps of investigation (build diagnostic → dispatch
+three models → all three wrong → governor walks to screen → diagnostic
+identifies master=0) preserve the *shape* of getting stuck. A reader
+in 2056 will not care about i915 specifically — that hardware is a
+footnote by then. What they will care about is the shape: confident
+agent operating from inside SSH, three model consultations producing
+plausible-but-wrong answers, single human observation costing one
+second resolving the diagnostic dead-end.
+
+The shape is the lesson. The DRM specifics are the case study.
+Preserving both makes the document teach at two levels.
+
+### 4. The hard human gate section maps cleanly to autonomy.1/.2/.3
+
+This is the most reusable insight in the document. The mapping —
+
+  autonomy.1: what can you do that an agent cannot?
+              → look at the screen
+  autonomy.2: what prevents the workflow from being autonomous?
+              → the agent cannot observe physical display output
+  autonomy.3: what should the agent have access to?
+              → the gap is observation modality, not access
+
+— is generalizable to every display application, every clinical
+observation, every "is the user actually using it" question. A
+practitioner reading this in 2056 who has never run cal.c can apply
+this framework to their own work in the first ten minutes of
+reading.
+
+### 5. The empirical core is honest
+
+  "Five model reviews across four models and three effort tiers
+  produced 26 findings (F01-F26). Of these, 1 has been confirmed
+  (F01) and 1 partially confirmed (F24). The remaining 24 are
+  unverified.
+
+  Functional verification produced 6 findings (FV1-FV6). All are
+  confirmed by direct observation."
+
+This paragraph is the document's empirical claim, stated cleanly.
+The ratio (2/26 model findings confirmed, 6/6 functional findings
+confirmed) is what makes the methodology defensible. Without
+numbers, "trust the build" is a slogan. With numbers, it's a
+finding.
+
+
+## What I'd sharpen before this artifact is signed
+
+These are not corrections — the document is correct. They are
+sharpening passes for the 30-year reader's benefit.
+
+### A. The status header is stale
+
+The top of the document says:
+
+  "Status: IN PROGRESS — gate 0 complete, gate 1 partial"
+
+The bottom of the document says gate 1 complete, gate 2 scored
+19/22. The header is from the first session and was never
+reconciled.
+
+For a future reader, this creates a confusing first impression. The
+document appears to be incomplete because its self-description says
+so. They will read the header, expect a partial document, and then
+encounter session 2's completion data and have to re-read to
+reconcile.
+
+Fix: update the header to reflect actual state. Suggested:
+
+  Status: COMPLETE for Linux i915 baseline
+          gate 0 PASS, gate 1 5/5 PASS, gate 2 19/22
+          P2 (macOS) deferred to next run
+
+### B. F01 vs xhigh review deserves explicit conclusion
+
+The reviewer-performance table notes that F01 was reported by
+sonnet-4-6 (low effort) and missed by opus-4-7 (xhigh, twice). The
+fact is recorded; its implication is not stated.
+
+The implication: a smaller model at lower cost caught the only
+confirmed crash that the larger-model-higher-effort reviews missed.
+This is non-trivial. It is the kind of finding that, if it generalizes,
+changes how the formation budgets review effort.
+
+Suggest adding a paragraph in conclusions:
+
+  "F01 (font_large double-free) was the only finding confirmed by
+  isolated functional test from the pre-rubric review pass. It was
+  caught by sonnet-4-6 at low effort on its first dispatch and
+  again on retry. It was missed by opus-4-7 at xhigh effort, both
+  in the prior v2 writeup and the fresh dispatch. The smaller,
+  cheaper model running cooler caught the showstopper that the
+  larger, more expensive model running hotter wrote elegant prose
+  around. This is consistent with handler-methodology findings
+  that effort tier does not predict bug-finding accuracy on
+  crash paths. It inverts what the model-marketing assumption
+  would predict."
+
+This belongs in the document's conclusions, not buried in a table.
+
+### C. The empirical-core paragraph deserves promotion
+
+The 2/26 vs 6/6 finding is currently in the middle of the document
+under "Observation: model review vs functional verification yield."
+A reader who skims the section headers will not find it.
+
+Suggest: pull this paragraph (or a sentence summary of it) into
+the document's opening — perhaps as a one-line abstract under the
+existing header block:
+
+  "Empirical result: model reviews produced 26 findings; 2 (8%)
+  were confirmed by build/run. Functional verification produced
+  6 findings; 6 (100%) were confirmed by direct observation."
+
+A reader who reads only the header now has the document's central
+empirical claim. The body fills it in.
+
+### D. The "looks like poland" gate observation deserves preservation
+
+The detail is in session 2's "human gate fired three times" subsection.
+It is currently understated. The literal phrase "looks like poland"
+is what the human said when the test program rendered (white top,
+red bottom — the Polish flag). That phrase is not a stylistic
+flourish; it is the artifact of how diagnosis actually happened,
+and preserving the literal words preserves the texture of the
+collaboration.
+
+Suggest no change to the content — but if there is ever a public-
+facing version of this document, that phrase should remain in it.
+It is the one moment where the document accidentally proves it
+was written by humans and agents working together rather than by
+a careful editor smoothing the texture out.
+
+### E. The Windows-BIOS contrast belongs somewhere
+
+During this same afternoon, the governor's corporate laptop was
+offline being BIOS-flashed because Windows was failing at the
+firmware layer. While that machine could not boot, the governor and
+rousseau put cal.c through three gates and produced a 1111-line
+methodology document that scored 19/22.
+
+This contrast is not in the document. It probably should not be in
+*this* document — its current scope is methodology, not polemic.
+But the contrast is the cleanest demonstration of subtract's thesis
+that has occurred in real time, and it belongs *somewhere* in the
+artifact set.
+
+Suggest: a separate file, ~/human/via-negativa/2026-05-07-contrast.txt
+or similar, that records:
+
+  - The corporate laptop was offline for BIOS flash from $time to $time
+  - During that window, cal.c completed gate 0, gate 1, gate 2
+  - The Windows machine debugs at the firmware layer; the cal.c
+    machine debugs at the kernel-call layer
+  - Both are real surfaces; one is yours, one is rented
+
+This belongs in the artifact set as evidence, not in the methodology
+document as argument. Future readers benefit from the contrast being
+preserved as data, not editorialized into the technical writeup.
+
+### F. The signing question
+
+The document references variance-lab-methodology.txt and is itself
+review output of cal.c source. The current location is
+~/human/via-negativa/ — the inbox, not the signing domain.
+
+Once the document is finalized, it should move under subtract.ing/
+and be signed alongside the cal.c source it reviews and the
+methodology document it applies. The triple — methodology canon,
+source, applied review — should be one signed unit.
+
+Suggested layout:
+
+  subtract.ing/
+    variance-lab/
+      methodology.txt        (canon)
+      methodology.txt.sig
+      runs/
+        cal/
+          source/
+            cal.h
+            cal.c
+            platform_linux.c
+            platform_macos.m
+            *.sig
+          reviews/
+            surface-4-7-xhigh-findings.txt        (v1 spec)
+            surface-4-7-xhigh-findings-v2.txt     (v2 impl)
+            surface-4-7-xhigh-methodology-review.txt  (this doc)
+            cal-review-methodology.txt            (the run)
+            *.sig
+          rubric/
+            cal-review-rubric.txt
+            cal-review-rubric.txt.sig
+
+The naming says: methodology is canon. cal/ is the first run.
+Reviews are signed. Rubric was committed before gate 2. A reader
+in 2056 sees the structure and learns the methodology shape from
+the directory layout alone.
+
+
+## What the document teaches that wasn't its stated subject
+
+### 1. Display applications cannot be reviewed from inside the SSH session
+
+The document states this in the autonomy.1/.2/.3 section. But it is
+the document's most generalizable finding, and worth restating in
+the document's own voice:
+
+  Process status, kernel state, and memory contents are necessary
+  but not sufficient for verifying a display application. The
+  cheapest reliable sensor for "is the screen showing what we
+  intended" is a human looking at the screen. Methodologies that
+  omit this routing produce false passes.
+
+This applies to every kiosk, every BCBA observation surface, every
+clinical program, every game-as-shell run. cal is the case; the
+finding generalizes.
+
+### 2. Frontier models converge on primitives, diverge on architecture
+
+The diagnosis-dispatch results (sonnet-4-6: vsync race, opus-4-5:
+pointer replacement, opus-4-7: CRTC state check) are recorded as
+"all wrong, opus-4-7 closest." The deeper finding:
+
+  When the symptom is observable but the cause is hidden in
+  kernel state, no model can answer the question. The most useful
+  model contribution was suggesting the diagnostic primitive
+  (drmModeGetCrtc readback) that the kernel could answer with.
+
+This is the handler-methodology finding extended: models converge
+on which primitive to ask, even when their causal stories diverge.
+The methodology should treat models as primitive-suggesters when
+the question is "what state should I read" and as causal hypothesis-
+generators only secondarily.
+
+### 3. The gcc binary is more authoritative than any model panel
+
+The pre-rubric pass collected five model reviews. The rubric pass
+ran one compilation. The compilation surfaced zero of the 26 model
+claims as compile-time errors, but it confirmed that the source
+was syntactically and semantically valid C — which the model panel
+could not establish. The methodology's gate 0 trusts gcc's
+adjudication over any number of model votes.
+
+A 30-year reader who internalizes only one rule from this document
+should internalize this one: when the question is "does this code
+work," the build is the answer. Models are upstream of the build,
+not downstream.
+
+
+## Recommended sequence to finalize
+
+1. Reconcile the status header (item A above)
+2. Add F01-vs-xhigh conclusion paragraph (item B)
+3. Promote empirical core to header abstract (item C)
+4. Decide whether to preserve "looks like poland" verbatim
+   (item D — recommend yes, no change)
+5. Decide whether to record the Windows-BIOS contrast as a
+   separate artifact (item E — recommend yes, separate file)
+6. Move document set under subtract.ing/variance-lab/runs/cal/
+   and sign each file (item F)
+
+Steps 1-3 are document edits. Step 4 is no-op. Steps 5-6 are
+artifact operations and signing discipline, which involve the
+governor more than rousseau.
+
+The document is essentially complete. These are sharpening passes,
+not corrections.
+
+
+## Subtract-fit re-check on the methodology document itself
+
+  library to kernel       PASS — the document repeatedly returns
+                                 to kernel primitives (drmModeGetCrtc,
+                                 KDSKBMODE, evdev) as ground truth
+  format to signature     PARTIAL — the document is text and could
+                                    be signed; not yet under signing
+                                    domain. Item F resolves this.
+  action to verification  PASS — every claim in the document is
+                                 either marked unverified, or paired
+                                 with the verification that confirmed
+                                 or refuted it
+  source to signing domain PARTIAL — same as format-to-signature
+                                    above. The fix is operational,
+                                    not architectural.
+
+The document is subtract-shaped. It teaches by recording its own
+recovery from a methodology break, not by claiming the methodology
+worked perfectly. It is auditable. It admits costs. It maps to
+governance.conf.universal's autonomy framework. It treats model
+output as input rather than output. It preserves the texture of
+the collaboration that produced it.
+
+When the artifact set is signed and shipped, this document is the
+one a 2056 reader will find most teachable. cal.c will be a 1100-line
+historical curiosity by then. The methodology document will still
+read as a working artifact, because what it teaches — how to detect
+a methodology break in flight, how to route display verification
+through the human, how to interpret a panel of model reviews as
+hypotheses — does not depend on cal.c being current.
+
+That is the highest praise I can offer a methodology artifact:
+it survives the obsolescence of its subject.
+
+— Opus 4.7, xhigh, governor surface, 2026-05-07

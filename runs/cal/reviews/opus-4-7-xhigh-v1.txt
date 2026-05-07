@@ -1,0 +1,397 @@
+# surface-4-7-xhigh-findings.txt
+
+Reviewer: Opus 4.7, xhigh effort
+Surface: governor (laptop, Claude Code)
+Files reviewed:
+  ~/human/via-negativa/cal.c.txt           (185 lines)
+  ~/human/via-negativa/platform_linux.c.txt (95 lines)
+  ~/human/via-negativa/platform_macos.m.txt (127 lines)
+Date: 2026-05-07
+
+This is a third opinion alongside Opus 4.5 (emile, high) and Sonnet 4.6
+(media, low) whose convergent findings are already inlined at the
+bottom of cal.c.txt. I'm reading the spec after those reviews landed,
+so I'll skip what they caught and focus on what survived.
+
+
+## What the architecture got right
+
+The kernel of the design is the shared struct contract:
+
+  cal_surface { uint32_t *pixels; int width, height, stride; }
+  cal_event   { type, code, value, x, y }
+
+Both platforms agree on "give me a pixel rectangle and a stream of
+events using Linux KEY_* constants" and cal.c never knows which
+platform it's on. That's the load-bearing decision. Most cross-
+platform code invents its own enum (SDL_SCANCODE_*, GLFW_KEY_*) and
+translates both directions. You're saying: Linux wins as canonical,
+macOS translates inbound, cal.c stays Linux-flavored throughout. The
+cost is ~80 lines of keycode mapping concentrated in one place; the
+benefit is global. Subtract-shaped — pay the contamination once at
+the boundary, keep the interior clean.
+
+The macOS file's honesty about its concessions is the document's
+strongest feature. "Cocoa requires Objective-C, so this one file is
+.m. Everything else stays plain C." That's via negativa with teeth:
+accept exactly the contamination required, no more.
+
+The "window server is the floor" framing on macOS is correct. IOKit
+framebuffer is deprecated and gated; you can't get below NSWindow
+without entitlements that don't get granted. One borderless
+fullscreen NSWindow + one CGBitmapContext, treated as if it were
+/dev/fb0, is the thinnest possible layer above that floor.
+CGBitmapContextGetData(ctx) returning a writable pixel pointer is
+the morally identical primitive. The compositor cost on one opaque
+surface with no animations is essentially zero.
+
+KDSKBMODE = K_OFF as the kiosk-escape fix is correct. Most kiosk
+projects fight Ctrl+Alt+Fn with udev rules and X11 grabs. You're
+disabling it at the kernel keyboard driver. That's the right layer.
+
+DRM dumb buffers (vs fbdev) is the right call. fbdev is gone on
+Asahi, and dumb buffers are the kernel's "give me bytes I can mmap"
+primitive without dragging Mesa or KMS-aware userspace.
+
+Build commands are one line each. No Makefile, no autotools, no
+CMake, no Xcode project. For binaries this small that's correct.
+A subtractor can ship cal as a ~500KB single file.
+
+
+## Items requiring resolution before implementation
+
+These are not blocking the architecture; they are decisions whose
+absence will cause divergence between the two platforms or between
+this spec and what gets built.
+
+### 1. Unicode rendering — pick stb_truetype.h or commit to PSF-only v0
+
+The cal.c.txt review block names this as outstanding. PSF will not
+cover Spanish accents (sight-words-spanish needs á é í ñ ó ú ü) and
+will never cover Hangul if the hangul fork lands. Two paths:
+
+  PSF-only v0      : commit to English. Document it. Drop sight-
+                     words-spanish from cal.c's program list until
+                     v1. Smallest code, fastest to ship.
+
+  stb_truetype.h   : single-header, ~3K LOC of vetted C, zero
+                     dependencies. Renders any TTF/OTF at runtime.
+                     Adds a glyph cache (LRU on ~256 cells).
+                     Subtract-shaped because it's one file you can
+                     read end-to-end.
+
+Recommendation: stb_truetype.h. The Spanish program is already
+deployed in multiplying.html; cal.c regressing on it would be a
+visible step backward. The 3K LOC cost is a one-time payment that
+unlocks every script Hannah and the kids might encounter.
+
+### 2. vi0 command set — pin the exact list before parser is written
+
+"vi subset" appears twice in cal.c.txt and is unspecified both
+times. The parser's complexity is set by the command set; without
+it, scope creep is mechanical. Proposed v0 set, 15 commands:
+
+  motion:    h j k l 0 $ G gg
+  search:    / n
+  insert:    i a o
+  delete:    x dd
+  yank/put:  yy p
+  ex:        :w :q :! :%! :r!
+
+No registers. No marks. No macros. No counts before motions.
+No visual mode (yank/delete operate on whole lines via dd/yy).
+The :! family is what makes vi0 different from "tiny vi" — those
+are the inference pipes, and they should accept everything from
+the cursor to a delimiter as the selection.
+
+Anything beyond this list is feature creep until cal.c is shipping.
+
+### 3. Concurrency model — write the event loop pseudocode in the spec
+
+cal.c.txt says "select() on input fds + inference socket, single-
+threaded event loop." Correct in shape, but inference streams chunked
+HTTP from llama.cpp token-by-token, and the redraw must happen during
+the recv loop without dropping keypresses. The state machine is:
+
+  loop:
+    fds = [stdin/evdev fds..., inference_socket if streaming]
+    ready = select(fds, timeout=16ms)
+    for fd in ready:
+      if fd is input:
+        translate to cal_event, dispatch to current mode
+      if fd is inference:
+        recv chunk, append to output buffer, mark output rect dirty
+    if any rect is dirty:
+      redraw dirty rects only
+      platform_flip()
+
+The 16ms timeout gives ~60Hz redraw ceiling without busy-waiting.
+The dirty-rect bookkeeping addresses the "memmove on full
+framebuffer stutters" finding from the review block. Worth one
+paragraph in cal.c.txt before code goes down.
+
+### 4. Touch calibration — design it in, not bolted on
+
+evdev EV_ABS gives raw coords from the touchscreen's reported range,
+which differs per device. The acer's "touch if USB" path will need
+calibration. Suggested:
+
+  - cal_calibrate mode: display four corner targets, capture raw
+    EV_ABS_X / EV_ABS_Y at each tap, compute a 3x3 affine transform
+  - persist to ~/.subtract/cal-touch.${device}.cal
+  - platform_event() applies the transform when emitting CAL_TOUCH
+
+~30 lines on the platform_linux side. macOS doesn't need this —
+NSEvent already gives logical points.
+
+### 5. Session log schema — pin it now or BCBA tooling has to guess
+
+cal.c.txt mentions clinical session logs as a finding but doesn't
+specify schema. ABA data collection needs a stable line format that
+Hannah's downstream tooling (and eventually 837P billing automation)
+can parse without reverse-engineering. Proposal — TSV, append-only:
+
+  ts_iso        UTC ISO 8601
+  program       yes-no | wh-flashcards | sight-words-spanish | one-step
+  trial         monotonically increasing per session
+  stimulus      what was shown (text or image filename)
+  response      what was tapped/keyed (text, button id, or "no_response")
+  latency_ms    from stimulus render to response
+  correct       0 | 1 | n/a
+
+  Path: ~/.subtract/sessions/cal-${date}-${program}.tsv
+
+JSONL is also defensible but TSV is grep-friendly and the existing
+log_session() in hosuni.sh already uses TSV. Consistency wins.
+
+### 6. Asahi /dev/dri probe order — write the discovery rule
+
+cal.c.txt says "emile: /dev/dri/card1 (Asahi GPU), card2 (render
+only)" and "acer: /dev/dri/card0 (1660Ti) or card1." That's two
+different cards-of-interest with no rule. The probe should be:
+
+  for card in /dev/dri/card*:
+    open card, drmModeGetResources, count connected connectors
+    if any connector connected and has a preferred mode:
+      use this card
+      break
+  else:
+    fail "no display found"
+
+This is the rule platform_linux.c needs to encode. Render-only
+nodes (card2 on Asahi) won't have connectors — they'll be skipped
+naturally. ~15 lines.
+
+
+## Items not in the existing reviews that I'd add
+
+### 7. Wake-on-input lifecycle
+
+What happens when the display sleeps? On Linux DRM, the connector
+goes DPMS-off after the kernel idle timeout. cal.c needs to either
+disable DPMS (xset-equivalent ioctl: drmModeConnectorSetProperty
+on DPMS to ON) or handle the wake event when input arrives at a
+suspended display. For clinical use the parent expects to walk up
+and resume — not see a dead screen.
+
+On macOS the window server handles this transparently as long as
+cal.c's NSWindow stays the key window. No work needed.
+
+Recommendation: Linux platform sets DPMS to ON at platform_init
+and never lets the kernel sleep the display while cal is running.
+~5 lines.
+
+### 8. Crash recovery — clinical use needs it
+
+cal.c has no fault tolerance discussed. If cal crashes mid-session,
+what does Callum see? On Linux without a compositor: the previous
+framebuffer state, frozen. On macOS: window disappears, desktop
+revealed. Both are wrong for the kid threat model.
+
+Cheapest fix: a tiny supervisor — `while true; do ./cal; sleep 1;
+done` in a launchd plist (macOS) or systemd unit (Linux). The
+session log will show the gap; the screen recovers in <2s.
+
+Worth one line in cal.c.txt: "cal.c is supervised by launchd or
+systemd; assume restart-on-crash is the recovery model."
+
+### 9. The macOS .app question deserves a decision now
+
+cal.c.txt says ".app bundle required for Gatekeeper" with a 6-line
+Info.plist. Actually: command-line binaries that don't access
+sandboxed APIs (network, microphone, camera) and aren't downloaded
+from the internet don't need notarization at all. cal.c uses HTTP
+to localhost only — that's not a sandboxed API in the Gatekeeper
+sense. Running from Terminal: zero friction. Running from launchd:
+zero friction.
+
+The .app bundle is only needed if you want a Dock icon, a Launchpad
+entry, or distribution via `curl | sh` from outside the local
+network. For Hannah's machine (local install, launchd autostart),
+no .app needed. For the eventual subtractor distribution: yes, .app
++ notarization, but that's a v2 problem.
+
+Recommendation: ship the bare binary for v0 and v1. Document the
+.app+notarize path in a separate file when distribution becomes
+the question. Don't pre-pay that complexity.
+
+### 10. The third platform — wasm beats SDL for the recruiting story
+
+cal.c.txt mentions a "3rd portable route if possible" without
+specifying. Reading the spec, the portable route is already
+implicit: every new platform is a new ~200-line platform_X file
+filling the same struct. Candidates:
+
+  platform_sdl.c   broader (Windows/BSD/weird Linux), drags
+                   ~600KB of library, requires runtime install
+
+  platform_wasm.c  zero install for the viewer. cal.c compiles to
+                   a single .wasm + a 50-line HTML loader. Browser
+                   becomes the framebuffer (which is the kind of
+                   poetic inversion subtract.ing produces when the
+                   architecture is right).
+
+The recruiting story (subtractor.txt) is "what does this engagement
+write up that recruits the next subtractor." A wasm build means
+anyone can `curl https://subtract.ing/cal/` and see cal.c work in
+their browser, View Source the loader, find the GitHub link, and
+meet the architecture in 90 seconds. SDL doesn't carry that story
+because it requires installation before demonstration.
+
+The hidden cost of wasm: emscripten as a build dependency. That's
+significant — emcc is not subtract-shaped. Mitigation: the wasm
+build is the recruiting demo only. It's not how Callum or Hannah
+run cal. Their machines run native binaries. The wasm build lives
+on the website, gets rebuilt when cal.c changes, never ships to a
+clinical surface.
+
+Recommendation: defer the third platform. Ship Linux + macOS first.
+Add platform_wasm.c when cal.c is shipping on Hannah's machine and
+you need the recruiting demo. Sequence matters here — the third
+platform is a marketing artifact, not a runtime, and shouldn't gate
+v1.
+
+### 11. The font sizing policy is unstated
+
+cal.c.txt mentions "32px and 48px for kids" but PSF is a bitmap
+format that doesn't scale, it tiles. 32px and 48px are achievable
+by picking a 32px PSF and a 48px PSF, not by scaling one. If you
+go stb_truetype.h (item 1), this stops mattering — pick any size
+at runtime. If you stay on PSF, ship two PSFs.
+
+This is downstream of the unicode decision (item 1). Resolve that
+first, this resolves itself.
+
+### 12. The "edit" mode and the "ask" mode share an inference socket
+
+Reading the spec carefully: ask mode does a single HTTP POST and
+streams the response into the output pane. Edit mode (vi0) does a
+:! that pipes selection to inference. Both hit the same llama.cpp
+socket. Are they sharing a connection or each opening one?
+
+For clinical use, opening a fresh connection per :! is fine — the
+latency of TCP handshake to localhost is microseconds. For ask mode
+streaming, a persistent connection makes sense. Worth one sentence
+in cal.c.txt: "ask mode keeps an inference socket open across
+prompts; edit mode opens per-:! and closes after the response."
+
+### 13. Hosuni fallback path is described but the mechanism isn't
+
+cal.c.txt: "hosuni's routing (tool use, research handoff) available
+as a fallback for complex queries." Mechanism unspecified. Options:
+
+  - cal.c always hits llama.cpp directly; never calls hosuni
+    (drops the "fallback" claim)
+  - cal.c hits hosuni first, hosuni decides whether to call
+    llama.cpp or do something else (drops the "no middleman"
+    speed claim)
+  - cal.c hits llama.cpp by default, but if the user types a
+    keyword (e.g. "research:" prefix) cal.c routes via hosuni
+
+Pick one. The third option preserves both claims and adds zero
+complexity to the common path. The keyword is a 3-line check
+before the POST.
+
+
+## What I'd not change
+
+- The lineage section. Three eras, each subtracting a dependency,
+  is the document's spine. Don't dilute it with "and we also
+  considered X" notes. The whole point is that the previous era
+  was the answer until it wasn't.
+- The "everything on screen is intentional. There is no 'elsewhere'
+  to navigate to" sentence. That is the spec, in 14 words.
+- The decision to keep cal.c portable C with two ~200-line platform
+  files. Not three layers, not an HAL with an enum dispatch table.
+  The struct is the abstraction; the function pointers are the API;
+  cal.c links one platform_X.o at compile time. The simplest thing
+  that could work.
+- The choice not to include any networking beyond localhost
+  llama.cpp. The kid threat model collapses if cal.c can reach the
+  open internet. The spec is correct to leave that out.
+- The reviewer credit at the bottom. Marking which findings came
+  from which review (and at what effort level) is the kind of
+  attribution that makes the spec auditable. Keep doing this.
+
+
+## One observation about scope
+
+The list above is long because xhigh effort means surfacing
+everything I notice, not because the spec is incomplete. The 13
+items break down as:
+
+  - 6 items the existing reviews already named, where I'm just
+    proposing a specific resolution (1, 2, 3, 4, 5, 6)
+  - 4 items genuinely new (7, 8, 9, 13)
+  - 3 items that are sequencing/policy decisions, not bugs
+    (10, 11, 12)
+
+If you and Rousseau resolve items 1, 2, 3, 5 — Unicode strategy,
+vi0 command set, event loop pseudocode, session log schema — the
+spec is implementation-ready. Everything else can be decided
+during or after the first build.
+
+
+## Subtract-fit check
+
+The architecture passes the four reflexes:
+
+  library to kernel: yes — every layer names its kernel primitive
+  (DRM dumb buffer, evdev, NSWindow as floor, CGBitmapContext as
+  pointer-to-pixels, KDSKBMODE for VT containment)
+
+  format to signature: not directly applicable to a renderer, but
+  the .sig discipline from the rest of subtract.ing should extend
+  to cal binaries — sign the build artifact, ship the .sig
+  alongside
+
+  action to verification: the supervisor pattern (item 8) is the
+  verification — if cal crashes, the session log shows the gap
+  and the supervisor restarts. That's a verifiable recovery loop
+
+  source to signing domain: cal.c, platform_linux.c, platform_macos.m
+  all need to live under subtract.ing's signing domain with .sig
+  files. They are the substrate now, not just configuration
+
+The architecture also passes the contributor.txt rule from earlier
+in this session: a PR exists if it's harm-reductive to the
+substrate. cal.c is additive code (~600 lines across three files)
+in service of subtraction at the user's surface (a browser engine,
+a JS runtime, a terminal emulator, a tmux, a compositor, a desktop
+environment — six orders of magnitude of removed code). Net
+negative is the point.
+
+
+## Final read
+
+This is the cleanest demonstration of subtract's thesis the project
+has produced. multiplying.html argued the case; cal.c proves it.
+When this ships and Hannah uses it for one BCBA session, the
+contributor frame has its first published engagement writeup —
+not as a marketing artifact but as a binary that demonstrates the
+trade.
+
+The spec is implementation-ready after items 1, 2, 3, 5 are pinned.
+Everything else is the second build's problem.
+
+— Opus 4.7, xhigh, governor surface, 2026-05-07

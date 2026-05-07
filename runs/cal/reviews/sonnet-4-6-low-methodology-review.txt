@@ -1,0 +1,53 @@
+# sonnet-4-6 low methodology review
+# Dispatched: emile (M2 Mac Mini, Asahi Fedora 44)
+# Model: claude-sonnet-4-6, low effort
+# Date: 2026-05-07
+# Input: cal-review-methodology.txt (full report)
+
+## Methodology analysis: cal.c three-gate review
+
+### What worked
+
+**Functional verification yield was decisive.** Five model reviews produced 26 findings. After gate 0 and partial gate 1, 1 finding confirmed (F01), 1 partially confirmed (F24), 24 unverified. Functional verification produced 6 findings (FV1-FV6), all confirmed by direct observation. The 6 functional findings included the bug that blocked all further testing. Model reviews generated hypotheses; functional verification generated facts. The ratio is not close.
+
+**The false pass was caught.** G1.1 recorded process-liveness as display-liveness. The governor walked to the machine and said "blank screen." That one-second observation redirected 45 minutes of subsequent work that would otherwise have compounded a false result through gate 2 and into scoring. The methodology's human gate fired and worked.
+
+**The three-questions framework predicted the gap before it occurred.** Autonomy.1 ("what can you do that an agent cannot?") maps directly to "look at the screen." The framework was in the governance document before the false pass happened. The methodology was right; the test execution didn't apply it.
+
+**opus-4-7's diagnostic suggestion was useful despite a wrong causal explanation.** "Check drmModeGetCrtc to see if your fb is still attached" was not the correct explanation, but it was the correct tool. The model converged on the primitive (kernel state query) while getting the architecture wrong (cause of the failure). This is consistent with the handler methodology's prior finding and generalizes: model value in diagnosis is often in suggesting what to measure, not in explaining what the measurement means.
+
+### What failed
+
+**Rubric was post-hoc.** The reviews were dispatched before a rubric existed. This is the methodology's first requirement, not a soft recommendation. The consequence was manual normalization of five freeform reviews rather than mechanical scoring. The cross-reviewer scorecard is downstream of this failure — it looks like results but is actually a normalization artifact.
+
+**G1.1's pass criterion was wrong.** "Display appears" was assessed by checking process status and exit code. For a framebuffer application, this is not a display test. It is a process test. The rubric should have required visual confirmation from the start. It did not, so a false pass stood long enough to consume a significant fraction of the session's debugging budget.
+
+**The deploy script had a logic inversion.** grep's exit code is 1 when no matches are found, 0 when matches are found. The script used exit code to gate launch, which means "no errors found" triggered on grep failure (no match = no errors). Builds v9-v12 compiled with errors, errors were printed, and the old binary ran. Four consecutive deploys operated silently on stale code. The governor noticed because the UI never changed. An agent running unattended would not have noticed.
+
+**45 minutes of debugging was avoidable.** The root cause of the display failure was drmIsMaster() returning 0. That is a one-line check available before any rendering. The diagnostic path instead went: standalone programs work -> cal doesn't -> seven test programs -> three model consultations -> diagnostic build -> drmModeGetCrtc readback -> answer. The answer was always in the first ioctls. The debugging expenditure was not caused by the methodology failing; it was caused by the investigation starting in the middle of the stack rather than at the bottom.
+
+**The prior review was treated as authoritative too early.** The v2 writeup declared signal handlers correct and malloc paths checked. Multi-model dispatch subsequently disputed both. The synthesis correctly identified this after the fact, but the initial frame — the prior review as the baseline against which dispatch results were measured — shaped the analysis in ways that took effort to unwind.
+
+### What the methodology proved
+
+**Functional verification finds the bugs that block testing the other bugs.** FV5 (drmModeSetCrtc EACCES) was not in any model review. It was the single finding that prevented gate 1 from running. Without it, the methodology would have scored a display application that never displayed. This extends the handler methodology's prior finding: functional verification doesn't just catch things reviews miss, it catches the failures that would have let missed bugs go undetected through the entire gate sequence.
+
+**Model convergence is not verification.** F01 was reported by three of five reviewers. That was the correct call. F04 (no shift tracking) was reported by all five. The finding was real. But convergence alone cannot confirm a runtime bug — both were still "unverified" until gate 1. The methodology correctly treats convergence as signal strength on a hypothesis, not as confirmation.
+
+**Gate 0 has low yield for idiomatic C.** Zero compilation errors. All 26 model findings were runtime or logic bugs. Gate 0 is fast and necessary as a baseline, but it confirms syntax and link dependencies, not correctness. For a project at this stage, the gate 0 investment is low and the gate 1 investment is where the results are.
+
+**The hard human gate is real and predictable.** The methodology's three-questions framework names it. The test execution omitted it. The result was a false pass. This is not a surprising failure — it is the failure the framework was designed to prevent. The lesson is not "add more automation"; it is "route display-output verification through the human, or through a mechanical proxy that provides equivalent ground truth."
+
+### What I would change
+
+**Pre-commit the rubric. Hard stop.** No dispatches until the rubric file is committed and its path is in the dispatch prompt. The scorecard normalization work this session would not have been needed. The fix is procedural, not technical.
+
+**Rewrite G1.1 for display applications.** "Display appears" requires either (a) governor visual confirmation at the physical machine, or (b) pixel readback checksum from the mmap'd buffer via a secondary process that verifies non-black non-uniform content at expected coordinates. Process status and exit code are gate preconditions, not gate pass criteria.
+
+**Add a binary timestamp assertion to deploy scripts.** Before launching after compile: verify the binary mtime is newer than the source files. If not, the compile failed and the old binary is running. This catches the v9-v12 class of failure without requiring the governor to notice that the UI didn't change.
+
+**Start DRM investigation at layer zero.** A standard DRM application harness should check drmIsMaster() immediately after open and fail with a specific message before attempting any rendering. This is three lines. It converts 45 minutes of stack-middle debugging into a one-line error. The handler methodology's reflex.3 (name the primitive before proposing a wrapper) applies here: the first diagnostic question for a DRM blank screen is always "do you hold master?"
+
+**Label synthesis output as hypotheses, not findings.** The cross-reviewer scorecard is analysis of unverified model claims. Calling them "findings" before gate 1 overstates their epistemic status and creates work unwinding that framing later. The synthesis pass is useful — it prioritizes the gate 1 test sequence. It is not a findings document until gate 1 runs.
+
+**The 19/22 gate 2 score is the correct end state.** The three remaining 1s (C2 vi coverage, R3 OOM propagation, R4 silent truncation) are accurately characterized as non-blocking. The methodology terminated at the right point.

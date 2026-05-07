@@ -1,0 +1,143 @@
+# cal.c code review rubric
+# Pre-committed for three-gate methodology
+# Date: 2026-05-07
+# Reviewer: rousseau (jns@m1studio)
+
+## Context
+
+Source under review:
+  cal.h             165 lines
+  cal.c            1117 lines
+  platform_linux.c  247 lines
+  platform_macos.m  239 lines
+  Total:           1768 lines
+
+Target: framebuffer application (DRM on Linux, Cocoa on macOS)
+with vi modal editing, inference streaming to llama.cpp, kiosk mode.
+First deployment target: emile (M2 Mini, Asahi Fedora 44).
+
+
+## Gate 0: Compilation (binary, eliminates)
+
+G0  Does the source compile without error on the target?
+    Linux:  cc -O2 -o cal cal.c platform_linux.c -ldrm
+    macOS:  cc -O2 -o cal cal.c platform_macos.m -framework Cocoa
+
+    PASS = zero errors, warnings acceptable
+    FAIL = any error; review stops here until resolved
+
+    Note: stb_truetype.h is a vendored single-header dependency.
+    Must be present at compile time. Its absence is a G0 failure.
+
+
+## Gate 1: First-run survival (binary per scenario, eliminates)
+
+Each scenario is run once on emile. PASS = completes without
+crash/hang. FAIL = segfault, hang, or kernel state corruption.
+
+G1.1  Launch in dev mode (no CAL_KIOSK), display appears, exit cleanly
+G1.2  Type a query in ask mode, receive streaming tokens on screen
+G1.3  Open edit mode, type text, save file, quit
+G1.4  Launch in kiosk mode, SIGTERM, TTY restored to usable state
+G1.5  Launch with large font init failure path (bad font size),
+      exit cleanly (no double-free)
+
+
+## Criteria: Correctness (C1-C6, scored 0/1/2)
+
+Scored per criterion. 0 = broken, 1 = partially correct or
+fragile, 2 = correct under all tested conditions.
+
+C1  Inference streaming delivers tokens to screen
+    0: no tokens appear (socket closed prematurely, HTTP headers
+       not skipped, SSE parsing broken)
+    1: tokens appear but truncation/corruption observed
+    2: tokens stream correctly until model completion
+
+C2  Vi editing: insert, delete, save, load
+    0: data loss or crash on basic editing operations
+    1: works but cursor positioning errors or missing operations
+    2: insert/delete/save/load correct, cursor tracks accurately
+
+C3  Keyboard input: all printable ASCII reachable
+    0: entire classes of characters unreachable (uppercase, digits
+       in specific modes, punctuation)
+    1: most characters work, specific keys broken in specific modes
+    2: all printable ASCII reachable via keyboard in all modes
+
+C4  Memory safety: no use-after-free, double-free, buffer overrun
+    0: crash path exists in normal operation
+    1: crash path exists in edge case (OOM, malformed input)
+    2: all allocation/free paths verified correct
+
+C5  File descriptor hygiene: no leaks, no double-close
+    0: fd leak or double-close in normal operation
+    1: fd leak or double-close in signal/cleanup path
+    2: all fd paths verified (open/close paired, set to -1 after close)
+
+C6  Signal handling: cleanup runs exactly once, async-signal-safe
+    0: cleanup doesn't run or runs unsafely (non-async-signal-safe calls)
+    1: cleanup runs but double-fires or leaves partial state
+    2: cleanup runs exactly once, all calls async-signal-safe
+
+
+## Criteria: Robustness (R1-R4, scored 0/1/2)
+
+R1  Partial write on inference socket handled
+    0: write() return unchecked
+    1: return checked but no retry loop
+    2: send loop or equivalent ensures complete transmission
+
+R2  SSE event boundaries handled across TCP reads
+    0: strstr on single read buffer, drops tokens at boundaries
+    1: partial mitigation (large buffer, works in practice)
+    2: persistent buffer across reads, parses complete SSE events
+
+R3  Graceful degradation on allocation failure
+    0: silent failure leads to overrun or corruption
+    1: failure detected but not propagated (caller proceeds unsafely)
+    2: failure propagated, caller handles (returns error or exits)
+
+R4  Input edge cases (long lines, rapid keypress, concurrent events)
+    0: crash or data loss
+    1: silent truncation or dropped input
+    2: truncation signaled or input correctly queued
+
+
+## Criteria: Platform (P1-P2, scored 0/1/2)
+
+P1  Linux DRM: correct initialization, cleanup, error messages
+    0: fails to open DRM or set CRTC with no diagnostic
+    1: works on target hardware, no error message on failure
+    2: works and fails with actionable diagnostic
+
+P2  macOS Cocoa: correct event loop, no dropped keystrokes
+    0: key events lost in normal use
+    1: events dropped under specific timing (flip/event race)
+    2: event delivery reliable under all tested conditions
+
+
+## Scoring
+
+Maximum: G0 + G1 (binary gates) + C 12 + R 8 + P 4 = 24 weighted
+Elimination: any G0 or G1 failure blocks scoring of C/R/P
+Minimum shippable: all G pass, C sum >= 8, no C at 0, no R at 0
+
+
+## Tiebreak (if comparing implementations or review accuracy)
+
+1. Lowest false-positive count (claimed bug that isn't one)
+2. Highest unique-true-positive count (bug found by this reviewer only)
+3. Lowest word count (concision)
+
+
+## Verification method
+
+Gate 0: compiler output on emile
+Gate 1: manual execution on emile, observed by governor
+C/R/P: scored against compiler output, test runs, and source reading
+        after gates 0 and 1 complete
+
+No criterion is scored from model review output alone. Model reviews
+are input to the scoring; the score is assigned by the governor after
+verification.
