@@ -1,0 +1,92 @@
+# Local model review: qwen2.5-7b-q4
+# Tokens: prompt=20108, completion=1055, total=21163
+# Throughput: 36.1 tok/s
+
+After reviewing the provided `cal.c`, `cal.h`, and `platform_linux.c`, I've identified several potential issues and problems that could cause compilation issues, logic bugs, or memory safety problems. Here are the specific issues with references to the relevant lines:
+
+### cal.c
+
+1. **Memory Safety:**
+    - **`platform_event` Function:**
+        - The `cal_event` structure is not being zeroed out before use, which could lead to undefined behavior.
+        - **Line:** 2694
+        - **Solution:** Add `memset(ev, 0, sizeof(*ev));` at the beginning of the `platform_event` function.
+
+2. **Logic Bug:**
+    - **`handle_ask_key` Function:**
+        - The function does not handle the case where `app->ask.streaming` is `true` and the key is `KEY_BACKSPACE`.
+        - **Line:** 2226
+        - **Solution:** Add a condition to handle `KEY_BACKSPACE` when `app->ask.streaming` is `true`.
+
+3. **Memory Safety:**
+    - **`handle_edit_key` Function:**
+        - The `handle_edit_key` function does not check for buffer overflow when appending to the `cmd` buffer.
+        - **Line:** 2305
+        - **Solution:** Ensure that `v->cmd_len < (int)sizeof(v->cmd) - 1` is checked before appending a character.
+
+4. **Logic Bug:**
+    - **`handle_edit_key` Function:**
+        - The function does not handle the case where the `KEY_BACKSPACE` is pressed in `VI_NORMAL` mode.
+        - **Line:** 2315
+        - **Solution:** Add a condition to handle `KEY_BACKSPACE` in `VI_NORMAL` mode.
+
+5. **Logic Bug:**
+    - **`handle_edit_key` Function:**
+        - The function does not handle the case where the `KEY_BACKSPACE` is pressed when the cursor is at the start of the line.
+        - **Line:** 2324
+        - **Solution:** Handle the case where `pos` is `0` in the `if (pos > 0)` condition.
+
+6. **Memory Safety:**
+    - **`vi_exec_command` Function:**
+        - The `vi_exec_command` function does not check for buffer overflow when copying filenames.
+        - **Line:** 2441
+        - **Solution:** Ensure that `strlen(v->cmd + 2) < sizeof(v->filename) - 1` is checked before copying.
+
+### platform_linux.c
+
+1. **Logic Bug:**
+    - **`drm_open` Function:**
+        - The function does not handle the case where no display is found.
+        - **Line:** 181
+        - **Solution:** Add error handling for the case where `drm_is_master` fails.
+
+2. **Memory Safety:**
+    - **`drm_setup_fb` Function:**
+        - The function does not handle the case where `drm_mode_create_dumb` fails.
+        - **Line:** 221
+        - **Solution:** Check the return value of `drm_mode_create_dumb` and handle the error.
+
+3. **Logic Bug:**
+    - **`dpms_on` Function:**
+        - The function does not handle the case where the DPMS property is not found.
+        - **Line:** 244
+        - **Solution:** Add error handling for the case where the DPMS property is not found.
+
+4. **Memory Safety:**
+    - **`evdev_find` Function:**
+        - The function does not handle the case where the `ioctl` call fails.
+        - **Line:** 267
+        - **Solution:** Check the return value of `ioctl` and handle the error.
+
+5. **Logic Bug:**
+    - **`vt_lock` Function:**
+        - The function does not handle the case where `ioctl` fails to change the keyboard mode.
+        - **Line:** 307
+        - **Solution:** Add error handling for the `ioctl` call.
+
+6. **Logic Bug:**
+    - **`vt_unlock` Function:**
+        - The function does not handle the case where `ioctl` fails to unlock the VT switch.
+        - **Line:** 316
+        - **Solution:** Add error handling for the `ioctl` call.
+
+### General Considerations
+
+- **Error Handling:**
+    - Ensure that all system calls and `ioctl` calls are properly checked for errors and appropriate error messages are printed.
+- **Resource Management:**
+    - Ensure that all resources (files, memory mappings, etc.) are properly closed and deallocated.
+- **Thread Safety:**
+    - Ensure that no shared resources are accessed without proper synchronization if the application is intended to be multi-threaded.
+
+These are the specific issues and suggested solutions based on the provided code. Addressing these will help ensure a more robust and error-free application.

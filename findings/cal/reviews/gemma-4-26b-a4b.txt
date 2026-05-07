@@ -1,0 +1,153 @@
+# Local model review: gemma-4-26b-a4b-it-q4
+# Tokens: prompt=24238, completion=4096, total=28334
+# Throughput: 42.9 tok/s
+# Note: review was in reasoning_content (thinking model)
+
+A framebuffer application (`cal.c`) supporting DRM (Linux) and Cocoa (macOS) with vi-style editing, LLM inference streaming, and kiosk mode.
+Report compilation issues, logic bugs, memory safety problems, and things that will fail on first run. Be specific with line references.
+`cal.h`, `cal.c`, `platform_linux.c`.
+
+    *   *Compilation/Dependencies:* Uses `stb_truetype.h`. Needs to be in the include path.
+    *   *Structures:* `cal_surface`, `cal_event`, `cal_font`, `gap_buf`, `vi_ctx`, `ask_ctx`, `cal_app`.
+    *   *Functions:* Standard CRUD/logic patterns for gap buffers, font rendering, and networking.
+
+    *   *JSON Escaping (`json_escape`):*
+        *   `o < out_max - 6` is used to prevent overflow.
+        *   `snprintf(out + o, out_max - o, "\\u%04x", in[i]);`
+        *   *Potential issue:* If `in[i]` is a control character, it writes 6 chars (`\u00xx`). If `o` is very close to `out_max`, could it overflow? The condition `o < out_max - 6` is safe.
+
+    *   *Font Rendering (`cal_font_init`, `cal_draw_char`):*
+        *   `cal_font_init`: `f->bitmap = data;`. This is a pointer to the buffer loaded from the file. `f->info` is allocated separately.
+        *   `cal_font_free`: `free(f->bitmap); free(f->info);`. Correct.
+        *   `cal_draw_char`:
+            *   `uint32_t *scanline = (uint32_t *)((uint8_t *)s->pixels + sy * s->stride);`
+            *   The scanline is indexed by `sx`. `scanline[sx] = color;`.
+            *   *Wait:* `scanline` is a `uint32_t*`. If `s->stride` is in bytes (which it is, per `cal.h`), then `scanline[sx]` accesses `sx * 4` bytes from the start of the scanline. This is correct *if* `stride` is a multiple of 4.
+            *   *Memory Safety:* `if (sx < 0 || sx >= s->width) continue;`. This protects against out-of-bounds on the scanline.
+            *   *Logic:* `scanline[sx] = 0xFF000000 | (ro << 16) | (go << 8) | bo;`. This assumes the framebuffer is 32-bit ARGB/XRGB. This is standard for DRM dumb buffers.
+
+    *   *Gap Buffer (`gap_grow`, `gap_insert`, etc.):*
+        *   `gap_grow`: `int tail = g->cap - g->gap_end;`. `memcpy(new_buf + new_cap - tail, g->buf + g->gap_end, tail);`.
+        *   *Potential logic bug:* `g->gap_end` is the index *after* the gap. The gap is `[gap_start, gap_end)`.
+        *   Let's check `gap_move`:
+            ```c
+            while (g->gap_start < pos) {
+                g->buf[g->gap_start] = g->buf[g->gap_end];
+                g->gap_start++;
+                g->gap_end++;
+            }
+            ```
+            If `g->gap_end` reaches `g->cap`, this will overflow. `gap_grow` is only called in `gap_insert`. `gap_move` does not call `gap_grow`.
+            *Crucial Bug:* `gap_move` can cause `g->gap_end` to exceed `g->cap`. This is a classic gap buffer error.
+
+    *   *Inference (`cal_infer`, `cal_infer_stream`, `cal_infer_recv`):*
+        *   `cal_infer`:
+            *   `char *escaped = malloc(strlen(prompt) * 6 + 1);` - Safe.
+            *   `char *body = malloc(strlen(escaped) + 512);` - Safe.
+            *   `int blen = sprintf(body, ...);` - Safe.
+            *   `char *req = malloc(blen + 256);` - Safe.
+            *   `int rlen = sprintf(req, ...);` - Safe.
+            *   `int buf_size = resp_max + 4096; char *buf = malloc(buf_size + 1);` - Safe.
+            *   *Networking:* `read(fd, buf + total, buf_size - total)`. This is a standard blocking read.
+            *   *Logic:* Parsing the response body with `strstr` is fragile but works for a simple implementation.
+        *   `cal_infer_recv` (Streaming):
+            *   Uses `static char buf[8192]`.
+            *   `int n = read(sock, buf + buf_len, space);`.
+            *   `if (n <= 0) { buf_len = 0; return -1; }`.
+            *   *Logic Error:* `last_consumed = p - 11;`. If `strstr` fails to find a full chunk, it breaks.
+            *   *Major Logic Bug:* The `memmove` logic. `int remain = buf_len - (int)(last_consumed - buf);`. If `last_consumed` is an offset relative to the start of the buffer, this looks okay. But `last_consumed` is set to `p - 11` or `p`.
+            *   *Wait:* `static char buf[8192]`. If `read` returns a chunk that cuts off in the middle of a JSON key or a value, `strstr` will fail. The `memmove` shifts the partial data to the start. This is correct for a stream.
+            *   *Bug:* `if (n <= 0) { buf_len = 0; return -1; }`. If `read` returns 0 (EOF), it returns -1. The caller handles -1 as "close connection". Correct.
+
+    *   *Tool Calling (`cal_infer_tools`):*
+        *   `char *messages = malloc(256 * 1024);`.
+        *   `snprintf(messages, 256 * 1024, ...);`.
+        *   *Critical Bug:* `snprintf(messages + mlen - 1, ...)` in the loop. This is used to append to the JSON array.
+        *   *Wait:* `messages` is initialized as `[{"role":"user","content":"..."}]`.
+        *   When appending: `snprintf(messages + mlen - 1, ... , ",{\"role\"...}")`.
+        *   The `-1` is to overwrite the closing `]` of the previous array element? No, `messages` is a single JSON array.
+        *   If `messages` is `[{"role":"user"}]`, `mlen` is 20. `messages + 19` points to the `]`.
+        *   `snprintf(messages + 19, ..., ",{\"role\"...}")` would result in `[{"role":"user"},{"role":"assistant"...}]`. This is valid JSON.
+        *   *However*, the code uses `snprintf` inside a loop to build a massive string. `snprintf` is $O(N)$. Building a huge string this way is $O(N^2)$.
+        *   *Memory Safety:* `char *resp = malloc(128 * 1024);` and `char *body = malloc(384 * 1024);`. `http_post_json` reads up to `resp_max`.
+        *   *Major Bug in `execute_tool`:* `snprintf(cmd, sizeof(cmd), "%s", arg);`. If `arg` (the command from the LLM) is longer than 4096, it's truncated. This is a security/logic risk but not necessarily a crash.
+        *   *Critical Bug in `execute_tool`:* `snprintf(cmd, sizeof(cmd), "cat '%s'", arg);`. If `arg` contains a single quote `'`, the command is broken (Injection vulnerability). If `arg` is `'; rm -rf /; '`, it executes.
+
+    *   *Vi Editor (`vi_exec_command`):*
+        *   `vi_cursor_pos` + `gap_move` + `gap_insert`.
+        *   `gap_insert_str(&v->buf, resp, n);`.
+        *   `v->dirty = 1;`.
+        *   *Logic Bug:* `gap_move(&v->buf, pos); gap_insert(&v->buf, '\n');`. If `pos` is at the very end of the buffer, `gap_move` works, but if the gap is at the end, `gap_insert` might trigger a grow.
+
+    *   *Main Loop/Input:*
+        *   `handle_ask_key`: Maps keycodes to chars.
+        *   `if (code >= KEY_Q && code <= KEY_P)`: This range logic is highly dependent on the platform's header. The header defines these manually.
+        *   *Logic Bug:* `if (code >= KEY_1 && code <= KEY_0)`. In the header: `KEY_1` is 2, `KEY_0` is 11. This range is 2-11. But the logic uses `code - KEY_1`. If `code` is `KEY_0` (11), index is `11 - 2 = 9`. This is actually okay.
+
+    *   *DRM (`platform_linux.c`):*
+        *   `drm_open`: Uses `drmSetMaster`. This will fail if a Display Manager (X11/Wayland) is running. This is expected for a "kiosk" app, but a "first run" on a standard desktop will fail.
+        *   `drm_setup_fb`: `drmModeAddFB(..., 24, 32, ...)`. The `24` is depth, `32` is bpp. This is standard.
+        *   `evdev_find`: `ioctl(fd, EVIOCGBIT(0, sizeof(evbits)), &evbits);`. This is correct.
+        *   `vt_lock`: `ioctl(tty_fd, KDSKBMODE, K_OFF);`. This requires root/sudo. If run as a normal user, this will fail.
+        *   `unbind_fbcon`: Writes to `/sys/class/vtconsole/...`. This requires root.
+
+    *   **Problem 1: Gap Buffer `gap_move` Overflow.**
+        `gap_move` (cal.c:207) modifies `g->gap_start` and `g->gap_end` by incrementing/decrementing them without checking against `g->cap`. While `gap_insert` calls `gap_grow`, `gap_move` does not. If a user moves the cursor to a position that requires shifting the gap beyond the current capacity, it will cause an out-of-bounds write/read.
+
+    *   **Problem 2: Command Injection in `execute_tool`.**
+        (cal.c:451) `snprintf(cmd, sizeof(cmd), "cat '%s'", arg);`. An LLM (or a malicious user via the LLM) can provide an argument like `' /etc/shadow; #`. This is a critical security flaw.
+
+    *   **Problem 3: DRM/Kiosk Permissions.**
+        (platform_linux.c:182, 203, 218) `vt_lock` and `unbind_fbcon` require `CAP_SYS_ADMIN` or root. The application will fail to initialize the kiosk mode on a standard user account.
+
+    *   **Problem 4: `gap_char_at` Logic Error.**
+        (cal.c:230) `return g->buf[g->gap_end + (pos - g->gap_start)];`.
+        If `pos` is the position in the *logical* text, and `pos >= gap_start`, we are skipping the gap. The correct index is `g->gap_end + (pos - g->gap_start)`.
+        Wait, let's re-check the math.
+        Gap is `[gap_start, gap_end)`.
+        Indices before gap: `0` to `gap_start - 1`.
+        Indices after gap: `gap_start` (logical) maps to `gap_end` (physical).
+        So, logical `pos` maps to `pos + (gap_end - gap_start)`.
+        Let's test: If `gap_start=2, gap_end=5` (gap size 3).
+        Logical `pos=0` -> `0 + (5-2) = 3`? No.
+        Logical `pos=0` is physical `0`.
+        Logical `pos=1` is physical `1`.
+        Logical `pos=2` is physical `5` (the first char after the gap).
+        Formula: `physical_pos = (pos < gap_start) ? pos : pos + (gap_end - gap_start)`.
+        The code uses: `g->buf[g->gap_end + (pos - g->gap_start)]`.
+        If `pos = 2` and `gap_start = 2`, it returns `g->buf[5 + 0] = g->buf[5]`.
+        If `pos = 1` and `gap_start = 2`, the `if` triggers: `return g->buf[1]`.
+        The logic is actually correct!
+
+    *   **Problem 5: `cal_infer_recv` Parsing Fragility.**
+        (cal.c:346) The `strstr` logic for SSE/streaming. If a chunk arrives where the string `"content":"` is split across two `read()` calls, `strstr` will return `NULL`. The code handles this by `memmove`-ing the unconsumed data to the front.
+        However, `last_consumed = p - 11;` (line 363). If `p` was found, but the inner loop `while (*p && *p != '"'...)` terminates because it hit the end of the buffer *without* hitting a `"`, then `last_consumed` is set to `p-11`.
+        This means the *next* time `cal_infer_recv` is called, it starts searching from the *beginning* of the buffer, but the data was moved. This is actually okay.
+        *But*... `last_consumed = p - 11;` is only reached if `*p != '"'`.
+        If `*p` is the end of the buffer, it breaks and `memmove` happens.
+        The bug is: `last_consumed = p - 11;` is *inside* the `while` loop.
+        If `p` is the pointer to the start of `"content":"`, and the loop fails, we want to keep the `content` part for the next read.
+        `last_consumed = p - 11` would move the pointer back to the start of the key. This is correct.
+
+    *   **Problem 6: `gap_move` logic - The "empty line" case.**
+        (cal.c:207) `while (g->gap_start < pos)`.
+        If `pos` is 0, and `gap_start` is 5, it goes into the `while (g->gap_start > pos)` block.
+        `g->gap_start--; g->gap_end--; g->buf[g->gap_end] = g->buf[g->gap_start];`.
+        If `gap_end` was 5, `gap_end` becomes 4. `g->buf[4] = g->buf[4]`. This is okay.
+
+    *   **Problem 7: `cal_font_init` memory leak.**
+        (cal.c:65) `f->info = malloc(sizeof(stbtt_fontinfo));`.
+        If `stbtt_InitFont` fails, it returns -1 and calls `free(data)` and `free(f->info)`. This is correct.
+
+    *   **Problem 8: `http_post_json` logic error.**
+        (cal.c:398) `int total = 0, n; while (total < resp_max - 1 && (n = read(fd, resp + total, resp_max - 1 - total)) > 0)`.
+        This reads the *entire* HTTP response (headers + body) into `resp`.
+        Then (line 403) `char *json = strstr(resp, "\r\n\r\n");`.
+        Then (line 405) `memmove(resp, json, strlen(json) + 1);`.
+        This is correct for extracting the body.
+
+    *   **Problem 9: `cal_infer_tools` memory usage.**
+        (cal.c:481) `char *messages = malloc(256 * 1024);`.
+        The loop appends to `messages`.
+        (cal.c:547) `snprintf(messages + mlen - 1, 256 * 1024 - mlen, ...)`
+        This is extremely dangerous. `mlen` is the length of the existing string. If `mlen` is 100, `messages + 9
