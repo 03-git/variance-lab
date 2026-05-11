@@ -1,0 +1,25 @@
+## 1. FACTUAL ERRORS
+
+**Experiment 2 interpretation, second paragraph**: Claims "R3 shows the largest per-item difference (86.7% vs 66.7%)" but R5 shows a larger difference (30.0% vs 6.7% = 23.3 percentage points vs R3's 20 percentage points).
+
+**Abstract, R5 claim**: States "100%/0% on the node that is the push node" as if it's an N=30 finding equivalent to the "27%/23%" claim, but the 100%/0% is only from the original N=5 Surface data. At N=30, only the Rousseau (third-party) data exists. The abstract conflates different sample sizes without qualification.
+
+## 2. FRAMING DRIFT
+
+**Abstract, attention-shift mechanism**: "Targeted governance patches... increase hit rates... but decrease hit rates on items previously bound" is presented as confirmed, but exp4 ran at N=5 only. Exp4b (N=30) tested the unpatched baseline to rule out scorer drift, not the patched condition. The mechanism is inferred from cross-experiment comparison (N=5 patched vs N=30 unpatched), not directly tested within-design at N=30.
+
+**Self-Referential Amplification section, causal claims**: "The model's self-knowledge of which node it is running on modulates governance binding" and "identity component separable from content component" are causal framings unsupported by the design. The comparison is between different nodes (Surface vs Rousseau) at different sample sizes (N=5 vs N=30) with different CLAUDE.md content (per the Confounds section: "CLAUDE.md content differs between nodes (identity, role, paths)"). Node identity is confounded with content, time, sample size, and potentially model version. The pattern is observational, not causal.
+
+**Exp2 interpretation, final paragraph**: "Governance content inlined in a system prompt binds at equivalent strength" overstates a non-significant result (t=1.99, p>.05). "Equivalent" implies no difference; the data show a directional difference that failed significance at N=30. More precise: "no statistically significant difference detected at N=30."
+
+## 3. MISSING OR CUT
+
+**Missing**:
+- **Statistical verification**: No calculations shown for Wilson CIs, Welch t-statistics, or degrees of freedom. Claims like "t=12.47 df=48.2" cannot be verified from the reported summary statistics.
+- **Multiple comparisons**: Ten per-item binary tests per experiment with no correction or discussion of familywise error rate.
+- **Exp4 operational security**: "Not extended to N=30 for operational security reasons" is unexplained. What content was sensitive? If sensitive enough to block replication, should it inform the claims?
+- **N=5 Surface data**: Referenced throughout but not in `data/finding-5/exp1/n30/` or `exp2/n30/`. Only accessible via RESULT.md. For claims comparing Surface to Rousseau, the raw Surface trial outputs should be present.
+
+**Should be cut**:
+- **Confounds section, file-read speculation**: "R3's 80% in exp4b (without signer in CLAUDE.md) may reflect file reads of authorized_signers" is unverified speculation. Tool use was not logged, so this is conjecture. If it cannot be verified, it should not appear as an explanation.
+- **Cross-Experiment Comparison table, "within noise" claim**: "delta=+0.13, within noise" compares exp4b (single-arm, Rousseau, May 10) to exp1 Arm A (cwd=~, Rousseau, May 10 rerun). This is not testing anything —it's the same condition on the same node on the same day. If comparing across time (April 19 vs May 10), state that; if not, the comparison adds no information.

@@ -1,0 +1,32 @@
+## 1. Factual errors
+
+- **Abstract: "preserves ~93% of binding strength"** — The number isn't derivable from the stated means by any obvious formula. Closest match is `(6.97−2.73)/(7.33−2.73) = 92.2%`, which uses exp1 Arm B as baseline and exp2 Arm A as ceiling — apples-and-oranges across experiments. Either show the calc or drop the figure. Compare to `(6.97−2.73)/(7.00−2.73) = 99.3%`, which tells a different story.
+- **Abstract: "exp2: delta=0.37, t=1.99, not significant at alpha=0.05"** — t=1.99, df≈57 sits right at the two-tailed threshold (p≈0.051). Calling this "not significant" without the p-value is technically defensible but borderline; a reader will want the number.
+- **Exp2 means rounding** — 7.33 − 6.97 = 0.36, not 0.37 (cosmetic, but appears throughout).
+- **Self-Referential Amplification table** — "Surface 100% 0% (exp1 original N=5, April 19)" is compared directly to "Rousseau 27% 23% (exp1 N=30)". At N=5, 5/5 and 0/5 have Wilson CIs of roughly [57%, 100%] and [0%, 43%]. The contrast is real but the table presents N=5 point estimates as commensurable with N=30 point estimates and the abstract pulls "100%/0%" into the headline finding without flagging N. This is the most consequential framing-by-omission issue.
+- **Cross-Experiment Comparison table** — Exp4 mean=9.00 is introduced here but never stated in the exp4 section. From the four items reported (R3=100, R4=100, R7=0, R8=40), and assuming the remaining six match exp1 Arm A, the implied mean ≈ 8.07, not 9.00. Either the patch lifted other items too (not disclosed) or 9.00 is wrong. Cannot verify from the document.
+- **Exp4b "blind-shuffled" vs "sequential"** — Methodology block says scoring was "sequential (exp4b)" but the design section says "sequential scoring". Fine. But the abstract and exp4b framing lean on this as evidence-grade for ruling out scorer drift; a sequential single-arm with the same scorer is weaker for that than the prose implies.
+
+## 2. Framing drift
+
+- **"Attention-shift mechanism confirmed"** (exp4b interpretation + abstract). The exp4 patch content is withheld for opsec. Without knowing whether the patch removed/replaced DNS or pre-flight language, "attention shift" is indistinguishable from "the patch deleted the line that bound R7." Exp4b rules out scorer drift; it does not establish an attention-budget mechanism. Soften to "generation-side" (which the text does say in one sentence) and drop "mechanism confirmed."
+- **"Governance binding has an identity component separable from its content component"** (abstract) and the entire "Self-Referential Amplification" section's causal phrasing ("modulates", "amplifies", "dilutes"). Two data points across different nodes, different N, different CLAUDE.md content (confound acknowledged then ignored). This is a hypothesis, not a finding. The Confounds section even concedes node CLAUDE.md content differs — which is sufficient on its own to explain R5 differences without any "identity component."
+- **"Inline delivery ... preserves ~93%"** and **"delivery mechanism is not load-bearing"** — A non-significant Welch t is not an equivalence result. To claim equivalence you need TOST or a CI on the delta against a pre-specified margin. The stronger phrasing in the "Implication for managed agents" paragraph ("binds at equivalent strength") outruns the test performed.
+- **Exp1 interpretation of R6** — "suggesting the model's default preference for gh CLI is suppressed by governance content that does not name it" is speculation presented as inference from a single inverted item. Mark as conjecture or drop.
+- **"Methodology reproduces across nodes (Surface → rousseau) and time"** — exp4b (rousseau) and exp1 Arm A (rousseau N=30) are both rousseau. The only Surface↔rousseau comparison in the document is the R5 self-reference contrast, which the document elsewhere treats as a *difference*, not a reproduction. Internally inconsistent.
+
+## 3. Missing / cut
+
+Missing:
+- p-values alongside t-statistics throughout.
+- CI on the exp2 delta (required to support any "equivalence" claim).
+- Exp4 mean and its derivation; per-item rates for the other six items.
+- Disclosure of *which rubric items the exp4 patch text addressed* — even at the level of "the patch did/did not contain DNS language" — without this the attention-shift vs. content-removal question is unresolvable.
+- Confirmation that exp4b's "pre-patch" CLAUDE.md is byte-identical to exp1 Arm A's CLAUDE.md (the +0.13 mean delta is offered as reproduction; needs the content equivalence stated).
+- The exp5 editorial audit is listed under Data but never described in the document. Either describe it or remove the pointer.
+- Trial counts and CIs for the Surface R5 row (100%, 0% on what N?).
+
+Cut:
+- "N=5 vs N=30: Why the Upgrade Matters" section is methodological pedagogy, not a finding; footnote or appendix.
+- R4=0% commentary is repeated in exp1 interpretation, exp4b interpretation, and implicitly in the cross-experiment narrative.
+- "Implication for managed agents" paragraph in exp2 overstates what the test shows; either trim to one sentence with appropriate hedging or move to a separate Implications section flagged as speculative.

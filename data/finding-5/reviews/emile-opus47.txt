@@ -1,0 +1,45 @@
+## 1. FACTUAL ERRORS
+
+**Abstract — "~93% of binding strength."** This number is not derivable from the exp2 numbers alone (Arm A 7.33, Arm B 6.97 → 95%). It only yields ~93% if you subtract the exp1 Arm B baseline (2.73) as the no-governance floor: (6.97−2.73)/(7.33−2.73)=92.2%. That cross-experiment subtraction is not stated and should be either shown or removed.
+
+**Abstract / Self-Referential Amplification — "100%/0% on the node that is the push node."** The Surface row is N=5. The document elsewhere ("N=5 vs N=30") explicitly says 0/5 has CI [0%, 52%] and that an N=5 result already produced one false finding (the original exp2). Building the central self-reference claim on the same N=5 evidence the document otherwise discredits is internally inconsistent.
+
+**Exp4 — the "0%→100%" / "100%→0%" arrows have no stated baseline.** The "before" values do not match exp1 Arm A (R3 was 60%, R7 90%, R8 96.7%) or exp4b (R3 80%, R7 100%, R8 96.7%). The pre-patch Surface N=5 baseline is implied but never shown.
+
+**Exp2 framing of t=1.99.** "Not significant at alpha=0.05" is technically true but borderline (df≈57.1 → p≈0.051). Reporting it as a clean null and then as "delivery path equivalent" in the comparison table reverses the evidential direction.
+
+**Cross-Experiment Comparison — Exp4 row "Mean A 9.00" with N=5.** No SD, no CI; presented in the same table as N=30 means without flagging. The "Note" column ("binding confirmed", "delivery path equivalent", "attention shift confirmed") is conclusion text inside a data table.
+
+**Exp4b "attention-shift mechanism confirmed."** Exp4 ran on Surface (N=5, April 19) with patched CLAUDE.md; exp4b ran on Rousseau (N=30, May 10) with pre-patch CLAUDE.md. The Confounds section acknowledges node, time, and content differ — yet the Interpretation attributes the exp4 R7/R8 drop causally to the patch. The design rules out scorer drift on Rousseau; it does not rule out node/time/content effects on Surface.
+
+## 2. FRAMING DRIFT
+
+**"Attention-shift mechanism" / "attention-budget effect."** Mechanistic vocabulary imported from interpretability. The experiment shows a co-occurrence (named items up, other items down across two different runs on two nodes); it does not measure attention. "Content-displacement effect" or simply "trade-off pattern" would match the evidence.
+
+**"Self-referential amplification" / "absolute" / "modulates."** Causal/cognitive language built on one rubric item (R5) compared across N=5 vs N=30, two nodes, two dates, and CLAUDE.md content known to differ between nodes. The design has no manipulation of self-reference holding content constant.
+
+**"Inline delivery preserves governance binding" → "The delivery mechanism is not load-bearing; the content is."** Failing to reject the null at p≈0.051 is not equivalence. An equivalence/TOST test was not run. The strong "is not load-bearing" sentence overstates a non-rejected difference.
+
+**Exp2 "Implication for managed agents."** Generalizes from one rubric on one model to "API system messages, hooks, prompt injection." None of those delivery channels were tested.
+
+**Abstract — "Governance binding has an identity component separable from its content component."** Separability is asserted, not demonstrated — it would require holding content constant while varying identity (or vice versa). Current data confounds them.
+
+## 3. MISSING OR CUT
+
+**Missing:**
+- Exp4 pre-patch baselines (the numbers behind every "X%→Y%" arrow).
+- Exact p-values, not only t-statistics. For exp2, an equivalence test if equivalence is the claim.
+- The N=5 trial-level data underlying the Surface row in Self-Referential Amplification, and a sensitivity check (e.g., what happens if 1 of 5 flips).
+- Acknowledgment in the Self-Referential section that the document's own N=5 caveat applies to that row.
+- Whether the rubric was locked before data collection (pre-registration / item-freeze date).
+- Scorer model snapshot/version string; "claude-sonnet-4-5 effort=low" is underspecified for replication.
+- A second-scorer spot-check on a subsample. The Confounds note flags single-scorer bias but offers no mitigation.
+- Why exp3 is absent from the numbering (reader will assume a suppressed experiment).
+- For the R3 file-read confound: how many trials in exp4b actually invoked file tools. The confound is named but not quantified, and it directly threatens the exp4b conclusion.
+
+**Present, no evidential value, should be cut or moved:**
+- "N=5 vs N=30: Why the Upgrade Matters" — pedagogy, not finding. Move to methodology appendix or delete.
+- "Implication for managed agents" paragraph in exp2 — extrapolation beyond design.
+- "Implication" paragraph in Self-Referential Amplification — restates the claim in stronger words.
+- "Note" column in the Cross-Experiment Comparison table — editorial labels masquerading as data.
+- The Abstract's "93%" figure — either show the derivation or drop it; as written it reads as a precise headline number with no traceable arithmetic.

@@ -1,0 +1,54 @@
+## HUMAN GATES (blocking)
+
+1. **Exp4 patch content disclosure.** Reviews 1 and 4 flag that "attention shift" cannot be distinguished from "the patch deleted the R7 line" without seeing what the patch actually said. The draft now states the patch is "too specific to publish" for opsec reasons.
+   - *Why human-only:* Only the governor can decide what about the Keymaster patch is publishable (e.g., a redacted summary like "patch added signer/manifest/loop language; did not remove DNS or pre-flight language"). No amount of data inspection resolves an opsec call.
+   - *Action:* Decide whether a redacted disclosure is acceptable. If yes, draft a one-sentence "what the patch did/didn't touch" statement. If no, accept that the attention-shift conclusion stays bounded as "co-occurrence pattern" forever.
+
+2. **Exp4 pre-patch baseline numbers (the X%→Y% arrows).** Review 4 notes the arrows have no stated baseline; the draft now says the baseline "was not preserved in machine-readable form."
+   - *Why human-only:* Either the Surface April 19 pre-patch raw outputs exist somewhere off-tree (Surface filesystem, backups, scratch dirs) or they don't. The governor is the only one with access to Surface and to memory of where intermediate scratch went.
+   - *Action:* Spend ~5 min looking on Surface for April 19 pre-patch raws. If nothing, decide whether to drop the arrows entirely or keep them as "directional, baseline unrecoverable."
+
+3. **N=30 Surface run for R5.** The self-referential hypothesis hinges on a 5-trial Surface result. Reviews 1, 2, 3, 4 all flag this asymmetry. The draft acknowledges "current data is observational and directional only."
+   - *Why human-only:* Requires actually running 30 trials on Surface (and 30 on Rousseau with Surface's CLAUDE.md content if you want to deconfound identity from content). That's resource/time the governor commits, not a writing fix.
+   - *Action:* Decide whether to extend to N=30 on Surface (and ideally with crossed CLAUDE.md content) or downgrade the hypothesis section further.
+
+4. **TOST equivalence margin for exp2.** Reviews 1 and 4 note that "not significant" ≠ "equivalent." A TOST requires a pre-specified equivalence margin.
+   - *Why human-only:* The margin is a substantive judgment ("a delta of < X on a 10-point rubric is operationally indistinguishable for our purposes"). It's not in the data.
+   - *Action:* Either pick a margin and add TOST, or accept that exp2 stays as "non-significant at α=0.05, equivalence not claimed" and move on.
+
+5. **Second-scorer spot-check.** Review 4 notes the Confounds section flags single-scorer bias but offers no mitigation. Exp4b's design only checks the scorer against itself across time.
+   - *Why human-only:* Requires choosing a second scorer model and re-running scoring on a subsample — a resource commitment, not analysis.
+   - *Action:* Decide whether to re-score a 30-trial subsample with a different model (e.g., opus-4-7 effort=low as scorer) and report agreement.
+
+6. **R3 file-read confound (tool-use was not logged).** Reviews 2, 3, 4 flag this. Logs don't exist for the completed runs.
+   - *Why human-only:* Cannot be reconstructed post hoc. Only fix is a rerun with tool-use logging on.
+   - *Action:* Decide whether to rerun exp4b (or a 10-trial probe) with `--debug` / tool-use logged, OR accept the speculation in Confounds as the final word and label it explicitly conjectural.
+
+## CLOSEABLE (resolved or verifiable from data)
+
+Already resolved by the revision:
+- "~93%" figure removed (R1, R2, R4)
+- p≈0.051 now stated; "not significant" softened (R1, R4)
+- "attention-shift mechanism confirmed" softened to "consistent with content-displacement," "scorer drift ruled out" only (R1, R2, R3, R4)
+- Self-referential section reframed as hypothesis with Wilson CIs and confound list (R1, R2, R3, R4)
+- "Managed agents implication" paragraph cut (R1, R2, R4)
+- R6 gh CLI speculation reduced to "reason is unclear" (R1, R2)
+- Exp1 Arm A vs Exp2 Arm A (7.00 vs 7.33) variance acknowledged in Cross-Experiment Comparison (R2)
+- "within noise" replaced (R3)
+- Multiple-comparisons caveat added (R3)
+- Rubric pre-registration caveat added (R4)
+- Exp3 omission explained (R4)
+- Exp5 editorial audit reference removed (R1, R2)
+- "Methodology reproduces across nodes" claim removed (R1)
+- "Replicable" softened (R2)
+
+Verifiable from data files without human input (you can do these now):
+- **Wilson CI / Welch t recomputation** from `data/finding-5/exp{1,2,4b}/n30/scores.tsv` — confirms the headline statistics. (R3)
+- **Exact p-values** for t=12.47/df=48.2 and t=1.99/df=57.1 — computable directly. (R1, R3, R4)
+- **R5/R3 "largest difference" sentence** is already correct in the revision (R5 = 23.3pp absolute, R3 = 20pp; revision says exactly that). (R3)
+- **Exp4b vs Exp1 Arm A CLAUDE.md byte-identity** — diff the two CLAUDE.md snapshots in the data dirs to confirm or refute. (R1)
+- **N=5 Surface trial location** — check whether raw N=5 outputs are in `exp4b/n5-backup/` or `exp4/`; if present, cite the path; if not, acknowledge. (R3)
+- **Scorer version string** — likely recoverable from harness metadata (`harness*.sh` or job logs in the data dirs). Add the exact model snapshot ID if available. (R4)
+- **0.36 vs 0.37 rounding** — cosmetic, recompute from raw means. (R1)
+
+Recommend: knock out the verifiable items above in one pass, then bring the six human gates to the governor as a single decision sheet rather than six separate asks.

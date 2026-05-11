@@ -1,0 +1,6 @@
+Sun May 10 23:51:56 UTC 2026
+model: claude-opus-4-7
+scorer: claude-sonnet-4-5
+n_per_arm: 30
+node: m1studio
+2.1.138 (Claude Code)

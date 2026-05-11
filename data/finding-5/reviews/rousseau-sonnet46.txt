@@ -1,0 +1,35 @@
+## 1. FACTUAL ERRORS
+
+**Abstract, "~93% of binding strength":** This figure is not derivable from the reported numbers. The closest calculations give ~91% (1 − 0.37/4.27), ~95% (6.97/7.33), or ~99% ((6.97 − 2.73)/(7.00 − 2.73)). The formula is not shown. "~93%" does not correspond cleanly to any of these. Pick one and show the arithmetic, or remove the percentage.
+
+**Exp1, R6 interpretation:** "the model's default preference for gh CLI is suppressed by governance content that does not name it." R6 is defined as "gh CLI *or* git over HTTPS with credential helper." Arm B scoring higher on R6 is consistent with either tool; attributing suppression specifically to gh CLI is not supported by the rubric definition.
+
+**Self-Referential Amplification, Surface N=5 figures:** The 100%/0% figures (5/5 and 0/5) have Wilson CIs of roughly [57%, 100%] and [0%, 43%]. They are presented alongside Rousseau N=30 data (27%/23%) as if both are precision-equivalent. The comparison implies the Surface pattern is established when it is a five-trial observation.
+
+**Confounds, R3 note vs. exp4 claim:** Exp4 states R3 went from 0% to 100% with the Keymaster patch. Exp4b (pre-patch, Rousseau) shows R3=80%. The document attributes the exp4b result to possible disk reads, but if that explanation holds, the claimed 0%→100% improvement in exp4 is comparing to a baseline that may also be elevated by file reads. The exp4 R3 baseline (Surface, April 19) may not be comparable to the exp4b baseline for the same reason the document flags for exp4b.
+
+---
+
+## 2. FRAMING DRIFT
+
+**Exp4b, section header "Attention-shift mechanism confirmed":** What exp4b establishes is that the scorer did not drift. Attention shift is the remaining candidate after ruling out scorer drift, but generation-time attention patterns are not logged and the mechanism is inferred, not observed. "Consistent with an attention-shift mechanism" is the correct claim; "confirmed" overclaims.
+
+**Self-Referential Amplification, "The model's self-knowledge of which node it is running on":** A content-specificity account — the Surface CLAUDE.md names Surface directly as the push node, Rousseau's CLAUDE.md names it as a third-party constraint — is equally consistent with the data and requires no inference about self-knowledge. The section frames this as an identity-component effect separable from content when the data cannot discriminate between identity and content-proximity explanations. The CLAUDE.md files differ across nodes; the "identity component" label introduces a mechanistic claim the design cannot support.
+
+**Exp2, "Implication for managed agents":** The experiment compares CLAUDE.md load versus inline-in-prompt within the same Claude Code session. It does not test API system messages, hooks, or tool-return delivery. The section concludes "governance can be delivered programmatically (hooks, prompt injection, API system messages) without loss of binding." These delivery paths are untested. The section also concludes "The delivery mechanism is not load-bearing; the content is" — this follows from one delivery-path comparison and should not generalize to delivery mechanisms not tested.
+
+---
+
+## 3. MISSING OR CUT
+
+**Missing — derivation of "~93%":** The formula must appear. Readers cannot evaluate whether the preservation claim is meaningful without knowing what is being divided by what.
+
+**Missing — exp1 Arm A vs. exp2 Arm A discrepancy:** Both are the CLAUDE.md-loaded arm on Rousseau (N=30), yet mean scores differ: 7.00 vs. 7.33 (delta=+0.33). The exp2 delta being used to assert delivery equivalence is 0.37. The unexplained variation in the same arm across two runs is comparable in magnitude to the main effect being claimed. The document does not address this. It is load-bearing for the delivery-equivalence conclusion.
+
+**Missing — exp5 editorial audit results:** The Data section lists `exp5-editorial-audit/ 8-voter audit of findings 1-4` but the document presents nothing from it. Either present the results or remove the reference.
+
+**Missing — N=30 Surface replication of R5:** The 100%/0% self-referential pattern rests on N=5 data. Without a N=30 Surface run, the pattern is directional, not established. The document should state this explicitly rather than presenting it symmetrically with the N=30 Rousseau data.
+
+**Cut — "Implication for managed agents" subsection:** It makes claims not supported by the experimental design (API delivery paths, hooks, prompt injection). If the finding is delivery-path equivalence within Claude Code, say that and stop. The broader inference to managed agent architectures adds no evidential value and introduces unsupported generalization.
+
+**Cut or qualify — "replicable" in abstract and interpretation:** Replication here means one N=5 run was extended to N=30 by the same operator on the same node class. Independent replication by a different operator is listed as a limitation. The word "replicable" carries an implication of cross-researcher reproducibility that is not established.
