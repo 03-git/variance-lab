@@ -1,0 +1,4 @@
+gate	status	timeline	blocking_on	open_source	target_hw
+weight_100b	active_scaling	months	100B model public release + bitnet.cpp ARM kernel validation	yes (MIT)	Rousseau (M1 Mac Studio 64GB), Jean (M2 Mac Mini)
+cache_compression	pre_publication	weeks_to_months_post_iclr	ICLR Apr 23-25 2026 publication + open port landing	partial (KIVI yes; TurboQuant not yet; KVTC not yet)	same as weight gate
+convergence	not_yet	depends_on_both_gates	both gates must close simultaneously	requires both tracks open	personally-owned hardware, agent-class context length

@@ -1,0 +1,21 @@
+# bitnet-log
+
+Tracking 1-bit inference viability for personally-owned hardware.
+
+## Structured Data
+
+- data/weights.jsonl — 5 weight compression milestones (BitNet b1.58 → 100B target)
+- data/runs.jsonl — 10 performance claims with verification status
+- data/viability.tsv — 3 gates: weight, cache, convergence
+
+## Query Examples
+
+Verified performance claims:
+  jq 'select(.verified==true)' data/runs.jsonl
+
+Open gates:
+  awk -F'\t' '$2!="closed"' data/viability.tsv
+
+## Source
+
+Full analysis in README.md.

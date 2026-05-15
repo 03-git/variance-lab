@@ -1,0 +1,10 @@
+{"track":"weight","method":"bitnet.cpp","hardware":"x86 CPU","metric":"throughput","value":"2.37-6.17x vs llama.cpp","date":"2025-04","verified":true}
+{"track":"weight","method":"bitnet.cpp","hardware":"ARM (Apple Silicon)","metric":"throughput","value":"1.37-5.07x vs llama.cpp","date":"2025-04","verified":true}
+{"track":"weight","method":"bitnet.cpp","hardware":"x86 CPU","metric":"energy_reduction","value":"82%","date":"2025-04","verified":true}
+{"track":"weight","method":"BitNet b1.58 2B4T","hardware":"CPU","metric":"decode_latency","value":"29ms/tok","date":"2026-??","verified":true}
+{"track":"weight","method":"BitNet b1.58 2B4T","hardware":"CPU","metric":"accuracy","value":"within 1-2 pts SOTA FP16","benchmarks":["MMLU","GSM8K","HumanEval+"],"date":"2026-??","verified":true}
+{"track":"weight","method":"bitnet.cpp 100B projection","hardware":"single CPU","metric":"throughput","value":"5-7 tok/s","date":"TBD","verified":false}
+{"track":"cache","method":"TurboQuant","hardware":"H100","metric":"attention_speedup","value":"8x at 4-bit","source":"Google Research","date":"2026-04","verified":false,"note":"ICLR 2026 paper"}
+{"track":"cache","method":"TurboQuant","hardware":"general","metric":"compression","value":"6x (3-bit)","accuracy_loss":"no measurable loss","source":"Google Research","date":"2026-04","verified":false}
+{"track":"cache","method":"KVTC","hardware":"general","metric":"compression","value":"20x","accuracy_loss":"<1% penalty, calibration required","source":"Nvidia","date":"2026-04","verified":false}
+{"track":"cache","method":"KIVI","hardware":"general","metric":"compression","value":"~4x","accuracy_loss":"small loss","source":"open","date":null,"verified":true,"open_source":true}
