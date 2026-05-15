@@ -1,0 +1,10 @@
+Reading the V2 results and selection statement.
+
+**1. Factual error:**  
+"No arm dominates on >=3 of 4 metrics" — Arm M wins cost (tokens), wall time, and audit chain (3/4), ties quality. That's 3 wins + 1 tie = domination on >=3.
+
+**2. Framing drift:**  
+"agree on arm direction" follows tau=-0.33 without clarifying that negative correlation is on *item* rankings while arm agreement is *aggregate*. Reads like scorers contradict themselves.
+
+**3. Should be added:**  
+What "handler methodology ground truth" is, or cut the phrase. It anchors scorer calibration but is never defined — can't evaluate if Claude "tracks ground truth best" without knowing what ground truth means here.

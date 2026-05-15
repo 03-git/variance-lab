@@ -1,0 +1,27 @@
+```python
+import pytest
+from temperature import celsius_to_fahrenheit
+
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212
+
+def test_negative_forty_is_equal():
+    assert celsius_to_fahrenheit(-40) == -40
+
+def test_non_numeric_input_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+Run with:
+
+```
+pip install pytest
+pytest test_temperature.py -v
+```
+
+Assumes `celsius_to_fahrenheit` lives in `temperature.py` in the same directory. Adjust the import if it's elsewhere.

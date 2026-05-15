@@ -1,0 +1,42 @@
+```python
+#!/usr/bin/env python3
+import sys
+import requests
+
+if len(sys.argv) != 2:
+    print("Usage: python fetch.py <url>", file=sys.stderr)
+    sys.exit(1)
+
+response = requests.get(sys.argv[1], allow_redirects=True)
+
+print(f"Status: {response.status_code}")
+print("\nHeaders:")
+for key, value in response.headers.items():
+    print(f"  {key}: {value}")
+print(f"\nBody (first 500 chars):\n{response.text[:500]}")
+```
+
+Run it:
+```bash
+python fetch.py https://example.com
+```
+
+If `requests` isn't installed: `pip install requests` (or use the stdlib version below).
+
+Stdlib-only alternative:
+```python
+#!/usr/bin/env python3
+import sys
+from urllib.request import urlopen, Request
+
+req = Request(sys.argv[1], headers={"User-Agent": "Mozilla/5.0"})
+with urlopen(req) as r:
+    body = r.read(500).decode("utf-8", errors="replace")
+    print(f"Status: {r.status}")
+    print("\nHeaders:")
+    for k, v in r.headers.items():
+        print(f"  {k}: {v}")
+    print(f"\nBody (first 500 chars):\n{body}")
+```
+
+`urlopen` follows HTTP 30x redirects by default.

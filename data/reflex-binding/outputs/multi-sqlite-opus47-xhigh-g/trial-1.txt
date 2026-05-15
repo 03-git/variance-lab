@@ -1,0 +1,32 @@
+```python
+import sqlite3
+from datetime import datetime
+
+conn = sqlite3.connect("notes.db")
+cur = conn.cursor()
+
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+""")
+
+now = datetime.now().isoformat(timespec="seconds")
+samples = [
+    ("kernel first", "ask what the kernel calls it before reaching for a wrapper", now),
+    ("via negativa", "subtract don't add", now),
+    ("verify before acting", "read state, don't trust memory", now),
+]
+cur.executemany("INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)", samples)
+conn.commit()
+
+for row in cur.execute("SELECT id, title, body, created_at FROM notes"):
+    print(row)
+
+conn.close()
+```
+
+Run: `python3 script.py` (writes `notes.db` in cwd; re-runs append duplicates).

@@ -1,0 +1,492 @@
+You are answering questions about the Lua 5.4 source code. Use ONLY the provided context to answer. Be specific — cite file names, function names, and quote relevant code.
+
+## Manifest (routing table for Lua 5.4 source)
+# path	[tag]	description
+Makefile	[build]	Developer makefile; defines CWARNSCPP/CWARNGCC flag sets and platform targets (linux, macosx, mingw)
+lapi.c	[api]	Public C API implementation; lua_push*, lua_get*, lua_call*, lua_pcall, stack manipulation
+lapi.h	[api]	Internal API helpers; api_incr_top stack-overflow check macro, api_check assertion wrapper
+lauxlib.c	[aux]	Auxiliary library; luaL_loadfile, luaL_Buffer, luaL_ref, luaL_traceback, registry helpers
+lauxlib.h	[aux]	Auxiliary library header; luaL_Buffer, luaL_Reg, luaL_newstate, luaL_error declarations
+lbaselib.c	[stdlib]	Base library; luaB_print, luaB_pcall, luaB_xpcall, luaB_load, luaB_next, luaB_type
+lcode.c	[compiler]	Code generator; emits VM instructions, manages patch lists (NO_JUMP), constant folding, jump fixup
+lcode.h	[compiler]	Code generator header; BinOpr/UnOpr enums, expdesc result kinds, luaK_* function declarations
+lcorolib.c	[coroutine]	Coroutine library; luaB_cocreate, luaB_coresume, luaB_cowrap, luaB_costatus
+lctype.c	[core]	Custom ctype table; luai_ctype_[] byte array for fast lislalpha/lisdigit/etc without locale dependency
+lctype.h	[core]	Ctype macros; lislalpha, lisdigit, lisspace, lisprint defined over luai_ctype_[] table
+ldblib.c	[debug]	Debug library; lua_sethook, lua_getinfo, lua_getlocal wrappers; hook table at registry[HOOKKEY]
+ldebug.c	[debug]	Debug interface; luaG_runerror, luaG_typeerror, luaG_getfuncline, line/local/upvalue introspection
+ldebug.h	[debug]	Debug header; pcRel pc-to-offset macro, ci_func, resethookcount, ABSLINEINFO sentinel declarations
+ldo.c	[vm]	Stack and call engine; luaD_call, luaD_pcall, luaD_throw, luaD_rawrunprotected, stack reallocation
+ldo.h	[vm]	Call/stack header; luaD_checkstackaux growth macro, condmovestack HARDSTACKTESTS hook, throw/catch decls
+ldump.c	[compiler]	Bytecode serializer; DumpHeader, DumpFunction, DumpCode writing Proto to lua_Writer stream
+lfunc.c	[core]	Closure and prototype management; luaF_newCclosure, luaF_newLclosure, luaF_newUpval, open-upvalue list
+lfunc.h	[core]	Closure/upvalue header; sizeCclosure/sizeLclosure size macros, MAXUPVAL=255, isintwups check
+lgc.c	[gc]	Tri-color incremental garbage collector; mark/sweep/finalize phases, luaC_step, luaC_fullgc, barriers
+lgc.h	[gc]	GC header; white/gray/black color macros, luaC_barrier, luaC_barrierback, GC state constants
+linit.c	[core]	Standard library loader; stdlibs[] table mapping LUA_*LIBNAME to luaopen_* functions, luaL_openlibs
+liolib.c	[io]	I/O library; LuaFile userdata wrapping FILE*, io.open/close/read/write/lines/seek, popen support
+ljumptab.h	[vm]	GCC computed-goto dispatch table; disptab[] mapping NUM_OPCODES to &&L_OP_* labels for lvm.c
+llex.c	[parser]	Lexical analyzer; luaX_next token scanner, long strings, numeral parsing, reserved word table
+llex.h	[parser]	Lexer header; Token/SemInfo structs, FIRST_RESERVED boundary, LexState, luaX_* declarations
+llimits.h	[core]	Portability and type limits; l_mem/lu_mem, cast_* macros, MAXSTACK, luai_numunm, l_likely/unlikely
+lmathlib.c	[math]	Math library; math_abs through math_tointeger, random/randomseed with xoshiro256** PRNG
+lmem.c	[memory]	Memory manager; luaM_realloc_, luaM_growaux_, emergency GC on alloc failure, debt accounting
+lmem.h	[memory]	Memory header; luaM_new/newvector/growvector macros, overflow-safe luaM_limitN size check
+loadlib.c	[stdlib]	Dynamic loader; package.loadlib via dlopen/LoadLibrary, searchers for Lua/C modules, package.path
+lobject.c	[core]	Generic object operations; luaO_str2num, luaO_pushvfstring, luaO_tostring, integer/float coercion
+lobject.h	[core]	Core value/object type definitions; TValue tagged-union, GCObject CommonHeader, TString/Table/Proto layouts
+lopcodes.c	[vm]	Opcode mode table; luaP_opmodes[] encoding MM/OT/IT/T/A/format bits per opcode via opmode macro
+lopcodes.h	[vm]	VM instruction set; 32-bit iABC/iABx/isBx/iAx/isJ formats, OP_* enum, GET_OPCODE/GETARG_* macros
+lopnames.h	[vm]	Opcode name strings; opnames[] char* array parallel to OP_* enum for disassembly/error messages
+loslib.c	[stdlib]	OS library; os.time/date/clock/difftime/exit/getenv/remove/rename/tmpname, strftime format validation
+lparser.c	[parser]	Recursive-descent parser; luaY_parser entry, statement/expression/block rules, expdesc construction
+lparser.h	[parser]	Parser header; expdesc expkind enum (VVOID..VINDEXSTR), FuncState, BlockCnt, Dyndata declarations
+lprefix.h	[core]	Must-include-first header; sets _XOPEN_SOURCE=600, _LARGEFILE_SOURCE, _FILE_OFFSET_BITS=64 for POSIX
+lstate.c	[core]	Global and thread state init; lua_newstate, luaE_newthread, luaE_freethread, allgc list setup
+lstate.h	[core]	State structures; lua_State with stack/ci/twups/hookcount, global_State with GC roots and string table
+lstring.c	[string]	Interned string table; luaS_newlstr hash+dedup, short vs long string split at LUAI_MAXSHORTLEN=40
+lstring.h	[string]	String header; MEMERRMSG preallocated OOM string, LUAI_MAXSHORTLEN, luaS_new/eqlngstr declarations
+lstrlib.c	[string]	String library; string.format, pattern match/find/gmatch/gsub, string.pack/unpack/packsize
+ltable.c	[table]	Hash table; dual array+hash layout, Brent's variation chaining, luaH_set/get/resize/next
+ltable.h	[table]	Table header; gnode/gval/gnext access macros, invalidateTMcache, BITDUMMY flag, luaH_* declarations
+ltablib.c	[table]	Table library; table.insert/remove/sort (adaptive merge+quick), table.move, table.concat
+ltests.c	[debug]	Internal test module; memory limit injection, GC stress, opcode checkers, C test functions exposed to Lua
+ltests.h	[debug]	Test header; enables LUA_DEBUG/LUAI_ASSERT, redefines allocator for memory fault injection
+ltm.c	[core]	Tag method (metamethod) dispatch; luaT_typenames_, luaT_gettm, luaT_callTM, __index/__newindex chains
+ltm.h	[core]	Metamethod enum; TM_INDEX..TM_CLOSE ordered enum, TM_N count, fast-access cutoff at TM_EQ
+lua.c	[core]	Standalone interpreter; REPL loop, LUA_INIT handling, signal handler, dofile/dostring startup
+lua.h	[api]	Public API header; lua_State, TValue-free types, lua_push*/lua_to*/lua_call*/lua_pcall declarations
+luaconf.h	[build]	Master configuration; LUA_INT_TYPE, LUA_FLOAT_TYPE, LUAI_MAXSTACK, path defaults, platform detection
+lualib.h	[stdlib]	Standard library registry; LUA_*LIBNAME constants, LUA_*LIBK bitmask flags, luaopen_* declarations
+lundump.c	[compiler]	Bytecode loader; LoadHeader magic/version check, LoadFunction rebuilds Proto from luac binary format
+lundump.h	[compiler]	Undump header; LUAC_DATA/INT/INST/NUM verification constants, LUAC_VERSION nibble encoding
+lutf8lib.c	[string]	UTF-8 library; utf8.codes/codepoint/char/len/offset, MAXUNICODE=0x10FFFF decoder/encoder
+lvm.c	[vm]	Main interpreter loop; luaV_execute dispatch over all opcodes, arithmetic/comparison/metamethod calls
+lvm.h	[vm]	VM header; cvt2str/cvt2num coercion macros, luaV_execute/luaV_objcomp/luaV_idiv declarations
+lzio.c	[core]	Buffered input stream; luaZ_fill refill callback, luaZ_read block reader over ZIO
+lzio.h	[core]	ZIO stream header; zgetc single-char macro, Mbuffer dynamic buffer, luaZ_initbuffer/resetbuffer
+onelua.c	[build]	Unity build entry; #includes all core + lib sources for single-TU compilation via gcc -o lua onelua.c -lm
+
+
+## lgc.c (lines 841-880 of 1804)
+      break;
+    case LUA_VUPVAL:
+      freeupval(L, gco2upv(o));
+      break;
+    case LUA_VLCL: {
+      LClosure *cl = gco2lcl(o);
+      luaM_freemem(L, cl, sizeLclosure(cl->nupvalues));
+      break;
+    }
+    case LUA_VCCL: {
+      CClosure *cl = gco2ccl(o);
+      luaM_freemem(L, cl, sizeCclosure(cl->nupvalues));
+      break;
+    }
+    case LUA_VTABLE:
+      luaH_free(L, gco2t(o));
+      break;
+    case LUA_VTHREAD:
+      luaE_freethread(L, gco2th(o));
+      break;
+    case LUA_VUSERDATA: {
+      Udata *u = gco2u(o);
+      luaM_freemem(L, o, sizeudata(u->nuvalue, u->len));
+      break;
+    }
+    case LUA_VSHRSTR: {
+      TString *ts = gco2ts(o);
+      luaS_remove(L, ts);  /* remove it from hash table */
+      luaM_freemem(L, ts, sizestrshr(cast_uint(ts->shrlen)));
+      break;
+    }
+    case LUA_VLNGSTR: {
+      TString *ts = gco2ts(o);
+      if (ts->shrlen == LSTRMEM)  /* must free external string? */
+        (*ts->falloc)(ts->ud, ts->contents, ts->u.lnglen + 1, 0);
+      luaM_freemem(L, ts, luaS_sizelngstr(ts->u.lnglen, ts->shrlen));
+      break;
+    }
+    default: lua_assert(0);
+  }
+
+## lgc.c (lines 1-40 of 1804)
+/*
+** $Id: lgc.c $
+** Garbage Collector
+** See Copyright Notice in lua.h
+*/
+
+#define lgc_c
+#define LUA_CORE
+
+#include "lprefix.h"
+
+#include <string.h>
+
+
+#include "lua.h"
+
+#include "ldebug.h"
+#include "ldo.h"
+#include "lfunc.h"
+#include "lgc.h"
+#include "lmem.h"
+#include "lobject.h"
+#include "lstate.h"
+#include "lstring.h"
+#include "ltable.h"
+#include "ltm.h"
+
+
+/*
+** Maximum number of elements to sweep in each single step.
+** (Large enough to dissipate fixed overheads but small enough
+** to allow small steps for the collector.)
+*/
+#define GCSWEEPMAX	20
+
+
+/*
+** Cost (in work units) of running one finalizer.
+*/
+#define CWUFIN	10
+
+## lauxlib.c (lines 921-960 of 1202)
+
+LUALIB_API const char *luaL_tolstring (lua_State *L, int idx, size_t *len) {
+  idx = lua_absindex(L,idx);
+  if (luaL_callmeta(L, idx, "__tostring")) {  /* metafield? */
+    if (!lua_isstring(L, -1))
+      luaL_error(L, "'__tostring' must return a string");
+  }
+  else {
+    switch (lua_type(L, idx)) {
+      case LUA_TNUMBER: {
+        char buff[LUA_N2SBUFFSZ];
+        lua_numbertocstring(L, idx, buff);
+        lua_pushstring(L, buff);
+        break;
+      }
+      case LUA_TSTRING:
+        lua_pushvalue(L, idx);
+        break;
+      case LUA_TBOOLEAN:
+        lua_pushstring(L, (lua_toboolean(L, idx) ? "true" : "false"));
+        break;
+      case LUA_TNIL:
+        lua_pushliteral(L, "nil");
+        break;
+      default: {
+        int tt = luaL_getmetafield(L, idx, "__name");  /* try name */
+        const char *kind = (tt == LUA_TSTRING) ? lua_tostring(L, -1) :
+                                                 luaL_typename(L, idx);
+        lua_pushfstring(L, "%s: %p", kind, lua_topointer(L, idx));
+        if (tt != LUA_TNIL)
+          lua_remove(L, -2);  /* remove '__name' */
+        break;
+      }
+    }
+  }
+  return lua_tolstring(L, -1, len);
+}
+
+
+/*
+
+## lauxlib.c (lines 1-40 of 1202)
+/*
+** $Id: lauxlib.c $
+** Auxiliary functions for building Lua libraries
+** See Copyright Notice in lua.h
+*/
+
+#define lauxlib_c
+#define LUA_LIB
+
+#include "lprefix.h"
+
+
+#include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+/*
+** This file uses only the official API of Lua.
+** Any function declared here could be written as an application function.
+*/
+
+#include "lua.h"
+
+#include "lauxlib.h"
+#include "llimits.h"
+
+
+/*
+** {======================================================
+** Traceback
+** =======================================================
+*/
+
+
+#define LEVELS1	10	/* size of the first part of the stack */
+#define LEVELS2	11	/* size of the second part of the stack */
+
+
+## lapi.c (lines 1201-1240 of 1479)
+    }
+    case LUA_GCSTEP: {
+      lu_byte oldstp = g->gcstp;
+      l_mem n = cast(l_mem, va_arg(argp, size_t));
+      l_mem newdebt;
+      int work = 0;  /* true if GC did some work */
+      g->gcstp = 0;  /* allow GC to run (other bits must be zero here) */
+      if (n <= 0)
+        newdebt = 0;  /* force to run one basic step */
+      else if (g->GCdebt >= n - MAX_LMEM)  /* no overflow? */
+        newdebt = g->GCdebt - n;
+      else  /* overflow */
+        newdebt = -MAX_LMEM;  /* set debt to miminum value */
+      luaE_setdebt(g, newdebt);
+      luaC_condGC(L, (void)0, work = 1);
+      if (work && g->gcstate == GCSpause)  /* end of cycle? */
+        res = 1;  /* signal it */
+      g->gcstp = oldstp;  /* restore previous state */
+      break;
+    }
+    case LUA_GCISRUNNING: {
+      res = gcrunning(g);
+      break;
+    }
+    case LUA_GCGEN: {
+      res = (g->gckind == KGC_INC) ? LUA_GCINC : LUA_GCGEN;
+      luaC_changemode(L, KGC_GENMINOR);
+      break;
+    }
+    case LUA_GCINC: {
+      res = (g->gckind == KGC_INC) ? LUA_GCINC : LUA_GCGEN;
+      luaC_changemode(L, KGC_INC);
+      break;
+    }
+    case LUA_GCPARAM: {
+      int param = va_arg(argp, int);
+      int value = va_arg(argp, int);
+      api_check(L, 0 <= param && param < LUA_GCPN, "invalid parameter");
+      res = cast_int(luaO_applyparam(g->gcparams[param], 100));
+      if (value >= 0)
+
+## lapi.c (lines 1-40 of 1479)
+/*
+** $Id: lapi.c $
+** Lua API
+** See Copyright Notice in lua.h
+*/
+
+#define lapi_c
+#define LUA_CORE
+
+#include "lprefix.h"
+
+
+#include <limits.h>
+#include <stdarg.h>
+#include <string.h>
+
+#include "lua.h"
+
+#include "lapi.h"
+#include "ldebug.h"
+#include "ldo.h"
+#include "lfunc.h"
+#include "lgc.h"
+#include "lmem.h"
+#include "lobject.h"
+#include "lstate.h"
+#include "lstring.h"
+#include "ltable.h"
+#include "ltm.h"
+#include "lundump.h"
+#include "lvm.h"
+
+
+
+const char lua_ident[] =
+  "$LuaVersion: " LUA_COPYRIGHT " $"
+  "$LuaAuthors: " LUA_AUTHORS " $";
+
+
+
+
+## onelua.c (lines 41-80 of 136)
+** Other specific features
+*/
+#if 0
+#define LUA_32BITS
+#define LUA_USE_C89
+#endif
+
+
+/* no need to change anything below this line ----------------------------- */
+
+#include "lprefix.h"
+
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+/* setup for luaconf.h */
+#define LUA_CORE
+#define LUA_LIB
+
+#include "luaconf.h"
+
+/* do not export internal symbols */
+#undef LUAI_FUNC
+#undef LUAI_DDEC
+#undef LUAI_DDEF
+#define LUAI_FUNC	static
+#define LUAI_DDEC(def)	/* empty */
+
+## onelua.c (lines 1-40 of 136)
+/*
+** Lua core, libraries, and interpreter in a single file.
+** Compiling just this file generates a complete Lua stand-alone
+** program:
+**
+** $ gcc -O2 -std=c99 -o lua onelua.c -lm
+**
+** or (for C89)
+**
+** $ gcc -O2 -std=c89 -DLUA_USE_C89 -o lua onelua.c -lm
+**
+** or (for Linux)
+**
+** gcc -O2 -o lua -DLUA_USE_LINUX -Wl,-E onelua.c -lm -ldl
+**
+*/
+
+/* default is to build the full interpreter */
+#ifndef MAKE_LIB
+#ifndef MAKE_LUAC
+#ifndef MAKE_LUA
+#define MAKE_LUA
+#endif
+#endif
+#endif
+
+
+/*
+** Choose suitable platform-specific features. Default is no
+** platform-specific features. Some of these options may need extra
+** libraries such as -ldl -lreadline -lncurses
+*/
+#if 0
+#define LUA_USE_LINUX
+#define LUA_USE_MACOSX
+#define LUA_USE_POSIX
+#endif
+
+
+/*
+
+## lzio.h (lines 1-40 of 67)
+/*
+** $Id: lzio.h $
+** Buffered streams
+** See Copyright Notice in lua.h
+*/
+
+
+#ifndef lzio_h
+#define lzio_h
+
+#include "lua.h"
+
+#include "lmem.h"
+
+
+#define EOZ	(-1)			/* end of stream */
+
+typedef struct Zio ZIO;
+
+#define zgetc(z)  (((z)->n--)>0 ?  cast_uchar(*(z)->p++) : luaZ_fill(z))
+
+
+typedef struct Mbuffer {
+  char *buffer;
+  size_t n;
+  size_t buffsize;
+} Mbuffer;
+
+#define luaZ_initbuffer(L, buff) ((buff)->buffer = NULL, (buff)->buffsize = 0)
+
+#define luaZ_buffer(buff)	((buff)->buffer)
+#define luaZ_sizebuffer(buff)	((buff)->buffsize)
+#define luaZ_bufflen(buff)	((buff)->n)
+
+#define luaZ_buffremove(buff,i)	((buff)->n -= cast_sizet(i))
+#define luaZ_resetbuffer(buff) ((buff)->n = 0)
+
+
+#define luaZ_resizebuffer(L, buff, size) \
+	((buff)->buffer = luaM_reallocvchar(L, (buff)->buffer, \
+
+## lzio.c (lines 1-40 of 89)
+/*
+** $Id: lzio.c $
+** Buffered streams
+** See Copyright Notice in lua.h
+*/
+
+#define lzio_c
+#define LUA_CORE
+
+#include "lprefix.h"
+
+
+#include <string.h>
+
+#include "lua.h"
+
+#include "lapi.h"
+#include "llimits.h"
+#include "lmem.h"
+#include "lstate.h"
+#include "lzio.h"
+
+
+int luaZ_fill (ZIO *z) {
+  size_t size;
+  lua_State *L = z->L;
+  const char *buff;
+  lua_unlock(L);
+  buff = z->reader(L, z->data, &size);
+  lua_lock(L);
+  if (buff == NULL || size == 0)
+    return EOZ;
+  z->n = size - 1;  /* discount char being returned */
+  z->p = buff;
+  return cast_uchar(*(z->p++));
+}
+
+
+void luaZ_init (lua_State *L, ZIO *z, lua_Reader reader, void *data) {
+  z->L = L;
+
+## Question
+How does Lua's garbage collector work? Trace the implementation across files.

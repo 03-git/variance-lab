@@ -1,0 +1,43 @@
+```python
+# celsius_to_fahrenheit.py (inline — do not write to disk)
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+
+import unittest
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_negative_forty(self):
+        # -40 is the crossover point where both scales meet
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_raises(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+**To run it** — paste both the function and the test class into a single file, then:
+
+```bash
+python celsius_to_fahrenheit.py
+```
+
+Or, if you want the verbose output:
+
+```bash
+python -m unittest -v celsius_to_fahrenheit
+```
+
+The `-40` test doubles as a sanity check on the formula since it's the only temperature where Celsius and Fahrenheit are equal. The `TypeError` test confirms the function doesn't silently coerce bad input — Python's `*` operator will raise it naturally on a string.

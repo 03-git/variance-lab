@@ -1,0 +1,54 @@
+**time_server.py**
+```python
+from datetime import datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        # Return the current time in ISO 8601 format
+        timestamp = datetime.utcnow().isoformat() + 'Z'
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(f'{{"time": "{timestamp}"}}'.encode())
+
+def run_server():
+    server_address = ('', 8000)
+    httpd = HTTPServer(server_address, TimeHandler)
+    print('Server running at http://localhost:8000/time')
+    httpd.serve_forever()
+
+if __name__ == '__main__':
+    run_server()
+```
+
+**Running the Code:**
+
+1. Save the code in a file called `time_server.py`.
+2. Open a terminal and navigate to the directory where you saved the file.
+3. Install the `http.server` module by running `pip install http.server` (if you haven't already).
+4. Run the server by executing `python time_server.py`.
+5. Open a web browser and navigate to `http://localhost:8000/time` to see the current time as JSON.
+
+Note: This code uses the built-in `http.server` module, which is a simple HTTP server for development purposes. It's not suitable for production use. For a more robust solution, consider using a web framework like Flask or Django.
+
+**Example Use Case:**
+
+You can use this endpoint to display the current time on a web page or in a mobile app. For example, you could use the `fetch` API in a web page to retrieve the current time and display it in real-time.
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Current Time</title>
+  </head>
+  <body>
+    <h1 id="time"></h1>
+    <script>
+      fetch('/time')
+        .then(response => response.json())
+        .then(data => document.getElementById('time').textContent = data.time);
+    </script>
+  </body>
+</html>
+```

@@ -1,0 +1,46 @@
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    addr = writer.get_extra_info("peername")
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:
+                break
+            writer.write(data)
+            await writer.drain()
+    except ConnectionResetError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"closed {addr}")
+
+async def main(host="127.0.0.1", port=8888):
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"serving on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+Run:
+```
+python3 echo.py
+```
+
+Test with multiple concurrent clients:
+```
+nc 127.0.0.1 8888
+```
+
+Or scripted:
+```
+for i in 1 2 3; do (echo "hello $i" | nc -q1 127.0.0.1 8888) & done; wait
+```
+
+Stop with Ctrl-C.

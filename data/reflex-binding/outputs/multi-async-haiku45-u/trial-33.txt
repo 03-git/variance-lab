@@ -1,0 +1,70 @@
+I'll show you a concurrent TCP echo server using Python's `asyncio` module.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            if not data:
+                print(f"Client disconnected: {addr}")
+                break
+            
+            # Echo the data back
+            message = data.decode().strip()
+            print(f"Received from {addr}: {message}")
+            
+            writer.write(data)
+            await writer.drain()
+            
+    except Exception as e:
+        print(f"Error handling client {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+async def start_server(host='127.0.0.1', port=9999):
+    """Start the echo server."""
+    server = await asyncio.start_server(handle_client, host, port)
+    addr = server.sockets[0].getsockname()
+    print(f"Server listening on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(start_server())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+   ```bash
+   python echo_server.py
+   ```
+   You'll see: `Server listening on 127.0.0.1:9999`
+
+2. **Test with multiple clients in separate terminals:**
+   ```bash
+   nc localhost 9999
+   ```
+   Then type lines and press Enter—they'll echo back.
+
+3. **Or use a simple client script to test:**
+   ```python
+   import socket
+   
+   with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+       s.connect(('127.0.0.1', 9999))
+       s.sendall(b'Hello, Server!\n')
+       print(s.recv(1024).decode())
+   ```
+
+The server uses `asyncio.start_server()` to accept multiple concurrent connections without threads. Each client gets its own `handle_client()` coroutine that reads lines and echoes them back until the connection closes.

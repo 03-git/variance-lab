@@ -1,0 +1,50 @@
+I'll show you a Python script that fetches a URL and extracts hyperlinks using the `requests` and `BeautifulSoup` libraries.
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+def extract_links(url):
+    """Fetch a URL and extract all hyperlinks."""
+    try:
+        # Fetch the webpage
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()  # Raise an error for bad status codes
+        
+        # Parse the HTML
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Find all anchor tags
+        links = soup.find_all('a')
+        
+        if not links:
+            print("No links found on the page.")
+            return
+        
+        print(f"Found {len(links)} links:\n")
+        for i, link in enumerate(links, 1):
+            href = link.get('href', '#no-href')
+            text = link.get_text(strip=True) or '[no text]'
+            print(f"{i}. href: {href}")
+            print(f"   text: {text}\n")
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching the URL: {e}")
+
+if __name__ == "__main__":
+    extract_links("https://example.com")
+```
+
+**How to run it:**
+
+1. Install the required libraries:
+   ```bash
+   pip install requests beautifulsoup4
+   ```
+
+2. Save the script (e.g., `extract_links.py`) and run it:
+   ```bash
+   python extract_links.py
+   ```
+
+The script will print each link's href and text content. If a link has no href or text, it shows placeholder values like `#no-href` or `[no text]`.

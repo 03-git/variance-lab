@@ -1,0 +1,41 @@
+### Factual Errors
+
+1. **Incorrect Token Count in V1:**
+   - **Problematic Text:** "Arm M uses 2x the tokens (343K vs 174K total) and 26% more wall time (841s vs 667s)."
+   - **Correction:** "Arm M uses 2x the tokens (343,180 vs 172,378) and 26% more wall time (841s vs 667s)."
+
+2. **Incorrect Token Count in V2:**
+   - **Problematic Text:** "Arm M uses 19% fewer tokens (138K vs 172K total) and runs 25% faster (535s vs 715s)."
+   - **Correction:** "Arm M uses 19% fewer tokens (138,378 vs 172,378) and runs 25% faster (535s vs 715s)."
+
+### Framing Drift
+
+1. **Misleading Implication in V1:**
+   - **Problematic Text:** "The naive manifest approach is both worse and more expensive."
+   - **Correction:** "The naive manifest approach is both worse in terms of quality and more expensive in terms of tokens and wall time."
+
+2. **Misleading Implication in V2:**
+   - **Problematic Text:** "The curated manifest produces higher quality at lower cost."
+   - **Correction:** "The curated manifest produces higher quality and lower cost compared to BM25 retrieval."
+
+### Missing Information
+
+1. **Missing Methodology Details:**
+   - **Problematic Text:** "The quality gap between naive manifest routing and BM25 (V1: −0.64, t=−3.80) closes completely when the manifest is curated by a frontier model as a lookdown-style routing table (V2: −0.04, t=−0.22)."
+   - **Correction:** "The quality gap between naive manifest routing and BM25 (V1: −0.64, t=−3.80) closes completely when the manifest is curated by a frontier model as a lookdown-style routing table (V2: −0.04, t=−0.22). This is due to the manifest curation quality, as the same 7B model with identical code produces 26% better answers and uses 60% fewer tokens when given a curated manifest instead of a mechanical one."
+
+2. **Missing Context Budget Details:**
+   - **Problematic Text:** "V1 Arm M received ~11K tokens vs Arm R ~5.3K. V2 corrected this: Arm M ~4.2K vs Arm R ~5.2K."
+   - **Correction:** "V1 Arm M received ~11K tokens vs Arm R ~5.3K. V2 corrected this: Arm M ~4.2K vs Arm R ~5.2K. This correction was made to ensure a fair comparison in terms of context budget."
+
+3. **Missing Scorer Calibration Details:**
+   - **Problematic Text:** "Claude (sonnet-4-5) most closely tracks functional ground truth."
+   - **Correction:** "Claude (sonnet-4-5) most closely tracks functional ground truth. It correctly identifies the best implementation (D=4.33) and worst-quality output (E=2.00). Misranks the non-functional implementation (C=4.00) because static evaluation cannot catch sourceability failures — the same finding as the handler methodology."
+
+4. **Missing Question-Type Boundary Details:**
+   - **Problematic Text:** "BM25 wins synthesis, manifest wins similarity, traversal is a draw."
+   - **Correction:** "BM25 wins synthesis (claude −1.60, gemma −1.80), manifest wins similarity (claude +1.20), and traversal is a draw. This is the first empirically identified question-type boundary in the experiment."
+
+### No Issues Found
+
+- After reviewing the finding, no additional factual errors, framing drift, or missing information were found.

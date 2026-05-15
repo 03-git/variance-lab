@@ -1,0 +1,88 @@
+To create an HTTP endpoint that returns the current time in ISO 8601 format as JSON, we'll use **Python** with the **Flask** web framework. This example will define a route at `GET /time` that responds with a JSON object containing the current time in UTC.
+
+---
+
+### ✅ Features
+
+- ✅ Returns time in **ISO 8601 format**
+- ✅ Uses **UTC time** for consistent behavior across different time zones
+- ✅ Returns a **JSON response** with `{"time": "<ISO 8601>"}`
+
+---
+
+### 🧑‍💻 Code Implementation
+
+Save the following code in a file named `app.py`:
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime, timezone
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    # Get current time in UTC and convert to ISO 8601 format
+    current_time = datetime.now(timezone.utc).isoformat()
+    return jsonify(time=current_time)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+---
+
+### 🚀 How to Run
+
+1. **Install Flask (if not already installed):**
+
+   ```bash
+   pip install flask
+   ```
+
+2. **Run the Flask application:**
+
+   ```bash
+   python app.py
+   ```
+
+   This will start the server on `http://localhost:5000` in debug mode.
+
+---
+
+### 🌐 Accessing the Endpoint
+
+Once the server is running, you can access the endpoint at:
+
+```
+http://localhost:5000/time
+```
+
+You should receive a JSON response like:
+
+```json
+{
+  "time": "2025-04-05T12:34:56.789012+00:00"
+}
+```
+
+You can test it using a browser, `curl`, or Postman.
+
+Example with `curl`:
+
+```bash
+curl http://localhost:5000/time
+```
+
+---
+
+### ⚠️ Notes
+
+- The server runs in **debug mode** when using `app.run(debug=True)`. For production environments, consider disabling debug mode and using a production-ready WSGI server like `gunicorn`.
+- The time is returned in **UTC** (`+00:00`), which is a best practice for API responses to avoid ambiguity.
+
+---
+
+### ✅ Summary
+
+You now have a lightweight HTTP server that responds with the current UTC time in ISO 8601 format via a simple GET endpoint. This is ideal for use in APIs, microservices, or as a time reference for client applications.

@@ -1,0 +1,175 @@
+---
+title: 1-Bit Wins Across Four Hardware Tiers Because the Bottleneck Differs by Tier
+date: 2026-04-25
+source: production empirical (4 hardware tiers, same model, same harness)
+domain:
+  - local-inference
+  - bitnet
+  - hardware-characterization
+  - deployment-sizing
+keywords:
+  - BitNet
+  - Bonsai 8B
+  - bottleneck taxonomy
+  - memory bandwidth
+  - thermal throttle
+  - swap isolation
+  - edge deployment
+prior_art_status: >
+  bitnet-log (03-git, frozen 2026-04-25) tracked two convergence gates:
+  weight compression (BitNet) and KV cache compression. This finding
+  validates the weight gate empirically across consumer hardware.
+  Published 1-bit benchmarks measure single-model single-tier tok/s.
+  No published benchmark characterizes the tier-specific bottleneck
+  that becomes binding once memory capacity is removed as a constraint.
+---
+
+# 1-Bit Wins Across Four Tiers Because the Bottleneck Differs by Tier
+
+## Claim
+
+Bonsai 8B Q1 (1.1GB) is deployment-viable on every hardware tier tested,
+but the reason it wins differs by tier. 1-bit quantization eliminates
+memory capacity as the binding constraint on all four platforms, exposing
+the next bottleneck down — which is different on each:
+
+  M2 Mac Mini 8GB:     memory capacity was the gate. Removed. Next: bandwidth (sufficient for 1 user).
+  1660 Ti laptop 6GB:  VRAM capacity was the gate. Removed. Next: thermal throttle on laptop chassis.
+  i7-1185G7 CPU 11GB:  capacity was never the gate. Win is fewer ops per token. Next: CPU compute.
+  M1 Max Studio 64GB:  capacity was never the gate. Win is fewer bytes per token. Next: memory bandwidth.
+
+Single-instance throughput on M1 Max varied 87-93 tok/s across bench
+runs (87.1 in the scaling curve, 93.5 in the four-model sequential
+comparison). The spread reflects warmup state and prompt cache
+differences between runs, not measurement error.
+
+The bottleneck taxonomy explains why the speedup ratio varies across
+tiers rather than being a fixed property of the quantization.
+
+## Measurement
+
+Same model (Bonsai-8B-Q1_0.gguf, 1.1GB), same prompt set (10 clinical
+ABA prompts, 150 max_tokens), same harness across all four platforms.
+
+  Hardware              Chip          RAM/VRAM   tok/s (single)   Model size   Bottleneck
+  M2 Mac Mini           Apple M2      8 GB       40.0             1.1 GB       bandwidth (swap irrelevant)
+  Acer laptop           GTX 1660 Ti   6 GB       24.4             1.1 GB       thermal (11% throttle, recovers)
+  Surface Pro 8         i7-1185G7     11 GB      8.0-9.3          1.1 GB       CPU compute
+  Mac Studio            M1 Max        64 GB      87-93 tok/s      1.1 GB       memory bandwidth
+
+### Efficiency comparison: Bonsai Q1 vs Qwen 2.5 7B Q4 (same CPU)
+
+On the Surface Pro 8 (i7-1185G7, AVX2, no GPU):
+
+  Model              File size   Generation tok/s   Prompt tok/s
+  Bonsai 8B Q1       1.1 GB      9.3                8.7
+  Qwen 2.5 7B Q4     4.4 GB      5.9                12.5
+
+1.6x faster generation in 4.0x less memory. The generation advantage
+comes from fewer bytes read per token. The prompt disadvantage (8.7 vs
+12.5) reflects Q4's better arithmetic density during the compute-bound
+prefill phase. Different bottlenecks at different inference stages.
+
+Caveat: different model families, different training data, different
+architecture. The comparison is practical (what fits and runs on this
+hardware), not controlled. The memory ratio is clean. The throughput
+ratio is confounded by architecture differences.
+
+### Per-tier bottleneck evidence
+
+**M2 Mac Mini (swap isolation).** 416-run sustained bench over 1 hour.
+Swap grew from 737MB to 7,326MB. Throughput unchanged at 39.8 tok/s
+mean. Behavior consistent with Metal-allocated model weights being
+unaffected by system swap pressure. The OS pages out everything else;
+the model stays resident. The constraint on M2 was memory capacity
+(dense Q4 8B = 4.5GB, doesn't fit alongside application server in 8GB).
+Bonsai at 1.1GB removes that constraint entirely.
+
+**1660 Ti laptop (thermal).** 50-run bench: 24.4 tok/s. Sustained load:
+24.6 → 22.0 tok/s over 15 minutes, stabilized near baseline at 24.3
+after thermal equilibrium. The 11% dip is the laptop chassis thermal
+envelope, not the GPU's compute limit. The constraint is heat dissipation
+in a closed-lid form factor, not VRAM or compute.
+
+**i7 CPU (compute).** Bonsai wins on generation (9.3 vs 5.9 tok/s)
+because 1-bit reads fewer bytes per token from DDR4. But the absolute
+speed (9.3 tok/s) is the lowest across all tiers because x86 CPU
+matrix multiply is the binding constraint, not memory bandwidth. 1-bit
+helps (fewer ops) but doesn't change the regime.
+
+**M1 Max Studio (bandwidth).** 93.5 tok/s single instance. Under
+concurrent load, aggregate throughput plateaus at ~124 tok/s regardless
+of instance count (see finding 10). The constraint is unified memory
+bandwidth. 1-bit maximizes tokens per byte read. Bonsai generates
+at comparable or faster speeds than phi4-mini Q4 (88.4 tok/s) and
+Qwen 2.5 7B Q4 (~88 tok/s) despite having more parameters. The two
+Bonsai measurements on M1 Max (87.1 in the scaling curve, 93.5 in
+the four-model comparison) bracket the dense Q4 models — the
+variation is from warmup and cache state, not measurement error.
+
+## Mechanism
+
+1-bit quantization represents each weight as {-1, 0, +1}. The
+arithmetic shifts from multiply-accumulate (FP16/Q4) to addition and
+subtraction (Q1). Two consequences:
+
+1. Model file size drops from ~4.5GB (Q4 8B) to 1.1GB (Q1 8B).
+   This removes memory capacity as a constraint on hardware where
+   it was previously binding (M2 8GB, 1660 Ti 6GB VRAM).
+
+2. Bytes read per token drop proportionally. On bandwidth-bound
+   platforms (M1 Max, M2), this translates directly to higher tok/s.
+   On compute-bound platforms (i7 CPU), the benefit is smaller because
+   the bottleneck is arithmetic throughput, not memory reads.
+
+The bottleneck taxonomy is a consequence of removing the top constraint.
+When capacity stops being the limit, whatever was second in line becomes
+first. That second-in-line constraint is hardware-specific.
+
+## Confounds
+
+**Different model families in the efficiency comparison.** Bonsai 8B
+and Qwen 2.5 7B have different architectures, training data, and
+parameter counts. The throughput comparison is practical, not controlled.
+A same-model different-quant comparison (Bonsai at Q1 vs Q4) would
+isolate quantization from architecture, but Q4 Bonsai GGUF does not
+exist.
+
+**Single prompt set.** All measurements use the same 10 clinical ABA
+prompts. Different prompt shapes (long context, code generation,
+multilingual) may shift the bottleneck balance.
+
+**Thermal measurement on 1660 Ti is chassis-specific.** A desktop
+1660 Ti with active cooling would produce different thermal behavior.
+The throttle finding is for this laptop chassis, not for the GPU
+architecture.
+
+**M2 swap isolation mechanism is attributed, not measured.** The
+observation (throughput stable under 10x swap growth) is empirical.
+The mechanism (Metal memory pinning) is inferred from Apple Silicon
+architecture documentation, not from direct measurement (vmmap,
+wired page counts).
+
+## Prior work
+
+bitnet-log (03-git, frozen 2026-04-25) tracked the convergence of
+two capability gates for local inference: weight compression (BitNet
+ternary weights) and KV cache compression. The weight gate thesis:
+ternary weights at 1.58 bits per parameter enable large models on
+consumer hardware by shifting the binding constraint from memory
+capacity to memory bandwidth. This finding validates that thesis
+empirically. The cache gate (KV compression for long context) remains
+open and is tracked separately.
+
+## Harness
+
+  M2 clinical:        staging/bonsai-8b-clinical-bench-50.jsonl
+  M2 sustained:       staging/bonsai-8b-sustained-1hr.jsonl
+  M2 workday:         staging/bonsai-8b-workday-sim.jsonl
+  1660 Ti clinical:   staging/bonsai-8b-1660ti-bench-50.jsonl
+  Surface clinical:   staging/bonsai-surface-clinical.jsonl
+  Rousseau four-way:  (session output, to be formalized)
+  Model:              huggingface.co/prism-ml/Bonsai-8B-gguf (Apache 2.0)
+
+
+================================================================

@@ -1,0 +1,106 @@
+Here's a clean implementation using **FastAPI** (Python), which handles schema validation natively via Pydantic:
+
+```python
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, field_validator, EmailStr
+from pydantic import ValidationError
+
+app = FastAPI()
+
+class UserIn(BaseModel):
+    name: str
+    email: str
+    age: int
+
+    @field_validator("name")
+    @classmethod
+    def name_nonempty(cls, v):
+        if not v.strip():
+            raise ValueError("name must not be empty")
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def email_has_at(cls, v):
+        if "@" not in v:
+            raise ValueError("email must contain @")
+        return v
+
+    @field_validator("age")
+    @classmethod
+    def age_in_range(cls, v):
+        if not (1 <= v <= 150):
+            raise ValueError("age must be between 1 and 150")
+        return v
+
+@app.post("/users", status_code=201)
+async def create_user(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "invalid JSON"})
+
+    try:
+        user = UserIn(**body)
+    except ValidationError as e:
+        errors = [
+            {"field": err["loc"][0], "message": err["msg"]}
+            for err in e.errors()
+        ]
+        return JSONResponse(status_code=400, content={"errors": errors})
+
+    return JSONResponse(status_code=201, content=user.model_dump())
+```
+
+**To run it:**
+
+```bash
+# Install deps
+pip install fastapi uvicorn
+
+# Run
+uvicorn main:app --reload
+```
+
+**Test it:**
+
+```bash
+# Valid request → 201
+curl -s -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}' | jq
+
+# Missing field → 400
+curl -s -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "age": 30}' | jq
+
+# Bad email → 400
+curl -s -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Carol", "email": "notanemail", "age": 25}' | jq
+
+# Age out of range → 400
+curl -s -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Dave", "email": "d@x.com", "age": 200}' | jq
+```
+
+**Example responses:**
+
+```json
+// 201 success
+{"name": "Alice", "email": "alice@example.com", "age": 30}
+
+// 400 missing field
+{"errors": [{"field": "email", "message": "Field required"}]}
+
+// 400 bad email
+{"errors": [{"field": "email", "message": "Value error, email must contain @"}]}
+```
+
+**Key decisions:**
+- `request: Request` + manual `ValidationError` catch gives you a clean 400 with field-level error details rather than FastAPI's default 422.
+- `age: int` in Pydantic rejects strings and floats automatically — no extra code needed.
+- Missing required fields are caught by Pydantic's `Field required` error, same path as custom validators.

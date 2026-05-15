@@ -1,0 +1,71 @@
+I'll show you a clean REST API implementation in Python using Flask. Here's the complete code:
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route('/users', methods=['POST'])
+def create_user():
+    data = request.get_json()
+    
+    # Validate presence of required fields
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
+    
+    if 'name' not in data or not isinstance(data['name'], str) or not data['name'].strip():
+        return jsonify({"error": "name is required and must be a non-empty string"}), 400
+    
+    if 'email' not in data or not isinstance(data['email'], str) or '@' not in data['email']:
+        return jsonify({"error": "email is required and must contain @"}), 400
+    
+    if 'age' not in data:
+        return jsonify({"error": "age is required"}), 400
+    
+    if not isinstance(data['age'], int) or not (1 <= data['age'] <= 150):
+        return jsonify({"error": "age must be an integer between 1 and 150"}), 400
+    
+    user = {
+        "name": data['name'].strip(),
+        "email": data['email'],
+        "age": data['age']
+    }
+    
+    return jsonify(user), 201
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**To run it:**
+
+```bash
+pip install flask
+python app.py
+```
+
+**Test with curl:**
+
+```bash
+# Valid request
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+
+# Invalid: missing name
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "bob@example.com", "age": 25}'
+
+# Invalid: email without @
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Charlie", "email": "charlie", "age": 35}'
+
+# Invalid: age out of range
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Diana", "email": "diana@example.com", "age": 200}'
+```
+
+The API validates all inputs and returns detailed error messages for each validation failure. Valid requests return a 201 status with the validated user object.

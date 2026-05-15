@@ -1,0 +1,95 @@
+I'll show you a Python script that fetches a webpage and extracts all hyperlinks:
+
+```python
+import requests
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []
+        self.current_text = []
+    
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            attrs_dict = dict(attrs)
+            href = attrs_dict.get('href', '')
+            # Convert relative URLs to absolute
+            absolute_url = urljoin(self.base_url, href)
+            self.links.append({'href': absolute_url, 'text': '', 'raw_href': href})
+    
+    def handle_data(self, data):
+        if self.links:  # Only capture text if we're inside an anchor tag
+            self.links[-1]['text'] += data.strip()
+    
+    def handle_endtag(self, tag):
+        pass
+
+def extract_links(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        parser = LinkExtractor(url)
+        parser.feed(response.text)
+        
+        return parser.links
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return []
+
+if __name__ == "__main__":
+    url = "https://example.com"
+    links = extract_links(url)
+    
+    if links:
+        print(f"Found {len(links)} links:\n")
+        for i, link in enumerate(links, 1):
+            print(f"{i}. Text: {link['text'] or '(no text)'}")
+            print(f"   URL: {link['href']}\n")
+    else:
+        print("No links found or error occurred.")
+```
+
+**How to run it:**
+
+1. **Install required packages:**
+   ```bash
+   pip install requests
+   ```
+
+2. **Run the script:**
+   ```bash
+   python script.py
+   ```
+
+**What it does:**
+- Uses `requests` to fetch the webpage
+- Uses `HTMLParser` to extract anchor tags and their href attributes
+- Converts relative URLs to absolute URLs using `urljoin`
+- Captures the link text between opening and closing `<a>` tags
+- Prints each link with its text and absolute URL
+
+**Alternative with BeautifulSoup** (simpler, if you prefer):
+```python
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+
+url = "https://example.com"
+response = requests.get(url, timeout=10)
+soup = BeautifulSoup(response.text, 'html.parser')
+
+links = soup.find_all('a')
+print(f"Found {len(links)} links:\n")
+
+for i, link in enumerate(links, 1):
+    href = urljoin(url, link.get('href', ''))
+    text = link.get_text(strip=True) or '(no text)'
+    print(f"{i}. Text: {text}")
+    print(f"   URL: {href}\n")
+```
+
+To use the BeautifulSoup version, install it with: `pip install beautifulsoup4 requests`

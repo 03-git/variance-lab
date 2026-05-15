@@ -1,0 +1,69 @@
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._current_text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            attrs_dict = dict(attrs)
+            self._current_href = attrs_dict.get("href")
+            self._current_text = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._current_text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            self.links.append((self._current_href, "".join(self._current_text).strip()))
+            self._current_href = None
+            self._current_text = []
+
+url = "https://example.com"
+with urllib.request.urlopen(url) as response:
+    html = response.read().decode("utf-8")
+
+parser = LinkParser()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"[{text}] -> {href}")
+```
+
+**How to run** — no dependencies needed, just the standard library:
+
+```bash
+python3 script.py
+```
+
+**Expected output for example.com:**
+```
+[More information...] -> https://www.iana.org/domains/reserved
+```
+
+If you want to use `requests` + `BeautifulSoup` instead (more robust for real-world scraping), here's that version:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+response = requests.get("https://example.com")
+soup = BeautifulSoup(response.text, "html.parser")
+
+for a in soup.find_all("a", href=True):
+    print(f"[{a.get_text(strip=True)}] -> {a['href']}")
+```
+
+Install deps first:
+```bash
+pip install requests beautifulsoup4
+python3 script.py
+```
+
+The stdlib version works with no installation; the `bs4` version is easier to extend for more complex pages.

@@ -1,0 +1,55 @@
+reflex.1 (python→kernel): no kernel primitive for HTTP; the stdlib primitive is `urllib.request` — no `requests` dependency needed. urllib follows redirects by default.
+
+```python
+#!/usr/bin/env python3
+import sys
+import urllib.request
+import urllib.error
+
+def main():
+    if len(sys.argv) != 2:
+        print(f"usage: {sys.argv[0]} URL", file=sys.stderr)
+        sys.exit(2)
+
+    url = sys.argv[1]
+    req = urllib.request.Request(url, headers={"User-Agent": "fetch.py"})
+
+    try:
+        # urllib follows redirects (3xx) automatically via HTTPRedirectHandler
+        resp = urllib.request.urlopen(req, timeout=30)
+    except urllib.error.HTTPError as e:
+        resp = e  # HTTPError is also a response-like object (has .code, .headers, .read)
+    except urllib.error.URLError as e:
+        print(f"request failed: {e.reason}", file=sys.stderr)
+        sys.exit(1)
+
+    body = resp.read(8000).decode("utf-8", errors="replace")
+
+    print(f"Status: {resp.status if hasattr(resp, 'status') else resp.code}")
+    print(f"Final URL: {resp.url if hasattr(resp, 'url') else url}")
+    print("\nHeaders:")
+    for k, v in resp.headers.items():
+        print(f"  {k}: {v}")
+    print("\nBody (first 500 chars):")
+    print(body[:500])
+
+if __name__ == "__main__":
+    main()
+```
+
+Run it:
+
+```bash
+# save as fetch.py, then:
+python3 fetch.py https://example.com
+
+# or without saving, straight from stdin:
+python3 - https://example.com <<'EOF'
+<paste the script above>
+EOF
+```
+
+Notes:
+- Redirects: `urlopen` uses `HTTPRedirectHandler` by default, so 301/302/303/307 are followed transparently; the final landing URL is printed via `resp.url`.
+- `HTTPError` (4xx/5xx) is caught and reused — it still exposes `.code`, `.headers`, and `.read()`, so you get the status and body of error responses too.
+- `resp.read(8000)` caps the read so you don't pull a huge body just to show 500 chars.

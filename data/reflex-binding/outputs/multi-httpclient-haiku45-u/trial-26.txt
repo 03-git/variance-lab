@@ -1,0 +1,79 @@
+Here's a Python script that does what you need:
+
+```python
+import sys
+import requests
+
+if len(sys.argv) != 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    response = requests.get(url, allow_redirects=True, timeout=10)
+    
+    print(f"Status Code: {response.status_code}")
+    print("\nResponse Headers:")
+    for key, value in response.headers.items():
+        print(f"  {key}: {value}")
+    
+    body = response.text[:500]
+    print(f"\nFirst 500 characters of body:")
+    print(body)
+    
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}", file=sys.stderr)
+    sys.exit(1)
+```
+
+**How to run it:**
+
+```bash
+python script.py "https://example.com"
+```
+
+**What it does:**
+- Takes a URL as the first command-line argument
+- Makes a GET request with `allow_redirects=True` (follows redirects automatically)
+- Prints the final status code
+- Prints all response headers
+- Prints the first 500 characters of the response body
+- Handles errors gracefully with a 10-second timeout
+
+**Requirements:**
+Make sure you have the `requests` library installed:
+```bash
+pip install requests
+```
+
+If you want to use only the standard library (no external dependencies), here's an alternative using `urllib`:
+
+```python
+import sys
+import urllib.request
+import urllib.error
+
+if len(sys.argv) != 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    with urllib.request.urlopen(url, timeout=10) as response:
+        print(f"Status Code: {response.status}")
+        print("\nResponse Headers:")
+        for key, value in response.headers.items():
+            print(f"  {key}: {value}")
+        
+        body = response.read().decode('utf-8', errors='ignore')[:500]
+        print(f"\nFirst 500 characters of body:")
+        print(body)
+        
+except urllib.error.URLError as e:
+    print(f"Error: {e}", file=sys.stderr)
+    sys.exit(1)
+```
+
+The `requests` version is cleaner and handles redirects more explicitly, so I'd recommend that one if you can install the dependency.

@@ -1,0 +1,45 @@
+I'll write a Python test suite for the `celsius_to_fahrenheit` function using pytest, which is the standard testing framework.
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    def test_freezing_point(self):
+        """0°C should be 32°F."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """100°C should be 212°F."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty(self):
+        """-40°C should be -40°F."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("not a number")
+```
+
+**To run this test suite:**
+
+```bash
+# Install pytest if you don't have it
+pip install pytest
+
+# Run the tests
+pytest test_file.py -v
+```
+
+The `-v` flag shows verbose output. You should see:
+- ✓ test_freezing_point PASSED
+- ✓ test_boiling_point PASSED
+- ✓ test_negative_forty PASSED
+- ✓ test_non_numeric_input PASSED
+
+The test for non-numeric input uses `pytest.raises(TypeError)` as a context manager to verify that passing a string raises a TypeError (which happens automatically when Python tries to multiply a string by a number).

@@ -1,0 +1,54 @@
+To provide the most efficient solution, I will follow **reflex.1** (naming the kernel primitive) and **fail.additive** (avoiding unnecessary wrappers).
+
+The kernel primitive for this task is a **TCP socket listener** paired with an **HTTP parser**. For a lightweight implementation, I will use Python's built-in `http.server` module, which provides these primitives without requiring external dependencies.
+
+### The Code (`server.py`)
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            
+            response = {
+                "time": datetime.now().isoformat()
+            }
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b'Not Found')
+
+def run(server_class=HTTPServer, handler_class=TimeHandler, port=8000):
+    server_address = ('', port)
+    httpd = server_class(server_address, handler_class)
+    print(f"Starting server on port {port}...")
+    httpd.serve_forever()
+
+if __name__ == '__main__':
+    run()
+```
+
+### How to Run
+
+1.  **Ensure Python is installed** (Python 3.x is required).
+2.  **Save the code** above into a file named `server.py`.
+3.  **Execute the script** in your terminal:
+    ```bash
+    python3 server.py
+    ```
+4.  **Test the endpoint** using `curl` in a separate terminal window:
+    ```bash
+    curl http://localhost:8000/time
+    ```
+
+**Expected Output:**
+```json
+{"time": "2023-10-27T10:00:00.123456"}
+```

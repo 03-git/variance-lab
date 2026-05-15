@@ -1,0 +1,41 @@
+
+
+```python
+import sys
+import urllib.request
+
+url = sys.argv[1]
+resp = urllib.request.urlopen(url)
+
+print(f"Status: {resp.status}")
+print("\nHeaders:")
+for key, value in resp.getheaders():
+    print(f"  {key}: {value}")
+
+body = resp.read().decode("utf-8", errors="replace")
+print(f"\nBody (first 500 chars):\n{body[:500]}")
+```
+
+**Usage:**
+
+```bash
+python script.py https://example.com
+```
+
+This uses only the standard library (`urllib.request`). `urlopen` follows redirects automatically. If you need more control (timeouts, custom headers, etc.), swap in `requests`:
+
+```python
+import sys
+import requests
+
+resp = requests.get(sys.argv[1])
+
+print(f"Status: {resp.status_code}")
+print("\nHeaders:")
+for key, value in resp.headers.items():
+    print(f"  {key}: {value}")
+
+print(f"\nBody (first 500 chars):\n{resp.text[:500]}")
+```
+
+The `requests` version requires `pip install requests`.

@@ -1,0 +1,49 @@
+Here's the test suite:
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing_point(self):
+        self.assertAlmostEqual(celsius_to_fahrenheit(0), 32.0)
+
+    def test_boiling_point(self):
+        self.assertAlmostEqual(celsius_to_fahrenheit(100), 212.0)
+
+    def test_equal_point(self):
+        # -40 is the point where Celsius and Fahrenheit are equal
+        self.assertAlmostEqual(celsius_to_fahrenheit(-40), -40.0)
+
+    def test_non_numeric_input(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+**To run it**, save the code to a file (e.g. `test_temp.py`) and run:
+
+```bash
+python -m unittest test_temp
+# or directly:
+python test_temp.py
+```
+
+**Expected output:**
+```
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+```
+
+A few notes:
+- `assertAlmostEqual` is used instead of `assertEqual` to avoid floating-point precision issues.
+- The `TypeError` test works because Python will raise one when trying to multiply a string by a float — no extra validation needed in the function itself.
+- The `-40` case doubles as a sanity check for the formula since it's the only temperature where C == F.

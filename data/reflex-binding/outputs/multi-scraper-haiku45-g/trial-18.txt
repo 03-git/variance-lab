@@ -1,0 +1,62 @@
+Here's a Python script that fetches a URL and extracts all hyperlinks:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+url = "https://example.com"
+
+# Fetch the webpage
+response = requests.get(url)
+response.raise_for_status()
+
+# Parse the HTML
+soup = BeautifulSoup(response.content, 'html.parser')
+
+# Find all anchor tags
+links = soup.find_all('a')
+
+# Extract and print href and link text
+for link in links:
+    href = link.get('href')
+    text = link.get_text(strip=True)
+    print(f"href: {href}")
+    print(f"text: {text}")
+    print()
+```
+
+**How to run it:**
+
+1. Install the required libraries:
+```bash
+pip install requests beautifulsoup4
+```
+
+2. Save the script to a file (e.g., `scrape_links.py`) and run it:
+```bash
+python scrape_links.py
+```
+
+Or run it directly in a Python shell:
+```bash
+python -c "
+import requests
+from bs4 import BeautifulSoup
+
+response = requests.get('https://example.com')
+soup = BeautifulSoup(response.content, 'html.parser')
+
+for link in soup.find_all('a'):
+    href = link.get('href')
+    text = link.get_text(strip=True)
+    print(f'href: {href}')
+    print(f'text: {text}')
+    print()
+"
+```
+
+The script uses:
+- **requests** — to fetch the webpage
+- **BeautifulSoup** — to parse HTML and find all `<a>` tags
+
+For `example.com`, you'll get the links present on that page with their href attributes and visible text.

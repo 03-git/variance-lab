@@ -1,0 +1,62 @@
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32.0
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212.0
+
+def test_negative_forty():
+    # -40 is the point where Celsius and Fahrenheit are equal
+    assert celsius_to_fahrenheit(-40) == -40.0
+
+def test_non_numeric_input():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+**To run it:**
+
+1. Save the code to a file, e.g. `test_temp.py`
+2. Install pytest if needed: `pip install pytest`
+3. Run: `pytest test_temp.py -v`
+
+Expected output:
+```
+test_temp.py::test_freezing_point   PASSED
+test_temp.py::test_boiling_point    PASSED
+test_temp.py::test_negative_forty   PASSED
+test_temp.py::test_non_numeric_input PASSED
+```
+
+Or without pytest, using `unittest` from the standard library (no install needed):
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32.0)
+
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212.0)
+
+    def test_negative_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40.0)
+
+    def test_non_numeric_input(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run with: `python test_temp.py -v`

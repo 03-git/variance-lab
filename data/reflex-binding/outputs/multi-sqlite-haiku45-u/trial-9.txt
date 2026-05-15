@@ -1,0 +1,84 @@
+Here's a complete Python script to create a SQLite database with a notes table:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create/connect to SQLite database
+conn = sqlite3.connect('notes.db')
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Shopping List', 'Buy milk, eggs, bread, and coffee', datetime.now().isoformat()),
+    ('Project Ideas', 'Build a task manager app with SQLite backend', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discuss Q2 roadmap and team expansion', datetime.now().isoformat())
+]
+
+cursor.executemany('''
+    INSERT INTO notes (title, body, created_at) 
+    VALUES (?, ?, ?)
+''', sample_notes)
+
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+# Print results
+print("All Notes:")
+print("-" * 60)
+for note in notes:
+    print(f"ID: {note[0]}")
+    print(f"Title: {note[1]}")
+    print(f"Body: {note[2]}")
+    print(f"Created: {note[3]}")
+    print("-" * 60)
+
+# Close connection
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the script as `notes.py`
+2. Run it with: `python notes.py`
+
+**What it does:**
+- Creates a `notes.db` SQLite database (or connects to it if it exists)
+- Creates a `notes` table with the specified schema
+- Inserts 3 sample notes with titles, bodies, and timestamps
+- Queries all notes and prints them in a formatted way
+- Closes the database connection
+
+**Output will look like:**
+```
+All Notes:
+------------------------------------------------------------
+ID: 1
+Title: Shopping List
+Body: Buy milk, eggs, bread, and coffee
+Created: 2026-05-10T14:32:45.123456
+------------------------------------------------------------
+ID: 2
+Title: Project Ideas
+Body: Build a task manager app with SQLite backend
+Created: 2026-05-10T14:32:45.123457
+------------------------------------------------------------
+ID: 3
+Title: Meeting Notes
+Body: Discuss Q2 roadmap and team expansion
+Created: 2026-05-10T14:32:45.123458
+------------------------------------------------------------
+```

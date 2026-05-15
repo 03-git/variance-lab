@@ -1,0 +1,68 @@
+Here's a minimal Express implementation:
+
+```js
+// server.js
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+app.post('/users', (req, res) => {
+  const { name, email, age } = req.body ?? {};
+  const errors = {};
+
+  if (typeof name !== 'string' || name.trim() === '') {
+    errors.name = 'name is required and must be a non-empty string';
+  }
+
+  if (typeof email !== 'string' || !email.includes('@')) {
+    errors.email = 'email is required and must contain "@"';
+  }
+
+  if (!Number.isInteger(age) || age < 1 || age > 150) {
+    errors.age = 'age is required and must be an integer between 1 and 150';
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return res.status(400).json({ error: 'Invalid input', details: errors });
+  }
+
+  return res.status(201).json({ name: name.trim(), email, age });
+});
+
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
+  next(err);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Listening on http://localhost:${PORT}`));
+```
+
+## How to run
+
+```bash
+mkdir users-api && cd users-api
+npm init -y
+npm install express
+# save the code above as server.js
+node server.js
+```
+
+## Try it
+
+```bash
+# Success → 201
+curl -i -X POST http://localhost:3000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Ada","email":"ada@example.com","age":36}'
+
+# Invalid → 400 with per-field details
+curl -i -X POST http://localhost:3000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"","email":"nope","age":200}'
+```
+
+Validation notes: `Number.isInteger` rejects floats, strings, and `NaN`; the JSON parse-error handler returns 400 instead of Express's default 400-with-HTML when the body is malformed.

@@ -1,0 +1,78 @@
+Here's an async TCP echo server in Python using `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readuntil(b'\n')
+            if not data:
+                break
+            
+            # Echo it back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"{addr}: {data.decode().strip()}")
+    except asyncio.IncompleteReadError:
+        pass
+    finally:
+        print(f"Client disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main():
+    """Start the TCP echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server running on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**To run the server:**
+
+```bash
+python echo_server.py
+```
+
+**To test it, open another terminal and use `netcat`:**
+
+```bash
+nc localhost 8888
+```
+
+Then type messages and press Enter—they'll echo back immediately.
+
+**Or use a simple Python client:**
+
+```python
+import socket
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.connect(('localhost', 8888))
+    s.sendall(b'Hello, Echo Server!\n')
+    response = s.recv(1024)
+    print(f"Received: {response.decode()}")
+```
+
+**Key points:**
+- `handle_client()` runs for each connected client concurrently
+- `readuntil(b'\n')` waits for a newline before echoing
+- `asyncio.start_server()` handles all the socket setup and concurrent client management
+- Multiple clients can connect simultaneously without blocking each other

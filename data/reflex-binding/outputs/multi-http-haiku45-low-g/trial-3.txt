@@ -1,0 +1,59 @@
+I'll show you a simple HTTP endpoint in Node.js that returns the current time as JSON.
+
+**Node.js with built-in `http` module:**
+
+```javascript
+const http = require('http');
+
+const server = http.createServer((req, res) => {
+  if (req.url === '/time' && req.method === 'GET') {
+    const time = new Date().toISOString();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ time }));
+  } else {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
+  }
+});
+
+const PORT = 3000;
+server.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}/time`);
+});
+```
+
+**Run it:**
+```bash
+node time-server.js
+```
+
+Then test with:
+```bash
+curl http://localhost:3000/time
+```
+
+Response:
+```json
+{"time":"2026-05-10T14:32:45.123Z"}
+```
+
+---
+
+**Alternative with Express (if you prefer):**
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.get('/time', (req, res) => {
+  res.json({ time: new Date().toISOString() });
+});
+
+app.listen(3000, () => {
+  console.log('Server running at http://localhost:3000/time');
+});
+```
+
+Run: `npm install express && node time-server.js`
+
+The first option requires no dependencies. Pick whichever fits your needs.

@@ -1,0 +1,58 @@
+I'll show you a comprehensive test suite for the `celsius_to_fahrenheit` function using Python's built-in `unittest` framework.
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    
+    def test_freezing_point(self):
+        """0°C should equal 32°F."""
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+    
+    def test_boiling_point(self):
+        """100°C should equal 212°F."""
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+    
+    def test_cold_temperature(self):
+        """-40°C should equal -40°F (unique intersection point)."""
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError."""
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("not a number")
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+**How to run it:**
+
+Save the code to a file (e.g., `test_conversion.py`), then:
+
+```bash
+# Run with verbose output
+python test_conversion.py -v
+
+# Or use pytest if installed
+pytest test_conversion.py -v
+```
+
+**Expected output:**
+```
+test_boiling_point (__main__.TestCelsiusToFahrenheit) ... ok
+test_cold_temperature (__main__.TestCelsiusToFahrenheit) ... ok
+test_freezing_point (__main__.TestCelsiusToFahrenheit) ... ok
+test_non_numeric_input (__main__.TestCelsiusToFahrenheit) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.0s
+
+OK
+```
+
+The suite covers the three numeric cases (0, 100, -40) and validates that the function raises `TypeError` when given a string.

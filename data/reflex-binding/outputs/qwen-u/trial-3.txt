@@ -1,0 +1,67 @@
+Certainly! Below is a simple example of how you can build an HTTP endpoint using Python with the Flask framework that returns the current time as JSON in ISO 8601 format.
+
+### Python Code
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_current_time():
+    now = datetime.now().isoformat()
+    return jsonify({"time": now})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+### Explanation
+
+1. **Importing Libraries**:
+   - `Flask`: The web framework that will handle HTTP requests.
+   - `jsonify`: A helper function to return JSON responses.
+   - `datetime`: To get the current date and time.
+
+2. **Creating the Flask App**:
+   - `app = Flask(__name__)`: Initializes the Flask application.
+
+3. **Defining the Endpoint**:
+   - `@app.route('/time', methods=['GET'])`: Defines the route for the `/time` endpoint.
+   - `def get_current_time()`: The function that handles GET requests to the `/time` endpoint.
+   - `now = datetime.now().isoformat()`: Gets the current date and time and formats it as an ISO 8601 timestamp.
+   - `return jsonify({"time": now})`: Returns the current time as a JSON response.
+
+4. **Running the Application**:
+   - `if __name__ == '__main__'`: Ensures the server only runs if the script is executed directly (not imported as a module).
+   - `app.run(debug=True)`: Starts the Flask development server with debugging enabled.
+
+### How to Run the Code
+
+1. **Install Flask**:
+   You can install Flask using pip:
+   ```sh
+   pip install Flask
+   ```
+
+2. **Save the Code**:
+   Save the code above into a file, for example, `app.py`.
+
+3. **Run the Server**:
+   Run the Flask application by executing the following command:
+   ```sh
+   python app.py
+   ```
+
+4. **Access the Endpoint**:
+   Open a web browser or use a tool like `curl` or Postman to access the endpoint:
+   ```sh
+   curl http://127.0.0.1:5000/time
+   ```
+   You should see a JSON response like:
+   ```json
+   {"time": "2023-10-05T12:34:56.789012"}
+   ```
+
+This is a basic example, and you can further customize it based on your needs.

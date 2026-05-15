@@ -1,0 +1,67 @@
+**Time Endpoint in Python using Flask**
+
+We will use the Flask web framework to create a simple HTTP server.
+
+First, install Flask using pip:
+
+```bash
+pip install Flask
+```
+
+Then, create a new file called `app.py` and add the following code:
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    """Return the current time as JSON"""
+    current_time = datetime.now().isoformat()
+    return jsonify({'time': current_time})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+This code defines a Flask application with a single endpoint at `/time` that returns the current time as JSON.
+
+**Running the Endpoint**
+
+To run the endpoint, execute the following command in your terminal:
+
+```bash
+python app.py
+```
+
+This will start the Flask development server. You can now access the `/time` endpoint by navigating to `http://localhost:5000/time` in your web browser or by using a tool like `curl` from the command line:
+
+```bash
+curl http://localhost:5000/time
+```
+
+This should output the current time as JSON:
+
+```json
+{"time": "2023-12-31T18:30:00.000000"}
+```
+
+**Note:** Make sure to replace `app.py` with the actual name of your Python file when running the command.
+
+**Using a WSGI Server**
+
+For a production environment, you should use a WSGI server like Gunicorn or uWSGI to run your Flask application. You can install Gunicorn using pip:
+
+```bash
+pip install gunicorn
+```
+
+Then, run your application using Gunicorn:
+
+```bash
+gunicorn app:app
+```
+
+This will start the WSGI server, and you can access your application at `http://localhost:5000/time`.

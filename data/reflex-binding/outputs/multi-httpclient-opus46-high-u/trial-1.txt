@@ -1,0 +1,30 @@
+
+
+```python
+import sys
+import urllib.request
+
+def fetch(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req) as resp:
+        print(f"Status: {resp.status}")
+        print("\nHeaders:")
+        for key, value in resp.getheaders():
+            print(f"  {key}: {value}")
+        body = resp.read().decode("utf-8", errors="replace")
+        print(f"\nBody (first 500 chars):\n{body[:500]}")
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <url>")
+        sys.exit(1)
+    fetch(sys.argv[1])
+```
+
+**How to run it:**
+
+```bash
+python fetch.py https://example.com
+```
+
+Uses only the standard library (`urllib.request`), follows redirects by default, and prints status code, all response headers, and the first 500 characters of the decoded body.

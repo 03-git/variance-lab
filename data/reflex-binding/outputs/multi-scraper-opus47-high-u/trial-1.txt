@@ -1,0 +1,54 @@
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._current_text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href is not None:
+                self._current_href = href
+                self._current_text = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._current_text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            text = "".join(self._current_text).strip()
+            self.links.append((self._current_href, text))
+            self._current_href = None
+            self._current_text = []
+
+def main():
+    req = urllib.request.Request(
+        "https://example.com",
+        headers={"User-Agent": "Mozilla/5.0 (link-extractor)"},
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        html = resp.read().decode(resp.headers.get_content_charset() or "utf-8")
+
+    parser = LinkExtractor()
+    parser.feed(html)
+
+    for href, text in parser.links:
+        print(f"{href}\t{text}")
+
+if __name__ == "__main__":
+    main()
+```
+
+Run it with:
+
+```
+python3 script.py
+```
+
+Uses only the standard library — no `pip install` needed. For `https://example.com`, you'll see one link: `https://www.iana.org/domains/example` with text "More information...".

@@ -1,0 +1,23 @@
+Review this manifest-agents experiment finding for factual errors, framing drift, and missing analysis. Answer three things, terse:
+
+1. One factual error or unsupported claim (or "none found").
+2. One framing drift (where the text implies more than the data supports, or "none found").
+3. One thing that should be added or cut (or "nothing").
+
+---
+
+FINDING SUMMARY:
+
+Two-arm experiment comparing manifest-routed retrieval (Arm M) vs BM25 retrieval (Arm R) for QA on a 15K-line codebase, using qwen2.5-7b.
+
+V1 (naive manifest — mechanical descriptions, full files): Arm R wins quality (composite 3.41 vs 2.76, t=-3.80), costs less (174K vs 343K tokens).
+
+V2 (curated manifest — frontier-generated lookdown-style routing table, chunk-level retrieval): Quality tie (3.51 vs 3.47, t=-0.22). Arm M costs less (138K vs 172K tokens, 535s vs 715s wall). Arm M has signed audit chain.
+
+Selection: Arm M wins cost and audit. Quality is a draw. No arm dominates on >=3 of 4 metrics.
+
+Scorer calibration: Three scorers (claude-sonnet-4-5, gemma-4-26B, qwen2.5-7b) were calibrated against handler methodology ground truth. Claude tracks ground truth best. Gemma has formatting/length bias. Qwen has self-scoring bias (5/5/5 on own output). All three disagree on item rankings (tau=-0.33) but agree on arm direction.
+
+Confounds: single corpus, single model, BM25 not embedding-based, self-scoring, manifest curation cost not amortized.
+
+Boundaries where BM25 wins: zero curation cost, possibly semantic similarity, change detection (both fail equally).

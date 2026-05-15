@@ -1,0 +1,84 @@
+I'll show you an async TCP echo server using Python's `asyncio` module that handles multiple concurrent clients.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            if not data:
+                # Client disconnected
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo to {addr}: {data.decode().strip()}")
+    
+    except asyncio.CancelledError:
+        print(f"Client {addr} cancelled")
+        raise
+    except Exception as e:
+        print(f"Error with client {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+1. **Start the server** (in one terminal):
+```bash
+python echo_server.py
+```
+
+2. **Connect with a client** (in another terminal):
+```bash
+# Using telnet
+telnet 127.0.0.1 8888
+
+# Or using netcat
+nc 127.0.0.1 8888
+```
+
+3. **Send messages** (type in the client terminal):
+```
+Hello, server!
+This is a test
+Async echo works!
+```
+
+Each line you type will be echoed back immediately. You can open multiple client connections simultaneously, and the server handles them all concurrently.
+
+**Key features:**
+- `asyncio.start_server()` listens for connections
+- `handle_client()` runs concurrently for each connected client
+- `readline()` reads until a newline, perfect for line-based protocols
+- `writer.drain()` ensures data is sent before continuing
+- Server handles multiple clients without blocking

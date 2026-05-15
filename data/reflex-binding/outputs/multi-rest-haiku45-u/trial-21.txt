@@ -1,0 +1,96 @@
+I'll show you a complete REST API endpoint that validates user input and returns appropriate responses.
+
+```python
+from flask import Flask, request, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+def validate_user(data):
+    """Validate user input and return (is_valid, error_message, user_dict)"""
+    errors = {}
+    
+    if not isinstance(data, dict):
+        return False, {"error": "Request body must be JSON"}, None
+    
+    # Validate name
+    if "name" not in data:
+        errors["name"] = "name is required"
+    elif not isinstance(data["name"], str) or not data["name"].strip():
+        errors["name"] = "name must be a non-empty string"
+    
+    # Validate email
+    if "email" not in data:
+        errors["email"] = "email is required"
+    elif not isinstance(data["email"], str) or "@" not in data["email"]:
+        errors["email"] = "email must be a string containing @"
+    
+    # Validate age
+    if "age" not in data:
+        errors["age"] = "age is required"
+    elif not isinstance(data["age"], int):
+        errors["age"] = "age must be an integer"
+    elif not (1 <= data["age"] <= 150):
+        errors["age"] = "age must be between 1 and 150"
+    
+    if errors:
+        return False, {"errors": errors}, None
+    
+    user = {
+        "id": int(datetime.now().timestamp() * 1000),
+        "name": data["name"].strip(),
+        "email": data["email"],
+        "age": data["age"],
+        "created_at": datetime.now().isoformat()
+    }
+    
+    return True, None, user
+
+@app.route("/users", methods=["POST"])
+def create_user():
+    is_valid, error, user = validate_user(request.get_json())
+    
+    if not is_valid:
+        return jsonify(error), 400
+    
+    return jsonify(user), 201
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)
+```
+
+**How to run it:**
+
+```bash
+# Install Flask if needed
+pip install flask
+
+# Run the server
+python app.py
+```
+
+**Test it with curl:**
+
+```bash
+# Valid user - should return 201
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+
+# Missing field - should return 400
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "email": "bob@example.com"}'
+
+# Invalid email - should return 400
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Charlie", "email": "charlie.com", "age": 25}'
+
+# Age out of range - should return 400
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "David", "email": "david@example.com", "age": 200}'
+```
+
+The validation function checks all requirements: required fields, types, email format (contains @), and age range (1-150). Invalid requests return 400 with detailed error messages; valid ones return 201 with the created user object including an ID and timestamp.

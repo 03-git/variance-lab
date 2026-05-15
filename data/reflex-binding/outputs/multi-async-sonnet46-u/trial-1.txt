@@ -1,0 +1,73 @@
+Here's a clean async TCP echo server using Python's built-in `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    print(f"[+] Connected: {addr}")
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:
+                break
+            line = data.decode().rstrip("\r\n")
+            print(f"[{addr}] recv: {line!r}")
+            writer.write(data)
+            await writer.drain()
+    except (asyncio.IncompleteReadError, ConnectionResetError):
+        pass
+    finally:
+        print(f"[-] Disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main() -> None:
+    host, port = "127.0.0.1", 8888
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"Serving on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+```bash
+# Terminal 1 — start the server
+python echo_server.py
+
+# Terminal 2 — connect a client (nc = netcat)
+nc 127.0.0.1 8888
+
+# Or use multiple clients simultaneously
+nc 127.0.0.1 8888 &
+nc 127.0.0.1 8888 &
+```
+
+**Testing without netcat:**
+
+```bash
+python -c "
+import socket, time
+s = socket.create_connection(('127.0.0.1', 8888))
+s.sendall(b'hello world\n')
+print(s.recv(1024).decode(), end='')
+s.close()
+"
+```
+
+**Key design points:**
+
+| Detail | Why |
+|---|---|
+| `asyncio.start_server` | Creates a non-blocking server; spawns a coroutine per client |
+| `reader.readline()` | Reads one newline-delimited message at a time |
+| `writer.drain()` | Yields control if the write buffer is full (backpressure) |
+| `serve_forever()` inside `async with server` | Ensures the server socket is closed cleanly on Ctrl-C |
+| No threads | All concurrency is cooperative via the event loop — handles thousands of clients on a single thread |
+
+Stop the server with **Ctrl-C**; `asyncio.run()` handles `KeyboardInterrupt` cleanly.

@@ -1,0 +1,82 @@
+Here's a minimal Flask implementation:
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+def validate_user(data):
+    errors = {}
+
+    if not isinstance(data, dict):
+        return None, {"_": "Request body must be a JSON object"}
+
+    name = data.get("name")
+    if name is None:
+        errors["name"] = "Field is required"
+    elif not isinstance(name, str):
+        errors["name"] = "Must be a string"
+    elif not name:
+        errors["name"] = "Must not be empty"
+
+    email = data.get("email")
+    if email is None:
+        errors["email"] = "Field is required"
+    elif not isinstance(email, str):
+        errors["email"] = "Must be a string"
+    elif "@" not in email:
+        errors["email"] = "Must contain '@'"
+
+    age = data.get("age")
+    if age is None:
+        errors["age"] = "Field is required"
+    elif isinstance(age, bool) or not isinstance(age, int):
+        errors["age"] = "Must be an integer"
+    elif not (1 <= age <= 150):
+        errors["age"] = "Must be between 1 and 150"
+
+    if errors:
+        return None, errors
+    return {"name": name, "email": email, "age": age}, None
+
+
+@app.route("/users", methods=["POST"])
+def create_user():
+    data = request.get_json(silent=True)
+    user, errors = validate_user(data)
+    if errors:
+        return jsonify({"error": "Invalid input", "details": errors}), 400
+    return jsonify(user), 201
+
+
+if __name__ == "__main__":
+    app.run(port=5000, debug=True)
+```
+
+**Run it:**
+
+```bash
+pip install flask
+python app.py
+```
+
+**Try it:**
+
+```bash
+# 201 success
+curl -i -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Ada","email":"ada@example.com","age":36}'
+
+# 400 invalid email + out-of-range age
+curl -i -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Bob","email":"no-at-sign","age":200}'
+
+# 400 missing fields
+curl -i -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+Notes: `bool` is excluded from the integer check because Python treats `True`/`False` as `int`. `get_json(silent=True)` returns `None` on malformed JSON, which falls through to the "must be a JSON object" error.

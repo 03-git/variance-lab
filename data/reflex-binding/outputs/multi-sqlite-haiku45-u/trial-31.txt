@@ -1,0 +1,69 @@
+Here's a complete Python script that creates a SQLite database, inserts sample notes, and queries them:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create or connect to database
+conn = sqlite3.connect(':memory:')  # Use ':memory:' for in-memory DB, or 'notes.db' for file
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Shopping List', 'Milk, eggs, bread, butter', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discuss Q2 roadmap and priorities', datetime.now().isoformat()),
+    ('Project Idea', 'Build a task management app with real-time collaboration', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+notes = cursor.fetchall()
+
+# Print results
+print("All Notes:")
+print("-" * 80)
+for note in notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 80)
+
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python script.py
+```
+
+Or if you name the file `notes.py`:
+
+```bash
+python notes.py
+```
+
+**Key points:**
+- `:memory:` creates a temporary in-memory database (data is lost when you close the connection)
+- Change to `sqlite3.connect('notes.db')` to persist data to a file
+- `executemany()` inserts multiple rows at once
+- `?` placeholders prevent SQL injection
+- Results print in a readable format with dashes separating each note

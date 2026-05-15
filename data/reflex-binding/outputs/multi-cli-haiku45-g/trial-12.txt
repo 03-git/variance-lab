@@ -1,0 +1,92 @@
+Here's a Python CLI tool with argument validation and JSON output:
+
+```python
+#!/usr/bin/env python3
+import argparse
+import json
+import sys
+
+def validate_port(value):
+    """Validate that port is an integer between 1-65535."""
+    try:
+        port = int(value)
+        if not (1 <= port <= 65535):
+            raise ValueError(f"Port must be between 1 and 65535, got {port}")
+        return port
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e))
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="CLI tool that prints configuration as JSON"
+    )
+    parser.add_argument(
+        "--host",
+        default="localhost",
+        help="Host to connect to (default: localhost)"
+    )
+    parser.add_argument(
+        "--port",
+        type=validate_port,
+        default=8080,
+        help="Port number (1-65535, default: 8080)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage (uses defaults)
+python3 cli.py
+# Output:
+# {
+#   "host": "localhost",
+#   "port": 8080,
+#   "verbose": false
+# }
+
+# With custom host and port
+python3 cli.py --host example.com --port 3000
+# Output:
+# {
+#   "host": "example.com",
+#   "port": 3000,
+#   "verbose": false
+# }
+
+# With verbose flag
+python3 cli.py --host 192.168.1.1 --port 9000 --verbose
+# Output:
+# {
+#   "host": "192.168.1.1",
+#   "port": 9000,
+#   "verbose": true
+# }
+
+# Invalid port (triggers validation error)
+python3 cli.py --port 99999
+# Error: argument --port: Port must be between 1 and 65535, got 99999
+
+# Help
+python3 cli.py --help
+```
+
+The `validate_port` function catches both non-integer inputs and out-of-range values, raising `ArgumentTypeError` so argparse handles the error message consistently.

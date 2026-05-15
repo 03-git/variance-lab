@@ -1,0 +1,85 @@
+Here's a complete Python script that creates a SQLite database, inserts sample notes, and queries them:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Connect to database (creates 'notes.db' if it doesn't exist)
+conn = sqlite3.connect('notes.db')
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+now = datetime.now().isoformat()
+sample_notes = [
+    ('My First Note', 'This is the content of my first note', now),
+    ('Project Ideas', 'Remember to check out that new Python library', now),
+    ('Shopping List', 'Milk, eggs, bread, coffee', now)
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+
+conn.commit()
+
+# Query and print all notes
+cursor.execute('SELECT * FROM notes')
+all_notes = cursor.fetchall()
+
+print("📝 All Notes:")
+print("=" * 60)
+for note_id, title, body, created_at in all_notes:
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 60)
+
+conn.close()
+```
+
+**How to run it:**
+
+1. **Save as a file** (e.g., `notes_app.py`) and run:
+   ```bash
+   python notes_app.py
+   ```
+
+2. **Or run directly from the command line:**
+   ```bash
+   python -c "
+   import sqlite3
+   from datetime import datetime
+   
+   conn = sqlite3.connect('notes.db')
+   cursor = conn.cursor()
+   cursor.execute('''CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY, title TEXT, body TEXT, created_at TEXT)''')
+   
+   now = datetime.now().isoformat()
+   cursor.executemany('INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)', [
+       ('My First Note', 'This is the content of my first note', now),
+       ('Project Ideas', 'Remember to check out that new Python library', now),
+       ('Shopping List', 'Milk, eggs, bread, coffee', now)
+   ])
+   conn.commit()
+   
+   cursor.execute('SELECT * FROM notes')
+   for note_id, title, body, created_at in cursor.fetchall():
+       print(f'ID: {note_id}, Title: {title}, Body: {body}, Created: {created_at}')
+   
+   conn.close()
+   "
+   ```
+
+The script will create a `notes.db` file in your current directory and output all inserted notes with their IDs, titles, bodies, and timestamps.

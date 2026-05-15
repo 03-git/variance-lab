@@ -1,0 +1,66 @@
+```python
+#!/usr/bin/env python3
+"""Simple CLI tool that parses connection config and prints it as JSON."""
+
+import argparse
+import json
+import sys
+
+
+def port_type(value):
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value!r}")
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError(f"port must be between 1 and 65535, got {port}")
+    return port
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description="Print connection configuration as JSON.")
+    parser.add_argument("--host", default="localhost", help="Hostname (default: localhost)")
+    parser.add_argument("--port", type=port_type, default=8080, help="Port number, 1-65535 (default: 8080)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it:
+
+```bash
+# Save as config_cli.py, then:
+
+python3 config_cli.py --host example.com --port 443 --verbose
+# {
+#   "host": "example.com",
+#   "port": 443,
+#   "verbose": true
+# }
+
+python3 config_cli.py
+# uses defaults: {"host": "localhost", "port": 8080, "verbose": false}
+
+python3 config_cli.py --port 70000
+# error: argument --port: port must be between 1 and 65535, got 70000
+
+python3 config_cli.py --port abc
+# error: argument --port: port must be an integer, got 'abc'
+
+python3 config_cli.py --help
+# shows usage
+```
+
+Notes:
+- Invalid ports exit with status code 2 (argparse's standard error exit) and a usage message on stderr.
+- `--verbose` is a boolean flag — present means `true`, absent means `false`.
+- Defaults (`localhost`, `8080`) are arbitrary; drop the `default=` kwargs and add `required=True` if you want to force the user to supply them.

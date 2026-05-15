@@ -1,0 +1,87 @@
+I'll show you an async TCP echo server using Python's `asyncio` library:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If client disconnects, data will be empty
+            if not data:
+                print(f"Client disconnected: {addr}")
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    
+    except asyncio.CancelledError:
+        print(f"Client handler cancelled: {addr}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+async def start_server(host='127.0.0.1', port=9999):
+    """Start the echo server."""
+    server = await asyncio.start_server(handle_client, host, port)
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server started on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(start_server())
+```
+
+**To run it:**
+
+```bash
+# Terminal 1 - Start the server
+python echo_server.py
+
+# Terminal 2+ - Connect clients and test
+nc localhost 9999
+# Type: hello
+# Receive: hello
+
+telnet localhost 9999
+# Type: async echo works!
+# Receive: async echo works!
+```
+
+**How it works:**
+- `handle_client()` processes each client: reads lines, echoes them back, cleans up on disconnect
+- `start_server()` binds to the port and accepts connections concurrently
+- `asyncio.readline()` and `writer.drain()` handle async I/O without blocking
+- Multiple clients run simultaneously since each gets its own coroutine
+
+**To test with Python:**
+
+```python
+import asyncio
+
+async def test_client(msg):
+    reader, writer = await asyncio.open_connection('127.0.0.1', 9999)
+    writer.write(msg.encode() + b'\n')
+    await writer.drain()
+    response = await reader.readline()
+    print(f"Sent: {msg} → Received: {response.decode().strip()}")
+    writer.close()
+    await writer.wait_closed()
+
+# Run multiple clients concurrently
+asyncio.run(asyncio.gather(
+    test_client("hello"),
+    test_client("world"),
+    test_client("async!"),
+))
+```

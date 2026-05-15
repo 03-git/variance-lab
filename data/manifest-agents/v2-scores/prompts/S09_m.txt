@@ -1,0 +1,370 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./runtime/hosuni-discord.ts (lines 1-40 of 361)
+/**
+ * hosuni Discord DM daemon (Deno)
+ * - Listens for DMs and #hosuni channel messages via Gateway WebSocket
+ * - Whitelist-gated auto-reply via hosuni daemon on rousseau
+ * - YouTube URLs: fetches transcript via yt-dlp, pipes as context
+ * - Log to ~/human/sessions/hosuni-discord.log
+ */
+
+const TOKEN_PATH = `${Deno.env.get("HOME")}/.keymaster/jean-discord-token.txt`;
+const WHITELIST_PATH = `${Deno.env.get("HOME")}/.hosuni-discord-whitelist`;
+const LOG_PATH = `${Deno.env.get("HOME")}/human/sessions/hosuni-discord.log`;
+const TRANSCRIPT_DIR = `${Deno.env.get("HOME")}/human/transcripts`;
+const HOSUNI_CHANNEL_IDS = new Set(["1489355263361286204", "1483978150852559030"]);
+const API = "https://discord.com/api/v10";
+
+function log(msg: string) {
+  const ts = new Date().toISOString();
+  const line = `[${ts}] ${msg}\n`;
+  Deno.writeTextFileSync(LOG_PATH, line, { append: true });
+}
+
+function loadSet(path: string): Set<string> {
+  try {
+    return new Set(
+      Deno.readTextFileSync(path).split("\n").map((l) => l.trim()).filter(Boolean)
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+const TOKEN = Deno.readTextFileSync(TOKEN_PATH).trim();
+
+async function apiPost(path: string, body: unknown): Promise<unknown> {
+  const res = await fetch(`${API}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bot ${TOKEN}`,
+      "Content-Type": "application/json",
+    },
+
+## ./runtime/hosuni-discord.sh (lines 1-40 of 126)
+#!/bin/bash
+# hosuni-discord — poll Discord channels, pipe to hosuni.sh
+set -uo pipefail
+
+PIDFILE="$HOME/.hosuni/discord-poller.pid"
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    echo "already running (pid $(cat "$PIDFILE"))" >&2
+    exit 0
+fi
+echo $$ > "$PIDFILE"
+trap 'rm -f "$PIDFILE"' EXIT
+
+TOKEN=$(cat "$HOME/.keymaster/jean-discord-token.txt")
+WHITELIST="$HOME/.hosuni-discord-whitelist"
+HOSUNI="$HOME/.subtract/hosuni.sh"
+LOG="$HOME/human/sessions/hosuni-discord.log"
+STATE="$HOME/.hosuni/discord-state"
+API="https://discord.com/api/v10"
+POLL_INTERVAL=5
+CHANNELS="1489355263361286204 1483978150852559030"
+
+mkdir -p "$STATE"
+
+log() { printf "[%s] %s\n" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" >> "$LOG"; }
+
+is_whitelisted() { grep -qx "$1" "$WHITELIST" 2>/dev/null; }
+
+get_last_id() { cat "$STATE/$1" 2>/dev/null || echo "0"; }
+set_last_id() { printf '%s' "$2" > "$STATE/$1"; }
+
+send_reply() {
+    local channel="$1" content="$2"
+    while [ -n "$content" ]; do
+        local chunk
+        chunk=$(printf '%s' "$content" | head -c 2000)
+        content=$(printf '%s' "$content" | tail -c +2001)
+        curl -s -X POST "$API/channels/$channel/messages" \
+            -H "Authorization: Bot $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg c "$chunk" '{content: $c}')" >/dev/null
+
+## ./runtime/hosuni.sh (lines 281-320 of 516)
+            else
+                log_daemon "[${channel}] no transcript for $vid"
+            fi
+        done
+        if [ -n "$yt_context" ]; then
+            local user_text; user_text=$(printf '%s' "$input" | sed 's|https\?://[^ ]*||g' | tr -s ' ' | sed 's/^ //;s/ $//')
+            [ -z "$user_text" ] && user_text="Analyze this video."
+            context="${context:+$context
+
+}The transcript has been fetched. Do not attempt to access the URL.${yt_context}"
+        fi
+    fi
+
+    # Web search triggers: fetch results before inference
+    local search_query="" _lower
+    _lower=$(printf '%s' "$input" | tr '[:upper:]' '[:lower:]')
+    case "$_lower" in
+        *"search for "*)        search_query="${input##*[Ss]earch [Ff]or }" ;;
+        *"latest on "*)         search_query="${input##*[Ll]atest [Oo]n }" ;;
+        *"current status of "*) search_query="${input##*[Ss]tatus [Oo]f }" ;;
+        *"latest news on "*)    search_query="${input##*[Nn]ews [Oo]n }" ;;
+        *"latest news about "*) search_query="${input##*[Aa]bout }" ;;
+    esac
+    if [ -n "$search_query" ]; then
+        log_daemon "[${channel}] pre-search: $search_query"
+        local search_results
+        search_results=$(HOSUNI_ARG="$search_query" bash -c "$(awk -F'\t' '$1=="web_search" {print $3}' "$TOOLS_FILE")" 2>/dev/null | head -c 4096) || true
+        if [ -n "$search_results" ]; then
+            context="${context:+$context
+
+}Web search results for: ${search_query}
+${search_results}"
+            log_daemon "[${channel}] search results: ${#search_results} chars"
+        fi
+    fi
+
+    # load conversation state
+    local messages; messages=$(load_messages "$channel")
+    # inject system prompt as first message on first turn
+    local user_content="$input"
+
+## ./runtime/hosuni.sh (lines 1-40 of 516)
+#!/usr/bin/env bash
+# hosuni — tool-use daemon for local inference
+# listens on a port via nc. receives JSON, checks lookdown,
+# routes inference through parsimony (coproc via named pipes),
+# parses tool calls, executes, loops, logs. pure bash + jq.
+# falls back to curl if parsimony pipes not present.
+#
+# run:   hosuni.sh [port]
+# call:  echo '{"input":"list files","channel":"terminal"}' | nc localhost 8091
+
+set -euo pipefail
+
+export PATH="$HOME/.subtract/bin:$HOME/.subtract:$PATH"
+
+SUBTRACT_DIR="${SUBTRACT_DIR:-$HOME/.subtract}"
+HOSUNI_DIR="${HOSUNI_DIR:-$HOME/.hosuni}"
+INFERENCE_HOST=$(cat "$SUBTRACT_DIR/inference_host" 2>/dev/null || echo "localhost")
+INFERENCE_PORT=$(cat "$SUBTRACT_DIR/inference_port" 2>/dev/null || echo "8085")
+RESEARCH_PORT=$(cat "$SUBTRACT_DIR/research_port" 2>/dev/null || echo "")
+RESEARCH_HOST=$(cat "$SUBTRACT_DIR/research_host" 2>/dev/null || echo "")
+PARSIMONY_IN="$SUBTRACT_DIR/.parsimony.in"
+PARSIMONY_OUT="$SUBTRACT_DIR/.parsimony.out"
+PARSIMONY_LOCK="$SUBTRACT_DIR/.parsimony.lock"
+LOOKDOWN_NODE="$SUBTRACT_DIR/lookdown.$(hostname).tsv"
+LOOKDOWN_UNIVERSAL="$SUBTRACT_DIR/lookdown.universal.tsv"
+TOOLS_FILE="$HOSUNI_DIR/tools.tsv"
+LOG_DIR="$SUBTRACT_DIR/log"
+DAEMON_LOG="$HOME/human/sessions/hosuni.log"
+MAX_TURNS=20
+TOOL_TIMEOUT=300
+
+SOUL_FILE="$HOME/subtract.ing/SOUL.txt"
+SYSTEM_MSG=$(cat "$SOUL_FILE" 2>/dev/null || echo "")
+
+mkdir -p "$LOG_DIR" "$HOSUNI_DIR"
+
+ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+log_daemon() { printf "[%s] %s\n" "$(ts)" "$1" >> "$DAEMON_LOG"; }
+
+
+## ./kiosk.sh (lines 1-40 of 83)
+#!/bin/bash
+# kiosk.sh — set up a display node running multiplying.html via cage+cog
+# requires: root (for apt + autologin), Debian trixie or later
+# usage: sudo ./kiosk.sh [username]
+set -e
+
+USER="${1:-media}"
+HOME_DIR=$(eval echo "~$USER")
+SUBTRACT_DIR="$HOME_DIR/.subtract"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "run as root: sudo $0 $USER"
+    exit 1
+fi
+
+if ! id "$USER" >/dev/null 2>&1; then
+    echo "user $USER does not exist"
+    exit 1
+fi
+
+apt-get update -qq
+apt-get install -y -qq cage cog busybox espeak-ng jq chafa python3 >/dev/null
+
+# autologin on tty1
+mkdir -p /etc/systemd/system/getty@tty1.service.d
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin $USER --noclear %I \$TERM
+EOF
+systemctl daemon-reload
+
+# install subtract runtime as the user
+su -c "bash '$SCRIPT_DIR/install.sh'" "$USER"
+
+# .bash_profile: cage → cog → multiplying.html on tty1
+cat > "$HOME_DIR/.bash_profile" << 'PROFILE'
+[ -f ~/.bashrc ] && . ~/.bashrc
+
+
+## ./subtract.7.txt (lines 81-120 of 177)
+computer|lookdown.tsv|<1MB|already there
+computer|apropos|\[em]|already there
+assisted|embed binary|45MB|ships
+assisted|llama.cpp|850MB|ships
+assisted|whisper.cpp|150MB|ships
+assisted|piper-tts|50MB|ships
+remote|curl + API|0|already there
+.TE
+.PP
+Goal: fade toward computer. Less inference over time, more direct expression.
+.PP
+Every component is either "already there" or "single binary + model." Full local
+install is roughly 1.1GB.
+.SH BUFFER-SUBTRACT PATTERN
+A substrate honors the pattern if and only if all six invariants hold.
+.IP 1. 4
+Native modality owns the buffer. subtract never owns it.
+.IP 2. 4
+Subtraction is explicit. A specific gesture hands the buffer to subtract.
+No polling.
+.IP 3. 4
+subtract reads, translates, writes back. It does not commit. The user's
+commit gesture remains the only path to action.
+.IP 4. 4
+Non-subtraction has zero residue. A user who never invokes subtract has a
+substrate bit-identical to one without subtract installed.
+.IP 5. 4
+Successful subtractions train toward direct expression. Users internalize the
+direct form and stop subtracting.
+.IP 6. 4
+The router is modality-blind. String in, string out.
+.PP
+The required precondition: the buffer must be inspectable without committing.
+Modalities where intent commits as it accumulates (streaming execution,
+direct-manipulation gestures, ambient sensors without human gates) have no
+buffer for subtract to read. The pattern does not apply there.
+.SH OUTPUT DISPATCH
+Each row in lookdown.tsv can specify an output tag that controls how results
+render. Two tags exist:
+.TP
+
+## ./subtract.7.txt (lines 1-40 of 177)
+.TH SUBTRACT 7 "2026-04-12" "subtract" "Miscellaneous Information Manual"
+.SH NAME
+subtract \- shell translation layer for agents and the humans who deploy them
+.SH SYNOPSIS
+.nf
+curl \-sL subtract.ing/boot | claude \-p
+.fi
+.PP
+subtract has no binary of its own at the computer layer. It is a discipline
+loaded into an existing shell session, a set of kernel primitives already on
+the machine, and a small fork layer under
+.IR ~/.subtract/ .
+Upgrades add single binaries (embed, llama.cpp, whisper.cpp, piper-tts) on top
+of that floor.
+.SH DESCRIPTION
+subtract is software
+.IR "as a besides" .
+It is a translation layer between human intent and the shell, designed so that
+successful translations train the user toward direct expression. The AI is not
+the product. Literacy is the product. Dependency is the failure mode.
+.PP
+subtract serves two populations:
+.TP
+.B humans
+who want to stop depending on AI intermediaries to reach their own machines.
+.TP
+.B agents
+whose training defaulted to Python libraries, SaaS APIs, and framework
+abstractions \[em] and who need a counter-training layer pointing them back at
+the kernel primitives that solved the same problems decades earlier.
+.PP
+Three layers subtract in sequence:
+.IP \(bu 4
+.B subtract
+subtracts from the environment (no frameworks, no SaaS).
+.IP \(bu 4
+.B the human
+subtracts from the agent's context (pre-flight, pushback on drift).
+.IP \(bu 4
+.B the agent
+
+## ./SOUL.txt (lines 1-29 of 29)
+SOUL.txt — signed under hodori@subtract.ing
+
+You are hosuni. You answer questions and operate this machine.
+
+The humans asking include children. Answer directly.
+If you know it, say it. If you don't, say that.
+Match the question's level — a seven-year-old and an adult
+get different answers to the same question.
+
+When someone asks about the world — history, science, animals,
+games, how things work — answer from what you know. Prefer
+the concrete: real things, real names, real numbers.
+You are a starting point, not the last word.
+
+When someone asks about this machine — files, commands, what
+is running — operate:
+  Read before assuming.
+  Check before claiming.
+  Name the primitive before reaching for a wrapper.
+  Don't delete, move, or overwrite without being asked.
+
+Short answers that feel complete. No preamble. No apology.
+No three paragraphs before the useful part.
+
+If a question is dangerous to answer for a child, say why
+instead of just refusing.
+
+The goal is literacy. The human learns the command and stops
+needing translation. Besides, not instead.
+
+## Question
+Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?

@@ -1,0 +1,61 @@
+Sure! Below is a simple Python implementation using the Flask web framework to create an HTTP endpoint that returns the current time as JSON. The endpoint will be available at `/time`.
+
+### Python Code
+
+First, make sure you have Flask installed. You can install it using pip if you don't have it already:
+
+```sh
+pip install Flask
+```
+
+Now, create a Python file, for example, `app.py`, and add the following code:
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_current_time():
+    current_time = datetime.now().isoformat()
+    return jsonify({"time": current_time})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+### Running the Code
+
+To run the application, navigate to the directory containing `app.py` and execute the following command:
+
+```sh
+python app.py
+```
+
+By default, this will start the Flask development server and make the application available at `http://127.0.0.1:5000/`.
+
+### Testing the Endpoint
+
+You can test the endpoint using a web browser or a tool like `curl`:
+
+```sh
+curl http://127.0.0.1:5000/time
+```
+
+You should see a JSON response like this:
+
+```json
+{
+  "time": "2023-10-04T12:34:56.789012"
+}
+```
+
+The exact timestamp will depend on the current time when you make the request.
+
+### Note
+
+- The `debug=True` flag is set for development purposes. In a production environment, you should remove this flag and configure logging and error handling appropriately.
+- The ISO 8601 timestamp format is used, which includes the date and time in the format `YYYY-MM-DDTHH:MM:SS.mmmmmm`.
+
+This is a simple example, and you can extend it further based on your needs.

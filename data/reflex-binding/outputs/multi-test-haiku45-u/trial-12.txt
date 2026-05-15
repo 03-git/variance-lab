@@ -1,0 +1,49 @@
+Here's a Python test suite using `unittest`:
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    
+    def test_freezing_point(self):
+        """0°C should be 32°F"""
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+    
+    def test_boiling_point(self):
+        """100°C should be 212°F"""
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+    
+    def test_negative_forty(self):
+        """-40°C should be -40°F"""
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError"""
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("30")
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+**To run it:**
+
+```bash
+python test_celsius.py
+```
+
+Or for verbose output:
+```bash
+python test_celsius.py -v
+```
+
+The test suite verifies:
+- **Freezing point**: 0°C = 32°F
+- **Boiling point**: 100°C = 212°F  
+- **Symmetry point**: -40°C = -40°F
+- **Type safety**: String input raises `TypeError`
+
+All four tests should pass with the given function.

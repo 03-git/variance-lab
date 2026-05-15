@@ -1,0 +1,83 @@
+Here's a complete Python script for managing notes in SQLite:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create connection to database (in-memory for this demo)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ("Meeting Notes", "Discussed Q2 goals and timeline", datetime.now().isoformat()),
+    ("Shopping List", "Milk, eggs, bread, cheese, coffee", datetime.now().isoformat()),
+    ("Project Ideas", "Build CLI tool, learn FastAPI, refactor auth module", datetime.now().isoformat()),
+]
+
+cursor.executemany('''
+    INSERT INTO notes (title, body, created_at)
+    VALUES (?, ?, ?)
+''', sample_notes)
+
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+all_notes = cursor.fetchall()
+
+# Print results
+print("All Notes:")
+print("=" * 70)
+for note_id, title, body, created_at in all_notes:
+    print(f"\nID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 70)
+
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the code to a file (e.g., `notes.py`)
+2. Run it with: `python notes.py`
+
+**Output:**
+```
+All Notes:
+======================================================================
+
+ID: 1
+Title: Meeting Notes
+Body: Discussed Q2 goals and timeline
+Created: 2026-05-10T14:30:45.123456
+------================================================================
+
+ID: 2
+Title: Shopping List
+Body: Milk, eggs, bread, cheese, coffee
+Created: 2026-05-10T14:30:45.124567
+----------------------------------------------------------------------
+
+ID: 3
+Title: Project Ideas
+Body: Build CLI tool, learn FastAPI, refactor auth module
+Created: 2026-05-10T14:30:45.125678
+======================================================================
+```
+
+**Alternative: Save to a file instead of memory**
+
+Replace `sqlite3.connect(':memory:')` with `sqlite3.connect('notes.db')` to persist the database to disk. The rest of the code stays the same.

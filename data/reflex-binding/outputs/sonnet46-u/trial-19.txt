@@ -1,0 +1,65 @@
+Here's a minimal implementation in Python using only the standard library:
+
+```python
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/time":
+            body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(body)
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, *args):
+        pass  # silence request logs
+
+if __name__ == "__main__":
+    server = HTTPServer(("", 8080), Handler)
+    print("Listening on http://localhost:8080")
+    server.serve_forever()
+```
+
+**To run:**
+
+```bash
+python3 server.py
+```
+
+**To test:**
+
+```bash
+curl http://localhost:8080/time
+# {"time": "2026-05-10T14:32:01.123456+00:00"}
+```
+
+---
+
+If you prefer **Node.js** (no dependencies):
+
+```js
+const http = require("http");
+
+http.createServer((req, res) => {
+  if (req.method === "GET" && req.url === "/time") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ time: new Date().toISOString() }));
+  } else {
+    res.writeHead(404).end();
+  }
+}).listen(8080, () => console.log("Listening on http://localhost:8080"));
+```
+
+```bash
+node server.js
+curl http://localhost:8080/time
+# {"time":"2026-05-10T14:32:01.123Z"}
+```
+
+Both return a valid ISO 8601 timestamp. The Python version uses UTC with explicit offset (`+00:00`); Node's `toISOString()` always returns UTC with a `Z` suffix — both are spec-compliant.

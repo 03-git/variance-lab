@@ -1,0 +1,64 @@
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._current_text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            attrs_dict = dict(attrs)
+            self._current_href = attrs_dict.get("href")
+            self._current_text = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._current_text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            self.links.append((self._current_href, "".join(self._current_text).strip()))
+            self._current_href = None
+            self._current_text = []
+
+with urllib.request.urlopen("https://example.com") as response:
+    html = response.read().decode("utf-8")
+
+parser = LinkParser()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"Text: {text!r:30}  href: {href}")
+```
+
+**How to run** — no dependencies needed, uses only the standard library:
+
+```bash
+python3 script.py
+```
+
+**What it does:**
+
+- `urllib.request` fetches the page (stdlib, no `requests` needed)
+- `HTMLParser` is subclassed to track `<a>` tags as they open/close, collecting the `href` attribute and the text content between the tags
+- Each link is printed as `text → href`
+
+If you want to handle more complex pages (JavaScript-rendered content, relative URL resolution, etc.), swap in `requests` + `BeautifulSoup`:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+soup = BeautifulSoup(requests.get("https://example.com").text, "html.parser")
+for a in soup.find_all("a", href=True):
+    print(f"Text: {a.get_text(strip=True)!r:30}  href: {a['href']}")
+```
+
+```bash
+pip install requests beautifulsoup4
+python3 script.py
+```

@@ -1,0 +1,86 @@
+Here's a minimal Flask implementation.
+
+```python
+# app.py
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+
+def validate_user(data):
+    errors = {}
+
+    if not isinstance(data, dict):
+        return None, {"_": "request body must be a JSON object"}
+
+    name = data.get("name")
+    if name is None:
+        errors["name"] = "required"
+    elif not isinstance(name, str) or not name.strip():
+        errors["name"] = "must be a non-empty string"
+
+    email = data.get("email")
+    if email is None:
+        errors["email"] = "required"
+    elif not isinstance(email, str) or "@" not in email:
+        errors["email"] = "must be a string containing '@'"
+
+    age = data.get("age")
+    if age is None:
+        errors["age"] = "required"
+    elif isinstance(age, bool) or not isinstance(age, int):
+        errors["age"] = "must be an integer"
+    elif not (1 <= age <= 150):
+        errors["age"] = "must be between 1 and 150"
+
+    if errors:
+        return None, errors
+    return {"name": name, "email": email, "age": age}, None
+
+
+@app.post("/users")
+def create_user():
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"error": "invalid or missing JSON body"}), 400
+
+    user, errors = validate_user(data)
+    if errors:
+        return jsonify({"error": "validation failed", "details": errors}), 400
+
+    # persist here if you had a store; echo back the validated user
+    return jsonify(user), 201
+
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)
+```
+
+## Run it
+
+```bash
+python3 -m venv venv && source venv/bin/activate
+pip install flask
+python app.py
+```
+
+## Try it
+
+```bash
+# 201 — valid
+curl -s -i -X POST localhost:5000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Ada","email":"ada@example.com","age":36}'
+
+# 400 — bad email, out-of-range age, missing name
+curl -s -i -X POST localhost:5000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"nope","age":999}'
+# -> {"error":"validation failed","details":{"name":"required","email":"must be a string containing '@'","age":"must be between 1 and 150"}}
+```
+
+Notes:
+- `isinstance(age, bool)` is checked first because `bool` is a subclass of `int` in Python — otherwise `true` would pass as age 1.
+- `get_json(silent=True)` keeps malformed JSON from raising; you get a clean 400 instead of a 500.
+
+If you'd rather have the validation declared rather than hand-rolled, the FastAPI + Pydantic version is shorter — say the word and I'll show it.

@@ -1,0 +1,78 @@
+Here's a Python CLI tool that meets your requirements:
+
+```python
+import argparse
+import json
+import sys
+
+def validate_port(value):
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got '{value}'")
+    
+    if not (1 <= port <= 65535):
+        raise argparse.ArgumentTypeError(f"port must be between 1-65535, got {port}")
+    
+    return port
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Parse and display network configuration'
+    )
+    parser.add_argument(
+        '--host',
+        default='localhost',
+        help='Host address (default: localhost)'
+    )
+    parser.add_argument(
+        '--port',
+        type=validate_port,
+        default=8000,
+        help='Port number 1-65535 (default: 8000)'
+    )
+    parser.add_argument(
+        '--verbose',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    
+    args = parser.parse_args()
+    
+    config = {
+        'host': args.host,
+        'port': args.port,
+        'verbose': args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == '__main__':
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage with defaults
+python cli_tool.py
+# Output: {"host": "localhost", "port": 8000, "verbose": false}
+
+# With custom host and port
+python cli_tool.py --host 0.0.0.0 --port 3000
+# Output: {"host": "0.0.0.0", "port": 3000, "verbose": false}
+
+# With verbose flag
+python cli_tool.py --host example.com --port 443 --verbose
+# Output: {"host": "example.com", "port": 443, "verbose": true}
+
+# Invalid port (shows error)
+python cli_tool.py --port 70000
+# Error: usage: cli_tool.py [-h] [--host HOST] [--port PORT] [--verbose]
+#        cli_tool.py: error: argument --port: port must be between 1-65535, got 70000
+
+# Help
+python cli_tool.py --help
+```
+
+The `validate_port()` function handles the validation logic—it converts the string to an integer and checks the range, raising an `ArgumentTypeError` if validation fails. argparse automatically displays a helpful error message if validation fails.

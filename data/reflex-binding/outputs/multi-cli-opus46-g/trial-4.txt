@@ -1,0 +1,53 @@
+Kernel primitive here is `sys.argv` (the kernel hands the process its argument vector); `argparse` is the stdlib wrapper over it, and validation is a plain `int()` + range check. No third-party library needed.
+
+```python
+#!/usr/bin/env python3
+"""Minimal config CLI: parse --host/--port/--verbose, validate, emit JSON."""
+import argparse
+import json
+import sys
+
+
+def port_type(value):
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value!r}")
+    if not (1 <= port <= 65535):
+        raise argparse.ArgumentTypeError(f"port must be in 1-65535, got {port}")
+    return port
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Print parsed configuration as JSON.")
+    parser.add_argument("--host", default="localhost", help="hostname (default: localhost)")
+    parser.add_argument("--port", type=port_type, default=8080, help="port 1-65535 (default: 8080)")
+    parser.add_argument("--verbose", action="store_true", help="enable verbose output")
+    args = parser.parse_args(argv)
+
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it:
+
+```
+# save as config_cli.py, then:
+python3 config_cli.py --host example.com --port 443 --verbose
+# -> {"host": "example.com", "port": 443, "verbose": true}
+
+python3 config_cli.py
+# -> {"host": "localhost", "port": 8080, "verbose": false}
+
+python3 config_cli.py --port 99999
+# -> error: argument --port: port must be in 1-65535, got 99999  (exit code 2)
+
+python3 config_cli.py --port abc
+# -> error: argument --port: port must be an integer, got 'abc'  (exit code 2)
+```
+
+`argparse` exits non-zero with a usage message on bad input on its own, so no extra error handling is needed. Make it executable (`chmod +x config_cli.py`) and the shebang lets you run `./config_cli.py …` directly.

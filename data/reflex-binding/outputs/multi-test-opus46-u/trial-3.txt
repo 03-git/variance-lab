@@ -1,0 +1,77 @@
+Here's a `pytest` suite for `celsius_to_fahrenheit`:
+
+```python
+# test_temperature.py
+import pytest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32
+
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212
+
+
+def test_minus_forty_is_same_in_both_scales():
+    assert celsius_to_fahrenheit(-40) == -40
+
+
+def test_non_numeric_input_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+A couple of notes:
+
+- `celsius_to_fahrenheit("hot")` raises `TypeError` because `str * int` is allowed (`"hot" * 9`) but the subsequent `/ 5` on a string fails — so `pytest.raises(TypeError)` is the right expectation. If you'd rather validate input explicitly, add `if not isinstance(c, (int, float)): raise TypeError(...)` to the function.
+- If you only have the function defined elsewhere, replace the inline `def` with `from temperature import celsius_to_fahrenheit`.
+
+Run it:
+
+```bash
+pip install pytest
+pytest test_temperature.py -v
+```
+
+Or, without installing pytest, here's a stdlib `unittest` version:
+
+```python
+# test_temperature.py
+import unittest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_input_raises(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run it:
+
+```bash
+python -m unittest test_temperature.py -v
+# or
+python test_temperature.py
+```

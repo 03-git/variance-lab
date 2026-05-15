@@ -1,0 +1,63 @@
+Here's a Python script that does what you need:
+
+```python
+import sys
+import requests
+
+def fetch_url(url):
+    try:
+        response = requests.get(url, allow_redirects=True, timeout=10)
+        
+        print(f"Status Code: {response.status_code}")
+        print("\nResponse Headers:")
+        for key, value in response.headers.items():
+            print(f"  {key}: {value}")
+        
+        print("\nFirst 500 characters of body:")
+        body = response.text[:500]
+        print(body)
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python script.py <URL>")
+        sys.exit(1)
+    
+    url = sys.argv[1]
+    fetch_url(url)
+```
+
+**How to run it:**
+
+```bash
+# Make sure requests is installed
+pip install requests
+
+# Run with a URL
+python script.py "https://example.com"
+
+# Or with a URL that redirects
+python script.py "https://httpbin.org/redirect-to?url=https://httpbin.org/get"
+```
+
+**Example output:**
+```
+Status Code: 200
+
+Response Headers:
+  Content-Type: application/json
+  Content-Length: 432
+  ...
+
+First 500 characters of body:
+{
+  "args": {},
+  "headers": {
+    "Host": "httpbin.org",
+    ...
+```
+
+The script uses the `requests` library which automatically follows redirects by default. If you prefer using only the standard library, you can use `urllib.request` instead, but `requests` makes this task cleaner.

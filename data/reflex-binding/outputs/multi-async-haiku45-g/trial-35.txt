@@ -1,0 +1,82 @@
+I'll show you an async TCP echo server using Python's `asyncio` module.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line of text from the client
+            data = await reader.readline()
+            
+            if not data:
+                # Client closed connection
+                break
+            
+            # Echo the data back to the client
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echoed to {addr}: {data.decode().strip()}")
+    
+    except asyncio.CancelledError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def start_server():
+    """Start the TCP echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Server listening on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(start_server())
+```
+
+**How to run it:**
+
+1. **Start the server** in one terminal:
+```bash
+python3 echo_server.py
+```
+
+2. **Connect a client** in another terminal using `nc` (netcat):
+```bash
+nc localhost 8888
+```
+
+3. **Type text and press Enter** — it will echo back:
+```
+$ nc localhost 8888
+hello world
+hello world
+test message
+test message
+```
+
+4. **Multiple clients** can connect simultaneously. Each one will be handled by a separate async task.
+
+**Key features:**
+- `asyncio.start_server()` creates a TCP server
+- `handle_client()` is called for each new connection
+- `reader.readline()` reads one line at a time (blocks until `\n`)
+- `writer.write()` + `writer.drain()` sends data back
+- Server handles multiple clients concurrently without threads
+- Gracefully closes connections when clients disconnect
+
+To test with multiple clients, open several `nc` sessions at once — they'll all work independently.

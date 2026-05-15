@@ -1,0 +1,66 @@
+Here's a Python script that creates a SQLite database with a notes table, adds sample data, and displays it:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Connect to database (use ':memory:' for in-memory, or 'notes.db' for a file)
+conn = sqlite3.connect('notes.db')
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Get groceries', 'Buy milk, eggs, and bread at the store', datetime.now().isoformat()),
+    ('Project idea', 'Build a todo app with a clean UI', datetime.now().isoformat()),
+    ('Meeting notes', 'Discussed Q2 goals and timeline', datetime.now().isoformat()),
+]
+
+for title, body, created_at in sample_notes:
+    cursor.execute('INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+                   (title, body, created_at))
+
+conn.commit()
+
+# Query and print all notes
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+notes = cursor.fetchall()
+
+print("📝 All Notes:\n")
+for note_id, title, body, created_at in notes:
+    print(f"  ID: {note_id}")
+    print(f"  Title: {title}")
+    print(f"  Body: {body}")
+    print(f"  Created: {created_at}")
+    print()
+
+conn.close()
+```
+
+**How to run it:**
+
+```bash
+python script.py
+```
+
+This will:
+- Create a `notes.db` file in your current directory
+- Create the notes table
+- Insert 3 sample notes
+- Display all notes with formatted output
+
+**To use in-memory database instead** (data disappears when script ends), change the first line to:
+```python
+conn = sqlite3.connect(':memory:')
+```
+
+The script uses `CREATE TABLE IF NOT EXISTS` so it's safe to run multiple times without errors.

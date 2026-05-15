@@ -1,0 +1,62 @@
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.post("/users")
+def create_user():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"errors": ["body must be a JSON object"]}), 400
+
+    errors = []
+
+    name = data.get("name")
+    if name is None:
+        errors.append("name is required")
+    elif not isinstance(name, str) or not name.strip():
+        errors.append("name must be a non-empty string")
+
+    email = data.get("email")
+    if email is None:
+        errors.append("email is required")
+    elif not isinstance(email, str) or "@" not in email:
+        errors.append("email must be a string containing '@'")
+
+    age = data.get("age")
+    if age is None:
+        errors.append("age is required")
+    elif isinstance(age, bool) or not isinstance(age, int):
+        errors.append("age must be an integer")
+    elif not (1 <= age <= 150):
+        errors.append("age must be between 1 and 150")
+
+    if errors:
+        return jsonify({"errors": errors}), 400
+
+    return jsonify({"name": name, "email": email, "age": age}), 201
+
+if __name__ == "__main__":
+    app.run(port=5000)
+```
+
+Run it:
+
+```
+pip install flask
+python app.py
+```
+
+Test it:
+
+```
+curl -X POST http://localhost:5000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Ada","email":"ada@example.com","age":36}'
+
+curl -X POST http://localhost:5000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"","email":"nope","age":200}'
+```
+
+First returns 201 with the user; second returns 400 with the three error messages.

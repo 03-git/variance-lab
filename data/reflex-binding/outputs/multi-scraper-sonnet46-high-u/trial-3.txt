@@ -1,0 +1,62 @@
+Here's a Python script that fetches `https://example.com` and extracts all anchor tags:
+
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            attrs_dict = dict(attrs)
+            self._current_href = attrs_dict.get("href")
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self.links.append((self._current_href, data.strip()))
+
+    def handle_endtag(self, tag):
+        if tag == "a":
+            self._current_href = None
+
+def fetch_links(url):
+    with urllib.request.urlopen(url) as response:
+        html = response.read().decode("utf-8")
+
+    parser = LinkParser()
+    parser.feed(html)
+    return parser.links
+
+if __name__ == "__main__":
+    url = "https://example.com"
+    links = fetch_links(url)
+
+    if not links:
+        print("No links found.")
+    else:
+        for href, text in links:
+            print(f"Text: {text!r:40s}  href: {href}")
+```
+
+**How to run it:**
+
+```bash
+# No dependencies needed — uses only the Python standard library
+python3 fetch_links.py
+```
+
+**Expected output for `https://example.com`:**
+
+```
+Text: 'More information...'             href: https://www.iana.org/domains/reserved
+```
+
+**Key details:**
+
+- Uses only stdlib — `urllib.request` for HTTP and `html.parser` for parsing, no `pip install` needed.
+- `handle_starttag` captures `href` when an `<a>` tag opens; `handle_data` collects the link text; `handle_endtag` resets state when the tag closes.
+- If you want to handle nested tags inside `<a>` (e.g., `<a><span>text</span></a>`), you'd need to accumulate text across multiple `handle_data` calls while `_current_href` is set — the script above handles the common flat case.

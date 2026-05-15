@@ -1,0 +1,81 @@
+Here's a Python script that does exactly that:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create/connect to database (use 'notes.db' for file-based, ':memory:' for in-memory)
+conn = sqlite3.connect('notes.db')
+cursor = conn.cursor()
+
+# Create table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Python Tips', 'Remember to use list comprehensions for cleaner code', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discussed quarterly goals and timeline', datetime.now().isoformat()),
+    ('Book Recommendation', 'Check out "Clean Code" by Robert Martin', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+
+# Commit changes
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+# Print results
+print("All Notes:")
+print("-" * 70)
+for note in notes:
+    print(f"ID: {note[0]}")
+    print(f"Title: {note[1]}")
+    print(f"Body: {note[2]}")
+    print(f"Created: {note[3]}")
+    print("-" * 70)
+
+# Close connection
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python3 script.py
+```
+
+**Output:**
+```
+All Notes:
+----------------------------------------------------------------------
+ID: 1
+Title: Python Tips
+Body: Remember to use list comprehensions for cleaner code
+Created: 2026-05-10T14:32:45.123456
+----------------------------------------------------------------------
+ID: 2
+Title: Meeting Notes
+Body: Discussed quarterly goals and timeline
+Created: 2026-05-10T14:32:45.123457
+----------------------------------------------------------------------
+ID: 3
+Title: Book Recommendation
+Body: Check out "Clean Code" by Robert Martin
+Created: 2026-05-10T14:32:45.123458
+----------------------------------------------------------------------
+```
+
+The script uses parameterized queries (`?` placeholders) to safely insert data, commits the changes, and then fetches and displays all records.

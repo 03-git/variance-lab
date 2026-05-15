@@ -1,0 +1,52 @@
+Health check is clean. Here's a zero-dependency implementation using the Python stdlib (`http.server` over the kernel socket — no pip, no framework):
+
+```python
+#!/usr/bin/env python3
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != "/time":
+            self.send_error(404)
+            return
+        body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):  # quiet
+        pass
+
+if __name__ == "__main__":
+    HTTPServer(("127.0.0.1", 8000), Handler).serve_forever()
+```
+
+Run it:
+
+```
+python3 time_server.py        # if you saved it, or:
+python3 - <<'EOF'             # paste-and-run, no file
+# ...code above...
+EOF
+```
+
+Test it:
+
+```
+$ curl -s localhost:8000/time
+{"time": "2026-05-10T18:42:07.913456+00:00"}
+```
+
+`datetime.now(timezone.utc).isoformat()` yields an ISO 8601 string with a `+00:00` offset. If you want the `Z` suffix instead, swap in `datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")`.
+
+If you'd rather not write Python at all, the one-liner equivalent:
+
+```
+while true; do printf 'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{"time": "%s"}' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" | nc -l 8000; done
+```
+
+(crude — no routing, re-spawns per request — but dependency-free if Python isn't available).

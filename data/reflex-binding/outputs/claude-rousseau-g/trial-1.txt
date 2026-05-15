@@ -1,0 +1,15 @@
+Run it:
+
+```
+python3 ~/time_server.py
+```
+
+Test it:
+
+```
+curl http://localhost:8080/time
+```
+
+Returns something like `{"time": "2026-05-10T14:23:01.456789+00:00"}`.
+
+No dependencies — just Python 3's standard library. Ctrl-C to stop. The server listens on port 8080; change the `8080` in the last line if you need a different port.

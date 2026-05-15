@@ -1,0 +1,504 @@
+
+## lstate.c (lines 121-160)
+    else {
+      next2->previous = ci;
+      ci = next2;  /* continue */
+    }
+  }
+}
+
+
+/*
+** Called when 'getCcalls(L)' larger or equal to LUAI_MAXCCALLS.
+** If equal, raises an overflow error. If value is larger than
+** LUAI_MAXCCALLS (which means it is handling an overflow) but
+** not much larger, does not report an error (to allow overflow
+** handling to work).
+*/
+void luaE_checkcstack (lua_State *L) {
+  if (getCcalls(L) == LUAI_MAXCCALLS)
+    luaG_runerror(L, "C stack overflow");
+  else if (getCcalls(L) >= (LUAI_MAXCCALLS / 10 * 11))
+    luaD_errerr(L);  /* error while handling stack error */
+}
+
+
+LUAI_FUNC void luaE_incCstack (lua_State *L) {
+  L->nCcalls++;
+  if (l_unlikely(getCcalls(L) >= LUAI_MAXCCALLS))
+    luaE_checkcstack(L);
+}
+
+
+static void resetCI (lua_State *L) {
+  CallInfo *ci = L->ci = &L->base_ci;
+  ci->func.p = L->stack.p;
+  setnilvalue2s(ci->func.p);  /* 'function' entry for basic 'ci' */
+  ci->top.p = ci->func.p + 1 + LUA_MINSTACK;  /* +1 for 'function' entry */
+  ci->u.c.k = NULL;
+  ci->callstatus = CIST_C;
+  L->status = LUA_OK;
+  L->errfunc = 0;  /* stack unwind can "throw away" the error function */
+}
+
+## ldebug.c (lines 841-880)
+  if (L->errfunc != 0) {  /* is there an error handling function? */
+    StkId errfunc = restorestack(L, L->errfunc);
+    lua_assert(ttisfunction(s2v(errfunc)));
+    setobjs2s(L, L->top.p, L->top.p - 1);  /* move argument */
+    setobjs2s(L, L->top.p - 1, errfunc);  /* push function */
+    L->top.p++;  /* assume EXTRA_STACK */
+    luaD_callnoyield(L, L->top.p - 2, 1);  /* call it */
+  }
+  if (ttisnil(s2v(L->top.p - 1))) {  /* error object is nil? */
+    /* change it to a proper message */
+    setsvalue2s(L, L->top.p - 1, luaS_newliteral(L, "<no error object>"));
+  }
+  luaD_throw(L, LUA_ERRRUN);
+}
+
+
+l_noret luaG_runerror (lua_State *L, const char *fmt, ...) {
+  CallInfo *ci = L->ci;
+  const char *msg;
+  va_list argp;
+  luaC_checkGC(L);  /* error message uses memory */
+  pushvfstring(L, argp, fmt, msg);
+  if (isLua(ci)) {  /* Lua function? */
+    /* add source:line information */
+    luaG_addinfo(L, msg, ci_func(ci)->p->source, getcurrentline(ci));
+    setobjs2s(L, L->top.p - 2, L->top.p - 1);  /* remove 'msg' */
+    L->top.p--;
+  }
+  luaG_errormsg(L);
+}
+
+
+/*
+** Check whether new instruction 'newpc' is in a different line from
+** previous instruction 'oldpc'. More often than not, 'newpc' is only
+** one or a few instructions after 'oldpc' (it must be after, see
+** caller), so try to avoid calling 'luaG_getfuncline'. If they are
+** too far apart, there is a good chance of a ABSLINEINFO in the way,
+** so it goes directly to 'luaG_getfuncline'.
+*/
+
+## ldo.c (lines 201-240)
+
+/*
+** Minimum between LUAI_MAXSTACK and MAXSTACK_BYSIZET
+** (Maximum size for the stack must respect size_t.)
+*/
+#define MAXSTACK	cast_int(LUAI_MAXSTACK < MAXSTACK_BYSIZET  \
+			        ? LUAI_MAXSTACK : MAXSTACK_BYSIZET)
+
+
+/* stack size with extra space for error handling */
+#define ERRORSTACKSIZE	(MAXSTACK + STACKERRSPACE)
+
+
+/* raise a stack error while running the message handler */
+l_noret luaD_errerr (lua_State *L) {
+  TString *msg = luaS_newliteral(L, "error in error handling");
+  setsvalue2s(L, L->top.p, msg);
+  L->top.p++;  /* assume EXTRA_STACK */
+  luaD_throw(L, LUA_ERRERR);
+}
+
+
+/*
+** Check whether stacks have enough space to run a simple function (such
+** as a finalizer): At least BASIC_STACK_SIZE in the Lua stack, two
+** available CallInfos, and two "slots" in the C stack.
+*/
+int luaD_checkminstack (lua_State *L) {
+  if (getCcalls(L) >= LUAI_MAXCCALLS - 2)
+    return 0;  /* not enough C-stack slots */
+  if (L->ci->next == NULL && luaE_extendCI(L, 0) == NULL)
+    return 0;  /* unable to allocate first ci */
+  if (L->ci->next->next == NULL && luaE_extendCI(L, 0) == NULL)
+    return 0;  /* unable to allocate second ci */
+  if (L->stack_last.p - L->top.p >= BASIC_STACK_SIZE)
+    return 1;  /* enough (BASIC_STACK_SIZE) free slots in the Lua stack */
+  else  /* try to grow stack to a size with enough free slots */
+    return luaD_growstack(L, BASIC_STACK_SIZE, 0);
+}
+
+
+## lfunc.c (lines 81-120)
+
+
+/*
+** Find and reuse, or create if it does not exist, an upvalue
+** at the given level.
+*/
+UpVal *luaF_findupval (lua_State *L, StkId level) {
+  UpVal **pp = &L->openupval;
+  UpVal *p;
+  lua_assert(isintwups(L) || L->openupval == NULL);
+  while ((p = *pp) != NULL && uplevel(p) >= level) {  /* search for it */
+    lua_assert(!isdead(G(L), p));
+    if (uplevel(p) == level)  /* corresponding upvalue? */
+      return p;  /* return it */
+    pp = &p->u.open.next;
+  }
+  /* not found: create a new upvalue after 'pp' */
+  return newupval(L, level, pp);
+}
+
+
+/*
+** Call closing method for object 'obj' with error object 'err'. The
+** boolean 'yy' controls whether the call is yieldable.
+** (This function assumes EXTRA_STACK.)
+*/
+static void callclosemethod (lua_State *L, TValue *obj, TValue *err, int yy) {
+  StkId top = L->top.p;
+  StkId func = top;
+  const TValue *tm = luaT_gettmbyobj(L, obj, TM_CLOSE);
+  setobj2s(L, top++, tm);  /* will call metamethod... */
+  setobj2s(L, top++, obj);  /* with 'self' as the 1st argument */
+  if (err != NULL)  /* if there was an error... */
+    setobj2s(L, top++, err);  /* then error object will be 2nd argument */
+  L->top.p = top;  /* add function and arguments */
+  if (yy)
+    luaD_call(L, func, 0);
+  else
+    luaD_callnoyield(L, func, 0);
+}
+
+## loadlib.c (lines 481-520)
+  char *endpathname;  /* its end */
+  const char *filename;
+  /* separator is non-empty and appears in 'name'? */
+  if (*sep != '\0' && strchr(name, *sep) != NULL)
+    name = luaL_gsub(L, name, sep, dirsep);  /* replace it by 'dirsep' */
+  luaL_buffinit(L, &buff);
+  /* add path to the buffer, replacing marks ('?') with the file name */
+  luaL_addgsub(&buff, path, LUA_PATH_MARK, name);
+  luaL_addchar(&buff, '\0');
+  pathname = luaL_buffaddr(&buff);  /* writable list of file names */
+  endpathname = pathname + luaL_bufflen(&buff) - 1;
+  while ((filename = getnextfilename(&pathname, endpathname)) != NULL) {
+    if (readable(filename))  /* does file exist and is readable? */
+      return lua_pushstring(L, filename);  /* save and return name */
+  }
+  luaL_pushresult(&buff);  /* push path to create error message */
+  pusherrornotfound(L, lua_tostring(L, -1));  /* create error message */
+  return NULL;  /* not found */
+}
+
+
+static int ll_searchpath (lua_State *L) {
+  const char *f = searchpath(L, luaL_checkstring(L, 1),
+                                luaL_checkstring(L, 2),
+                                luaL_optstring(L, 3, "."),
+                                luaL_optstring(L, 4, LUA_DIRSEP));
+  if (f != NULL) return 1;
+  else {  /* error message is on top of the stack */
+    luaL_pushfail(L);
+    lua_insert(L, -2);
+    return 2;  /* return fail + error message */
+  }
+}
+
+
+static const char *findfile (lua_State *L, const char *name,
+                                           const char *pname,
+                                           const char *dirsep) {
+  const char *path;
+  lua_getfield(L, lua_upvalueindex(1), pname);
+
+## ldo.c (lines 161-200)
+  l_uint32 oldnCcalls = L->nCcalls;
+  lua_longjmp lj;
+  lj.status = LUA_OK;
+  lj.previous = L->errorJmp;  /* chain new error handler */
+  L->errorJmp = &lj;
+  LUAI_TRY(L, &lj, f, ud);  /* call 'f' catching errors */
+  L->errorJmp = lj.previous;  /* restore old error handler */
+  L->nCcalls = oldnCcalls;
+  return lj.status;
+}
+
+/* }====================================================== */
+
+
+/*
+** {==================================================================
+** Stack reallocation
+** ===================================================================
+*/
+
+/* some stack space for error handling */
+#define STACKERRSPACE	200
+
+
+/*
+** LUAI_MAXSTACK limits the size of the Lua stack.
+** It must fit into INT_MAX/2.
+*/
+
+#if !defined(LUAI_MAXSTACK)
+#if 1000000 < (INT_MAX / 2)
+#define LUAI_MAXSTACK           1000000
+#else
+#define LUAI_MAXSTACK           (INT_MAX / 2u)
+#endif
+#endif
+
+
+/* maximum stack size that respects size_t */
+#define MAXSTACK_BYSIZET  ((MAX_SIZET / sizeof(StackValue)) - STACKERRSPACE)
+
+## lua.c (lines 81-120)
+** interpreter.
+*/
+static void laction (int i) {
+  int flag = LUA_MASKCALL | LUA_MASKRET | LUA_MASKLINE | LUA_MASKCOUNT;
+  setsignal(i, SIG_DFL); /* if another SIGINT happens, terminate process */
+  lua_sethook(globalL, lstop, flag, 1);
+}
+
+
+static void print_usage (const char *badoption) {
+  lua_writestringerror("%s: ", progname);
+  if (badoption[1] == 'e' || badoption[1] == 'l')
+    lua_writestringerror("'%s' needs argument\n", badoption);
+  else
+    lua_writestringerror("unrecognized option '%s'\n", badoption);
+  lua_writestringerror(
+  "usage: %s [options] [script [args]]\n"
+  "Available options are:\n"
+  "  -e stat   execute string 'stat'\n"
+  "  -i        enter interactive mode after executing 'script'\n"
+  "  -l mod    require library 'mod' into global 'mod'\n"
+  "  -l g=mod  require library 'mod' into global 'g'\n"
+  "  -v        show version information\n"
+  "  -E        ignore environment variables\n"
+  "  -W        turn warnings on\n"
+  "  --        stop handling options\n"
+  "  -         stop handling options and execute stdin\n"
+  ,
+  progname);
+}
+
+
+/*
+** Prints an error message, adding the program name in front of it
+** (if present)
+*/
+static void l_message (const char *pname, const char *msg) {
+  if (pname) lua_writestringerror("%s: ", pname);
+  lua_writestringerror("%s\n", msg);
+}
+
+## ldo.c (lines 41-80)
+/*
+** these macros allow user-specific actions when a thread is
+** resumed/yielded.
+*/
+#if !defined(luai_userstateresume)
+#define luai_userstateresume(L,n)	((void)L)
+#endif
+
+#if !defined(luai_userstateyield)
+#define luai_userstateyield(L,n)	((void)L)
+#endif
+
+
+/*
+** {======================================================
+** Error-recovery functions
+** =======================================================
+*/
+
+/* chained list of long jump buffers */
+typedef struct lua_longjmp {
+  struct lua_longjmp *previous;
+  jmp_buf b;
+  volatile TStatus status;  /* error code */
+} lua_longjmp;
+
+
+/*
+** LUAI_THROW/LUAI_TRY define how Lua does exception handling. By
+** default, Lua handles errors with exceptions when compiling as
+** C++ code, with _longjmp/_setjmp when available (POSIX), and with
+** longjmp/setjmp otherwise.
+*/
+#if !defined(LUAI_THROW)				/* { */
+
+#if defined(__cplusplus) && !defined(LUA_USE_LONGJMP)	/* { */
+
+/* C++ exceptions */
+#define LUAI_THROW(L,c)		throw(c)
+
+
+## lauxlib.c (lines 361-400)
+** {======================================================
+** Argument check functions
+** =======================================================
+*/
+
+LUALIB_API int luaL_checkoption (lua_State *L, int arg, const char *def,
+                                 const char *const lst[]) {
+  const char *name = (def) ? luaL_optstring(L, arg, def) :
+                             luaL_checkstring(L, arg);
+  int i;
+  for (i=0; lst[i]; i++)
+    if (strcmp(lst[i], name) == 0)
+      return i;
+  return luaL_argerror(L, arg,
+                       lua_pushfstring(L, "invalid option '%s'", name));
+}
+
+
+/*
+** Ensures the stack has at least 'space' extra slots, raising an error
+** if it cannot fulfill the request. (The error handling needs a few
+** extra slots to format the error message. In case of an error without
+** this extra space, Lua will generate the same 'stack overflow' error,
+** but without 'msg'.)
+*/
+LUALIB_API void luaL_checkstack (lua_State *L, int space, const char *msg) {
+  if (l_unlikely(!lua_checkstack(L, space))) {
+    if (msg)
+      luaL_error(L, "stack overflow (%s)", msg);
+    else
+      luaL_error(L, "stack overflow");
+  }
+}
+
+
+LUALIB_API void luaL_checktype (lua_State *L, int arg, int t) {
+  if (l_unlikely(lua_type(L, arg) != t))
+    tag_error(L, arg, t);
+}
+
+
+## lua.c (lines 601-640)
+  return 1;
+}
+
+
+/*
+** Try to compile line on the stack as 'return <line>;'; on return, stack
+** has either compiled chunk or original line (if compilation failed).
+*/
+static int addreturn (lua_State *L) {
+  const char *line = lua_tostring(L, -1);  /* original line */
+  const char *retline = lua_pushfstring(L, "return %s;", line);
+  int status = luaL_loadbufferx(L, retline, strlen(retline), "=stdin", "t");
+  if (status == LUA_OK)
+    lua_remove(L, -2);  /* remove modified line */
+  else
+    lua_pop(L, 2);  /* pop result from 'luaL_loadbufferx' and modified line */
+  return status;
+}
+
+
+static void checklocal (const char *line) {
+  static const size_t szloc = sizeof("local") - 1;
+  static const char space[] = " \t";
+  line += strspn(line, space);  /* skip spaces */
+  if (strncmp(line, "local", szloc) == 0 &&  /* "local"? */
+      strchr(space, *(line + szloc)) != NULL) {  /* followed by a space? */
+    lua_writestringerror("%s\n",
+      "warning: locals do not survive across lines in interactive mode");
+  }
+}
+
+
+/*
+** Read multiple lines until a complete Lua statement or an error not
+** for an incomplete statement. Start with first line already read in
+** the stack.
+*/
+static int multiline (lua_State *L) {
+  size_t len;
+  const char *line = lua_tolstring(L, 1, &len);  /* get first line */
+
+## lbaselib.c (lines 481-520)
+  return finishpcall(L, status, 0);
+}
+
+
+/*
+** Do a protected call with error handling. After 'lua_rotate', the
+** stack will have <f, err, true, f, [args...]>; so, the function passes
+** 2 to 'finishpcall' to skip the 2 first values when returning results.
+*/
+static int luaB_xpcall (lua_State *L) {
+  int status;
+  int n = lua_gettop(L);
+  luaL_checktype(L, 2, LUA_TFUNCTION);  /* check error function */
+  lua_pushboolean(L, 1);  /* first result */
+  lua_pushvalue(L, 1);  /* function */
+  lua_rotate(L, 3, 2);  /* move them below function's arguments */
+  status = lua_pcallk(L, n - 2, LUA_MULTRET, 2, 2, finishpcall);
+  return finishpcall(L, status, 2);
+}
+
+
+static int luaB_tostring (lua_State *L) {
+  luaL_checkany(L, 1);
+  luaL_tolstring(L, 1, NULL);
+  return 1;
+}
+
+
+static const luaL_Reg base_funcs[] = {
+  {"assert", luaB_assert},
+  {"collectgarbage", luaB_collectgarbage},
+  {"dofile", luaB_dofile},
+  {"error", luaB_error},
+  {"getmetatable", luaB_getmetatable},
+  {"ipairs", luaB_ipairs},
+  {"loadfile", luaB_loadfile},
+  {"load", luaB_load},
+  {"next", luaB_next},
+  {"pairs", luaB_pairs},
+  {"pcall", luaB_pcall},
+
+## ldo.c (lines 801-840)
+** to 'finishCcall' (when that '__close' method finally returns) and
+** 'finishpcallk' will run again and close any still pending '__close'
+** methods. Similarly, if a '__close' method errs, 'precover' calls
+** 'unroll' which calls ''finishCcall' and we are back here again, to
+** close any pending '__close' methods.
+** Note that, up to the call to 'luaF_close', the corresponding
+** 'CallInfo' is not modified, so that this repeated run works like the
+** first one (except that it has at least one less '__close' to do). In
+** particular, field CIST_RECST preserves the error status across these
+** multiple runs, changing only if there is a new error.
+*/
+static TStatus finishpcallk (lua_State *L,  CallInfo *ci) {
+  TStatus status = getcistrecst(ci);  /* get original status */
+  if (l_likely(status == LUA_OK))  /* no error? */
+    status = LUA_YIELD;  /* was interrupted by an yield */
+  else {  /* error */
+    StkId func = restorestack(L, ci->u2.funcidx);
+    L->allowhook = getoah(ci);  /* restore 'allowhook' */
+    func = luaF_close(L, func, status, 1);  /* can yield or raise an error */
+    luaD_seterrorobj(L, status, func);
+    luaD_shrinkstack(L);   /* restore stack size in case of overflow */
+    setcistrecst(ci, LUA_OK);  /* clear original status */
+  }
+  ci->callstatus &= ~CIST_YPCALL;
+  L->errfunc = ci->u.c.old_errfunc;
+  /* if it is here, there were errors or yields; unlike 'lua_pcallk',
+     do not change status */
+  return status;
+}
+
+
+/*
+** Completes the execution of a C function interrupted by an yield.
+** The interruption must have happened while the function was either
+** closing its tbc variables in 'moveresults' or executing
+** 'lua_callk'/'lua_pcallk'. In the first case, it just redoes
+** 'luaD_poscall'. In the second case, the call to 'finishpcallk'
+** finishes the interrupted execution of 'lua_pcallk'.  After that, it
+** calls the continuation of the interrupted function and finally it
+** completes the job of the 'luaD_call' that called the function.  In

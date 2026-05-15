@@ -1,0 +1,462 @@
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from runtime/squared.c)
+            }
+
+            _exit(0);
+        }
+        close(fd);
+    }
+}
+
+
+### Chunk 2 (from runtime/squared.c)
+/*
+ * squared — HTTP/2 proxy for local inference multiplexing
+ *
+ * Without cert/key: h2c (cleartext HTTP/2, loopback only)
+ * With cert/key:    h2 over TLS (ALPN negotiated, all interfaces)
+ *
+ * Build:
+ *   cc -o squared squared.c $(pkg-config --cflags --libs libnghttp2) \
+ *      -lmbedtls -lmbedx509 -lmbedcrypto -lpthread
+ *
+ * Usage:
+ *   squared [port] [backend_host:port]
+ *   squared [port] [backend_host:port] cert.pem key.pem
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <signal.h>
+#include <poll.h>
+
+#include <nghttp2/nghttp2.h>
+
+#ifndef NO_TLS
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/x509_crt.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/net_sockets.h>
+#endif
+
+
+### Chunk 3 (from software-as-a-besides.txt)
+  +-- browser (already on every computer)
+  |
+  |   -- everything below this line moves control and visibility beyond your computer --
+  |
+  +-- npm/pip/cargo
+  +-- language runtime
+  +-- framework
+  +-- ORM, database server
+  +-- API gateway, auth service
+  +-- container runtime, orchestrator
+  +-- cloud provider, CI/CD, CDN
+  +-- monitoring SaaS, billing SaaS
+```
+
+Full frame: https://subtract.ing/subtract.7.txt
+
+Full lineage: https://subtract.ing/lineage.txt
+
+
+### Chunk 4 (from variance-lab.txt)
+Total wall time is dominated by inference.
+
+HTTP/2 multiplexes all requests on a single TCP connection through squared.
+squared opens one backend connection per stream to llama-server. The
+requests arrive at llama-server the same way — as separate HTTP/1.1
+connections from squared's forked children. Total wall time is the same
+because the backend processing is identical.
+
+The browser is the exception. Browsers enforce a 6-connection-per-origin
+limit (Chromium, Firefox). At c>6, h1.1 requests queue behind that limit.
+h2 multiplexes all requests on one connection, bypassing the limit. This
+is the specific context where squared provides value.
+
+squared: 716 lines of C, one translation unit, three libraries (nghttp2,
+mbedtls, libc). h2c mode for curl/agents, TLS+ALPN mode for browsers.
+
+## Confounds
+
+**h2 uses same prompt for all concurrent requests.** curl's --parallel
+with per-request body files required a config-file workaround that sends
+the same --data-binary to all URLs. h1.1 sends different prompts per
+request. The h2 path may benefit from llama-server prompt caching. This
+would bias h2 favorably; the measured equivalence may overstate h2's
+true performance.
+
+**Backend parallel slots = 4.** llama-server -np 4. At c=6, requests
+queue on the backend regardless of protocol. Both protocols are equally
+affected.
+
+**High h2 variance.** h2 standard deviation at c=6 is 1,366ms vs h1.1's
+396ms. Pass 5 shows h2 at 5,128ms (2× h1.1). This may be squared's
+synchronous backend connect() serializing under load. Five passes is
+insufficient to characterize this tail behavior.
+
+**N=1 browser measurement.** The browser finding (2.5× at c=3) is a
+single pass with a mock backend. It is directional evidence, not a
+tight measurement.
+
+**Single operator, single backend, single model.** No cross-hardware
+replication. The equivalence finding is likely general (inference
+
+
+### Chunk 5 (from subtracting.html)
+    <h2>Measurement</h2>
+
+    <p>The router logs every intent that enters
+    <code>command_not_found_handle</code> with its resolving tier.
+    Tier migration per intent-class over time shows whether the human
+    is learning the direct form. When the handler stops firing for an
+    intent-class, that intent has graduated.</p>
+
+    <p>That is what "let the computer answer first" means.</p>
+
+    <hr>
+
+    <h2>How it works</h2>
+
+    <p>How hard your computer has to think, or if it has to
+    phone a friend.</p>
+
+<pre>
+computer    lookdown.tsv   <span class="dim">pattern match, no AI</span>
+            apropos        <span class="dim">man page lookup, no AI</span>
+
+assisted    embedding      <span class="dim">local vector search</span>
+            llama.cpp      <span class="dim">local language model</span>
+
+remote      curl           <span class="dim">cloud API</span>
+</pre>
+
+    <p>Voice input and output (speech-to-text, text-to-speech) can
+    be local or cloud depending on what is available.</p>
+
+    <p>The goal is that your computer answers before assistance is
+    needed, and local assistance answers before remote does. Each component is either
+    pre-installed or a single binary plus model file. Full local
+    install is roughly 1.1GB. No interpreter or package manager
+    required.</p>
+
+    <p>Three layers subtract in sequence:</p>
+
+<pre>
+1. subtract subtracts from the environment (no frameworks, no SaaS)
+
+
+### Chunk 6 (from software-as-a-besides.txt)
+# Why subtract
+
+subtract is software as a besides. It represents the primal translation layer native to computers.
+
+The local model shows you the command. The lookup table pattern-matches it. Eventually you type it yourself. The AI isn't needed. That's the point.
+
+The hope is literacy, not dependency. You graduate from "show my files" to ls, from subtract to the commands themselves. No wrapper. No subscription. No intermediary between you and the machine.
+
+subtract shows you the supercomputer in every computer — when you look down close enough.
+
+## Sovereignty
+
+subtract rests on three primitives that already ship with Unix:
+
+| Leg | Primitive | Purpose |
+|-----|-----------|---------|
+| Entry | command_not_found_handle | Intent enters bash |
+| Trust | ssh-keygen -Y | Signed provenance for knowledge |
+| Time | sleep, at, cron | Yield to the kernel scheduler |
+
+No account. No API key. No terms of service from a foreign company. No usage meter that resets on someone else's schedule. The primitives work in any jurisdiction, on any hardware, offline.
+
+## Energy model
+
+As learned commands grow, the work approaches a syscall and the energy cost falls toward the kernel's own floor. Local inference stays flat per request. Cloud inference is flat or rising as orchestration accumulates. One curve goes down over time; the others don't.
+
+## Where it sits
+
+```
+syscall
+  |
+  +-- kernel (already there)
+  +-- shell (already there)
+  +-- subtract (one function, one TSV, one hook from 2009)
+  +-- busybox httpd (ships with the OS)
+  +-- browser (already on every computer)
+  |
+  |   -- everything below this line moves control and visibility beyond your computer --
+  |
+  +-- npm/pip/cargo
+
+
+### Chunk 7 (from variance-lab.txt)
+  review:             2 cross-node reviews (rousseau, emile) caught data
+                      contamination and asymmetric measurement errors
+  data:               55 validated rows (15 e2e + 40 mock), 1 browser pass
+  infrastructure:     M4 Max (rousseau), Surface Pro 8 (surface)
+  dependencies:       nghttp2, mbedtls, llama-server, curl, gemma-4-26B-A4B
+
+## Harness
+
+  Raw data (e2e):     github.com/03-git/variance-lab/data/squared/h2-e2e-results.jsonl
+  Raw data (mock):    github.com/03-git/variance-lab/data/squared/h2-bench-results.jsonl
+  Proxy:              github.com/03-git/subtract.ing/runtime/squared.c
+  Bench page:         github.com/03-git/subtract.ing/runtime/pages/h2-bench.html
+
+
+================================================================
+
+---
+title: 1-Bit Quantization Breaks the 8GB Deployment Ceiling for Local Inference
+date: 2026-04-25
+source: production empirical (494 measurements, 3 conditions + 1 preliminary, Bonsai 8B on 8GB M2 Mac Mini)
+domain:
+  - local-inference
+  - bitnet
+  - deployment-envelope
+  - clinical-application
+keywords:
+  - BitNet
+  - Bonsai 8B
+  - 1-bit quantization
+  - 8GB deployment
+  - Metal GPU memory pinning
+  - swap isolation
+  - clinical inference
+  - constrained hardware
+prior_art_status: >
+  PrismML published Bonsai 8B benchmarks against standard NLP tasks
+  (MMLU, HellaSwag, etc.). No published measurement exists of sustained
+  throughput under realistic application load on 8GB hardware, swap
+  pressure behavior over time, or GPU memory pinning characteristics
+  on Apple Silicon with 1-bit models. The deployment-envelope
+
+
+### Chunk 8 (from index.html)
+| +--------+-----+--------+---------+--------+---------+-------+----+----+ |
++--------------------------------------------------------------------------+
+
+ HARDWARE
++--------------------------------------------------------------------------+
+|   NIC        GPU        CPU        RAM        Keyboard        Mouse      |
++--------------------------------------------------------------------------+
+</pre>
+
+<pre>
+syscall
+  |
+  +-- kernel (already there)
+  +-- shell (already there)
+  +-- subtract.ing (command_not_found_handle)
+  +-- lookdown.tsv (routing table)
+  +-- busybox httpd (ships with the OS)
+  +-- browser (already on every computer)
+  |
+  |   -- everything below this line moves control beyond your computer --
+  |
+  +-- npm/pip/cargo
+  +-- language runtime
+  +-- framework
+  +-- ORM, database server
+  +-- API gateway, auth service
+  +-- container runtime, orchestrator
+  +-- cloud provider, CI/CD, CDN
+  +-- monitoring SaaS, billing SaaS
+</pre>
+
+    <p><strong>Install</strong></p>
+<pre>curl -sL https://subtract.ing/install.sh | bash</pre>
+    <p class="dim">or: curl -sLO https://subtract.ing/install.sh && less install.sh && bash install.sh</p>
+
+    <hr>
+
+    <p><a href="/subtracting.html">Subtracting</a> <span class="dim">— why subtract exists</span></p>
+    <p><a href="/hosuni.txt">Hosuni</a> <span class="dim">— the framebuffer interface</span></p>
+
+
+
+### Chunk 9 (from subtracting.html)
+<body>
+    <h1><a href="/">subtract.ing</a> / subtracting</h1>
+    <p>Theory, lineage, and evidence.</p>
+
+    <hr>
+
+    <h2>What it is</h2>
+
+    <p>Shell translation infrastructure. Type intent, get command,
+    learn command, stop needing translation.</p>
+
+    <p>For humans: you learn how to use Unix more.<br>
+    For agents: you're reminded how Unix can be used.</p>
+
+    <p>Software as a besides. The goal is that the user learns the
+    command and stops needing translation.</p>
+
+    <p>subtract shows you the supercomputer in every computer — when you look down close enough.</p>
+
+    <hr>
+
+    <h2>Why</h2>
+
+    <p>subtract rests on three primitives that already ship with Unix:</p>
+
+<pre>
+Entry   command_not_found_handle   intent enters bash
+Trust   ssh-keygen -Y              signed provenance for knowledge
+Time    sleep, at, cron            yield to the kernel scheduler
+</pre>
+
+    <p>No account. No API key. No terms of service. No usage meter.
+    Computers come with commands that work when you are not online.</p>
+
+    <p>Let your local computer help you think and do, instead of
+    asking a cloud AI to do all the thinking and doing. As learned
+    commands grow, the user invokes the command directly. A learned
+    command has no inference cost.</p>
+
+<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin:1.5em 0">
+
+
+### Chunk 10 (from subtract.7.txt)
+.SH SUBSTRATE LAYERS
+The entire stack requires zero dependencies that are not already on a Unix
+system or do not ship as a single file. No interpreter. No package manager.
+No runtime. No SDK.
+.PP
+.TS
+tab(|) expand;
+l l l l.
+Layer|Component|Size|State
+_
+computer|lookdown.tsv|<1MB|already there
+computer|apropos|\[em]|already there
+assisted|embed binary|45MB|ships
+assisted|llama.cpp|850MB|ships
+assisted|whisper.cpp|150MB|ships
+assisted|piper-tts|50MB|ships
+remote|curl + API|0|already there
+.TE
+.PP
+Goal: fade toward computer. Less inference over time, more direct expression.
+.PP
+Every component is either "already there" or "single binary + model." Full local
+install is roughly 1.1GB.
+.SH BUFFER-SUBTRACT PATTERN
+A substrate honors the pattern if and only if all six invariants hold.
+.IP 1. 4
+Native modality owns the buffer. subtract never owns it.
+.IP 2. 4
+Subtraction is explicit. A specific gesture hands the buffer to subtract.
+No polling.
+.IP 3. 4
+subtract reads, translates, writes back. It does not commit. The user's
+commit gesture remains the only path to action.
+.IP 4. 4
+Non-subtraction has zero residue. A user who never invokes subtract has a
+substrate bit-identical to one without subtract installed.
+.IP 5. 4
+Successful subtractions train toward direct expression. Users internalize the
+direct form and stop subtracting.
+.IP 6. 4
+
+
+### Chunk 11 (from runtime/squared.c)
+    }
+#ifndef NO_TLS
+    if (argc >= 5) {
+        if (init_tls(argv[3], argv[4]) != 0) {
+            fprintf(stderr, "TLS init failed\n");
+            return 1;
+        }
+    }
+#endif
+
+    signal(SIGPIPE, SIG_IGN);
+    signal(SIGCHLD, SIG_IGN);
+
+    int listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    int opt = 1;
+    setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = tls_mode ? htonl(INADDR_ANY) : htonl(INADDR_LOOPBACK);
+    addr.sin_port = htons(listen_port);
+
+    if (bind(listenfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        perror("bind");
+        return 1;
+    }
+    listen(listenfd, 16);
+
+    fprintf(stderr, "squared listening on %s:%d -> %s:%s%s\n",
+        tls_mode ? "0.0.0.0" : "127.0.0.1",
+        listen_port, backend_host, backend_port,
+        tls_mode ? " (tls)" : " (h2c)");
+
+    for (;;) {
+        int fd = accept(listenfd, NULL, NULL);
+        if (fd < 0) continue;
+        int flag = 1;
+        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
+
+        pid_t pid = fork();
+
+
+### Chunk 12 (from variance-lab.txt)
+  Bonsai 8B Q1       1.1 GB      9.3                8.7
+  Qwen 2.5 7B Q4     4.4 GB      5.9                12.5
+
+1.6x faster generation in 4.0x less memory. The generation advantage
+comes from fewer bytes read per token. The prompt disadvantage (8.7 vs
+12.5) reflects Q4's better arithmetic density during the compute-bound
+prefill phase. Different bottlenecks at different inference stages.
+
+Caveat: different model families, different training data, different
+architecture. The comparison is practical (what fits and runs on this
+hardware), not controlled. The memory ratio is clean. The throughput
+ratio is confounded by architecture differences.
+
+### Per-tier bottleneck evidence
+
+**M2 Mac Mini (swap isolation).** 416-run sustained bench over 1 hour.
+Swap grew from 737MB to 7,326MB. Throughput unchanged at 39.8 tok/s
+mean. Behavior consistent with Metal-allocated model weights being
+unaffected by system swap pressure. The OS pages out everything else;
+the model stays resident. The constraint on M2 was memory capacity
+(dense Q4 8B = 4.5GB, doesn't fit alongside application server in 8GB).
+Bonsai at 1.1GB removes that constraint entirely.
+
+**1660 Ti laptop (thermal).** 50-run bench: 24.4 tok/s. Sustained load:
+24.6 → 22.0 tok/s over 15 minutes, stabilized near baseline at 24.3
+after thermal equilibrium. The 11% dip is the laptop chassis thermal
+envelope, not the GPU's compute limit. The constraint is heat dissipation
+in a closed-lid form factor, not VRAM or compute.
+
+**i7 CPU (compute).** Bonsai wins on generation (9.3 vs 5.9 tok/s)
+because 1-bit reads fewer bytes per token from DDR4. But the absolute
+speed (9.3 tok/s) is the lowest across all tiers because x86 CPU
+matrix multiply is the binding constraint, not memory bandwidth. 1-bit
+helps (fewer ops) but doesn't change the regime.
+
+**M1 Max Studio (bandwidth).** 93.5 tok/s single instance. Under
+concurrent load, aggregate throughput plateaus at ~124 tok/s regardless
+of instance count (see finding 10). The constraint is unified memory
+bandwidth. 1-bit maximizes tokens per byte read. Bonsai generates
+at comparable or faster speeds than phi4-mini Q4 (88.4 tok/s) and
+
+

@@ -1,0 +1,47 @@
+```python
+# celsius_to_fahrenheit.py
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+
+# test_celsius_to_fahrenheit.py
+
+import pytest
+from celsius_to_fahrenheit import celsius_to_fahrenheit
+
+
+def test_freezing():
+    assert celsius_to_fahrenheit(0) == 32.0
+
+def test_boiling():
+    assert celsius_to_fahrenheit(100) == 212.0
+
+def test_negative_forty():
+    # -40 is where the two scales converge
+    assert celsius_to_fahrenheit(-40) == -40.0
+
+def test_non_numeric_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+**To run it:**
+
+```bash
+# Install pytest if needed
+pip install pytest
+
+# Place both snippets in their respective files, then:
+pytest test_celsius_to_fahrenheit.py -v
+```
+
+Expected output:
+```
+test_celsius_to_fahrenheit.py::test_freezing        PASSED
+test_celsius_to_fahrenheit.py::test_boiling         PASSED
+test_celsius_to_fahrenheit.py::test_negative_forty  PASSED
+test_celsius_to_fahrenheit.py::test_non_numeric_raises PASSED
+```
+
+The `TypeError` test works because Python's `*` and `+` operators raise `TypeError` when applied to a string and a float — no explicit type guard needed in the implementation.

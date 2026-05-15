@@ -1,0 +1,477 @@
+
+## ltests.c (lines 1-40)
+/*
+** $Id: ltests.c $
+** Internal Module for Debugging of the Lua Implementation
+** See Copyright Notice in lua.h
+*/
+
+#define ltests_c
+#define LUA_CORE
+
+#include "lprefix.h"
+
+
+#include <limits.h>
+#include <setjmp.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "lua.h"
+
+#include "lapi.h"
+#include "lauxlib.h"
+#include "lcode.h"
+#include "lctype.h"
+#include "ldebug.h"
+#include "ldo.h"
+#include "lfunc.h"
+#include "lmem.h"
+#include "lopcodes.h"
+#include "lopnames.h"
+#include "lstate.h"
+#include "lstring.h"
+#include "ltable.h"
+#include "lualib.h"
+
+
+
+/*
+** The whole module only makes sense with LUA_DEBUG on
+*/
+
+## onelua.c (lines 121-136)
+#endif
+
+/* test library -- used only for internal development */
+#if defined(LUA_DEBUG)
+#include "ltests.c"
+#endif
+
+/* lua */
+#ifdef MAKE_LUA
+#include "lua.c"
+#endif
+
+/* luac */
+#ifdef MAKE_LUAC
+#include "luac.c"
+#endif
+
+## Makefile (lines 41-80)
+
+CWARNS= $(CWARNSCPP) $(CWARNSC) $(CWARNGCC)
+
+# Some useful compiler options for internal tests:
+# -DLUAI_ASSERT turns on all assertions inside Lua.
+# -DHARDSTACKTESTS forces a reallocation of the stack at every point where
+# the stack can be reallocated.
+# -DHARDMEMTESTS forces a full collection at all points where the collector
+# can run.
+# -DEMERGENCYGCTESTS forces an emergency collection at every single allocation.
+# -DEXTERNMEMCHECK removes internal consistency checking of blocks being
+# deallocated (useful when an external tool like valgrind does the check).
+# -DMAXINDEXRK=k limits range of constants in RK instruction operands.
+# -DLUA_COMPAT_5_3
+
+# -pg -malign-double
+# -DLUA_USE_CTYPE -DLUA_USE_APICHECK
+
+# The following options help detect "undefined behavior"s that seldom
+# create problems; some are only available in newer gcc versions. To
+# use some of them, we also have to define an environment variable
+# ASAN_OPTIONS="detect_invalid_pointer_pairs=2".
+# -fsanitize=undefined  (you may need to add "-lubsan" to libs)
+# -fsanitize=pointer-subtract -fsanitize=address -fsanitize=pointer-compare
+
+# Test mode: Add test library, turn on asserts, redefine several
+# constants ("to give some bugs a chance"), track memory use, and add
+# debug information.
+# TESTS= -DLUA_USER_H='"ltests.h"' -Og -g
+
+LOCAL = $(TESTS) $(CWARNS)
+
+
+# To enable Linux goodies, -DLUA_USE_LINUX
+# For C89, "-std=c89 -DLUA_USE_C89"
+# Note that Linux/Posix options are not compatible with C89
+# (For 32-bit, add option "-m32" to MYCFLAGS and MYLDFLAGS.)
+MYCFLAGS= $(LOCAL) -std=c99 -DLUA_USE_LINUX
+MYLDFLAGS= -Wl,-E
+MYLIBS= -ldl
+
+## ltests.h (lines 1-40)
+/*
+** $Id: ltests.h $
+** Internal Header for Debugging of the Lua Implementation
+** See Copyright Notice in lua.h
+*/
+
+#ifndef ltests_h
+#define ltests_h
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+/* test Lua with compatibility code */
+#define LUA_COMPAT_MATHLIB
+#undef LUA_COMPAT_GLOBAL
+#define LUA_COMPAT_GLOBAL	0
+
+
+#define LUA_DEBUG
+
+
+/* turn on assertions */
+#define LUAI_ASSERT
+
+
+/* to avoid warnings, and to make sure value is really unused */
+#define UNUSED(x)       (x=0, (void)(x))
+
+
+/* test for sizes in 'l_sprintf' (make sure whole buffer is available) */
+#undef l_sprintf
+#if !defined(LUA_USE_C89)
+#define l_sprintf(s,sz,f,i)	(memset(s,0xAB,sz), snprintf(s,sz,f,i))
+#else
+#define l_sprintf(s,sz,f,i)	(memset(s,0xAB,sz), sprintf(s,f,i))
+#endif
+
+
+/* get a chance to test code without jump tables */
+
+## ldebug.c (lines 801-840)
+  if (!luaV_tointegerns(p1, &temp, LUA_FLOORN2I))
+    p2 = p1;
+  luaG_runerror(L, "number%s has no integer representation", varinfo(L, p2));
+}
+
+
+l_noret luaG_ordererror (lua_State *L, const TValue *p1, const TValue *p2) {
+  const char *t1 = luaT_objtypename(L, p1);
+  const char *t2 = luaT_objtypename(L, p2);
+  if (strcmp(t1, t2) == 0)
+    luaG_runerror(L, "attempt to compare two %s values", t1);
+  else
+    luaG_runerror(L, "attempt to compare %s with %s", t1, t2);
+}
+
+
+l_noret luaG_errnnil (lua_State *L, LClosure *cl, int k) {
+  const char *globalname = "?";  /* default name if k == 0 */
+  if (k > 0)
+    kname(cl->p, k - 1, &globalname);
+  luaG_runerror(L, "global '%s' already defined", globalname);
+}
+
+
+/* add src:line information to 'msg' */
+const char *luaG_addinfo (lua_State *L, const char *msg, TString *src,
+                                        int line) {
+  if (src == NULL)  /* no debug information? */
+    return luaO_pushfstring(L, "?:?: %s", msg);
+  else {
+    char buff[LUA_IDSIZE];
+    size_t idlen;
+    const char *id = getlstr(src, idlen);
+    luaO_chunkid(buff, id, idlen);
+    return luaO_pushfstring(L, "%s:%d: %s", buff, line, msg);
+  }
+}
+
+
+l_noret luaG_errormsg (lua_State *L) {
+
+## ldebug.c (lines 1-40)
+/*
+** $Id: ldebug.c $
+** Debug Interface
+** See Copyright Notice in lua.h
+*/
+
+#define ldebug_c
+#define LUA_CORE
+
+#include "lprefix.h"
+
+
+#include <stdarg.h>
+#include <stddef.h>
+#include <string.h>
+
+#include "lua.h"
+
+#include "lapi.h"
+#include "lcode.h"
+#include "ldebug.h"
+#include "ldo.h"
+#include "lfunc.h"
+#include "lobject.h"
+#include "lopcodes.h"
+#include "lstate.h"
+#include "lstring.h"
+#include "ltable.h"
+#include "ltm.h"
+#include "lvm.h"
+
+
+
+#define LuaClosure(f)		((f) != NULL && (f)->c.tt == LUA_VLCL)
+
+static const char strlocal[] = "local";
+static const char strupval[] = "upvalue";
+
+static const char *funcnamefromcall (lua_State *L, CallInfo *ci,
+                                                   const char **name);
+
+## lua.h (lines 121-160)
+
+/*
+** Type for memory-allocation functions
+*/
+typedef void * (*lua_Alloc) (void *ud, void *ptr, size_t osize, size_t nsize);
+
+
+/*
+** Type for warning functions
+*/
+typedef void (*lua_WarnFunction) (void *ud, const char *msg, int tocont);
+
+
+/*
+** Type used by the debug API to collect debug information
+*/
+typedef struct lua_Debug lua_Debug;
+
+
+/*
+** Functions to be called by the debugger in specific events
+*/
+typedef void (*lua_Hook) (lua_State *L, lua_Debug *ar);
+
+
+/*
+** generic extra include file
+*/
+#if defined(LUA_USER_H)
+#include LUA_USER_H
+#endif
+
+
+/*
+** RCS ident string
+*/
+extern const char lua_ident[];
+
+
+/*
+
+## loadlib.c (lines 1-40)
+/*
+** $Id: loadlib.c $
+** Dynamic library loader for Lua
+** See Copyright Notice in lua.h
+**
+** This module contains an implementation of loadlib for Unix systems
+** that have dlfcn, an implementation for Windows, and a stub for other
+** systems.
+*/
+
+#define loadlib_c
+#define LUA_LIB
+
+#include "lprefix.h"
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "lua.h"
+
+#include "lauxlib.h"
+#include "lualib.h"
+#include "llimits.h"
+
+
+/*
+** LUA_CSUBSEP is the character that replaces dots in submodule names
+** when searching for a C loader.
+** LUA_LSUBSEP is the character that replaces dots in submodule names
+** when searching for a Lua loader.
+*/
+#if !defined(LUA_CSUBSEP)
+#define LUA_CSUBSEP		LUA_DIRSEP
+#endif
+
+#if !defined(LUA_LSUBSEP)
+#define LUA_LSUBSEP		LUA_DIRSEP
+#endif
+
+## luaconf.h (lines 281-320)
+/*
+** LUA_IGMARK is a mark to ignore all after it when building the
+** module name (e.g., used to build the luaopen_ function name).
+** Typically, the suffix after the mark is the module version,
+** as in "mod-v1.2.so".
+*/
+#define LUA_IGMARK		"-"
+
+/* }================================================================== */
+
+
+/*
+** {==================================================================
+** Marks for exported symbols in the C code
+** ===================================================================
+*/
+
+/*
+@@ LUA_API is a mark for all core API functions.
+@@ LUALIB_API is a mark for all auxiliary library functions.
+@@ LUAMOD_API is a mark for all standard library opening functions.
+** CHANGE them if you need to define those functions in some special way.
+** For instance, if you want to create one Windows DLL with the core and
+** the libraries, you may want to use the following definition (define
+** LUA_BUILD_AS_DLL to get it).
+*/
+#if defined(LUA_BUILD_AS_DLL)	/* { */
+
+#if defined(LUA_CORE) || defined(LUA_LIB)	/* { */
+#define LUA_API __declspec(dllexport)
+#else						/* }{ */
+#define LUA_API __declspec(dllimport)
+#endif						/* } */
+
+#else				/* }{ */
+
+#define LUA_API		extern
+
+#endif				/* } */
+
+
+## lobject.h (lines 601-640)
+** Function Prototypes
+*/
+typedef struct Proto {
+  CommonHeader;
+  lu_byte numparams;  /* number of fixed (named) parameters */
+  lu_byte flag;
+  lu_byte maxstacksize;  /* number of registers needed by this function */
+  int sizeupvalues;  /* size of 'upvalues' */
+  int sizek;  /* size of 'k' */
+  int sizecode;
+  int sizelineinfo;
+  int sizep;  /* size of 'p' */
+  int sizelocvars;
+  int sizeabslineinfo;  /* size of 'abslineinfo' */
+  int linedefined;  /* debug information  */
+  int lastlinedefined;  /* debug information  */
+  TValue *k;  /* constants used by the function */
+  Instruction *code;  /* opcodes */
+  struct Proto **p;  /* functions defined inside the function */
+  Upvaldesc *upvalues;  /* upvalue information */
+  ls_byte *lineinfo;  /* information about source lines (debug information) */
+  AbsLineInfo *abslineinfo;  /* idem */
+  LocVar *locvars;  /* information about local variables (debug information) */
+  TString  *source;  /* used for debug information */
+  GCObject *gclist;
+} Proto;
+
+/* }================================================================== */
+
+
+/*
+** {==================================================================
+** Functions
+** ===================================================================
+*/
+
+#define LUA_VUPVAL	makevariant(LUA_TUPVAL, 0)
+
+
+/* Variant tags for functions */
+
+## lua.h (lines 441-480)
+
+/* }============================================================== */
+
+/*
+** {======================================================================
+** Debug API
+** =======================================================================
+*/
+
+
+/*
+** Event codes
+*/
+#define LUA_HOOKCALL	0
+#define LUA_HOOKRET	1
+#define LUA_HOOKLINE	2
+#define LUA_HOOKCOUNT	3
+#define LUA_HOOKTAILCALL 4
+
+
+/*
+** Event masks
+*/
+#define LUA_MASKCALL	(1 << LUA_HOOKCALL)
+#define LUA_MASKRET	(1 << LUA_HOOKRET)
+#define LUA_MASKLINE	(1 << LUA_HOOKLINE)
+#define LUA_MASKCOUNT	(1 << LUA_HOOKCOUNT)
+
+
+LUA_API int (lua_getstack) (lua_State *L, int level, lua_Debug *ar);
+LUA_API int (lua_getinfo) (lua_State *L, const char *what, lua_Debug *ar);
+LUA_API const char *(lua_getlocal) (lua_State *L, const lua_Debug *ar, int n);
+LUA_API const char *(lua_setlocal) (lua_State *L, const lua_Debug *ar, int n);
+LUA_API const char *(lua_getupvalue) (lua_State *L, int funcindex, int n);
+LUA_API const char *(lua_setupvalue) (lua_State *L, int funcindex, int n);
+
+LUA_API void *(lua_upvalueid) (lua_State *L, int fidx, int n);
+LUA_API void  (lua_upvaluejoin) (lua_State *L, int fidx1, int n1,
+                                               int fidx2, int n2);
+
+
+## ldblib.c (lines 441-477)
+  const char *msg = lua_tostring(L, arg + 1);
+  if (msg == NULL && !lua_isnoneornil(L, arg + 1))  /* non-string 'msg'? */
+    lua_pushvalue(L, arg + 1);  /* return it untouched */
+  else {
+    int level = (int)luaL_optinteger(L, arg + 2, (L == L1) ? 1 : 0);
+    luaL_traceback(L, L1, msg, level);
+  }
+  return 1;
+}
+
+
+static const luaL_Reg dblib[] = {
+  {"debug", db_debug},
+  {"getuservalue", db_getuservalue},
+  {"gethook", db_gethook},
+  {"getinfo", db_getinfo},
+  {"getlocal", db_getlocal},
+  {"getregistry", db_getregistry},
+  {"getmetatable", db_getmetatable},
+  {"getupvalue", db_getupvalue},
+  {"upvaluejoin", db_upvaluejoin},
+  {"upvalueid", db_upvalueid},
+  {"setuservalue", db_setuservalue},
+  {"sethook", db_sethook},
+  {"setlocal", db_setlocal},
+  {"setmetatable", db_setmetatable},
+  {"setupvalue", db_setupvalue},
+  {"traceback", db_traceback},
+  {NULL, NULL}
+};
+
+
+LUAMOD_API int luaopen_debug (lua_State *L) {
+  luaL_newlib(L, dblib);
+  return 1;
+}
+

@@ -1,0 +1,66 @@
+Here's a Python script that fetches a URL and extracts all hyperlinks:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+def fetch_and_extract_links(url):
+    """Fetch a URL and extract all hyperlinks with their text."""
+    try:
+        # Fetch the webpage
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        # Parse the HTML
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Find all anchor tags
+        links = soup.find_all('a')
+        
+        if not links:
+            print("No links found on the page.")
+            return
+        
+        print(f"Found {len(links)} links:\n")
+        for link in links:
+            href = link.get('href', '#no-href')
+            text = link.get_text(strip=True)
+            print(f"Text: {text}")
+            print(f"URL:  {href}\n")
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+
+if __name__ == "__main__":
+    fetch_and_extract_links("https://example.com")
+```
+
+**How to run it:**
+
+1. **Install required libraries:**
+   ```bash
+   pip install requests beautifulsoup4
+   ```
+
+2. **Run the script:**
+   ```bash
+   python script.py
+   ```
+
+**What it does:**
+- Fetches the HTML from the URL
+- Parses it with BeautifulSoup
+- Finds all `<a>` tags
+- Prints the link text and href for each one
+- Handles errors gracefully (network issues, missing hrefs, etc.)
+
+For example.com, you'll see output like:
+```
+Found 2 links:
+
+Text: More information...
+URL:  https://www.iana.org/domains/example
+
+Text: ...
+URL:  https://www.iana.org/
+```

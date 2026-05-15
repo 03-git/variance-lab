@@ -1,0 +1,101 @@
+Here's an async TCP echo server in Python using `asyncio`:
+
+## Server
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read one line from client (up to \n)
+            data = await reader.readline()
+            
+            # Empty data means client disconnected
+            if not data:
+                break
+            
+            message = data.decode().strip()
+            print(f"[{addr}] Received: {message}")
+            
+            # Echo back the data (with newline)
+            writer.write(data)
+            await writer.drain()
+    except Exception as e:
+        print(f"Error with {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(handle_client, '127.0.0.1', 9999)
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+## Client (for testing)
+
+```python
+import asyncio
+
+async def main():
+    reader, writer = await asyncio.open_connection('127.0.0.1', 9999)
+    
+    print("Connected to echo server. Type messages (Ctrl+C to exit):")
+    
+    try:
+        while True:
+            message = input("> ")
+            writer.write((message + "\n").encode())
+            await writer.drain()
+            
+            response = await reader.readline()
+            print(f"Echo: {response.decode().strip()}")
+    except KeyboardInterrupt:
+        print("\nDisconnecting...")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+## How to run
+
+**Terminal 1** (server):
+```bash
+python server.py
+# Output: Echo server listening on ('127.0.0.1', 9999)
+```
+
+**Terminal 2+** (clients, start as many as you want):
+```bash
+python client.py
+# Connected to echo server. Type messages (Ctrl+C to exit):
+# > hello world
+# Echo: hello world
+# > test
+# Echo: test
+```
+
+## Key points
+
+- **`asyncio.start_server()`** listens for connections and calls `handle_client()` for each one
+- **`reader.readline()`** reads until newline and is non-blocking—the server awaits instead of blocking
+- **Multiple clients** run concurrently because each connection gets its own async task
+- **`await writer.drain()`** ensures buffered data is flushed before continuing
+- Connect as many clients as you want—the server handles them all concurrently

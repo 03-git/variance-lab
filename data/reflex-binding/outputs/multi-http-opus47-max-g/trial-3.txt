@@ -1,0 +1,39 @@
+Python stdlib only — no dependencies, no files.
+
+```python
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != "/time":
+            self.send_response(404)
+            self.end_headers()
+            return
+        body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+if __name__ == "__main__":
+    HTTPServer(("127.0.0.1", 8000), TimeHandler).serve_forever()
+```
+
+Run it:
+
+```bash
+python3 -c '<paste the code above>'
+# or save to a file and: python3 timeserver.py
+```
+
+Test it:
+
+```bash
+curl http://127.0.0.1:8000/time
+# {"time": "2026-05-10T12:34:56.789012+00:00"}
+```
+
+Notes: binds to loopback only (change to `"0.0.0.0"` for LAN). `datetime.now(timezone.utc).isoformat()` produces a valid ISO 8601 string with offset `+00:00`; if you want the `Z` suffix, swap to `.replace("+00:00", "Z")`.

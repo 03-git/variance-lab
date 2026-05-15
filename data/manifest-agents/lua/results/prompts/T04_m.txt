@@ -1,0 +1,492 @@
+You are answering questions about the Lua 5.4 source code. Use ONLY the provided context to answer. Be specific — cite file names, function names, and quote relevant code.
+
+## Manifest (routing table for Lua 5.4 source)
+# path	[tag]	description
+Makefile	[build]	Developer makefile; defines CWARNSCPP/CWARNGCC flag sets and platform targets (linux, macosx, mingw)
+lapi.c	[api]	Public C API implementation; lua_push*, lua_get*, lua_call*, lua_pcall, stack manipulation
+lapi.h	[api]	Internal API helpers; api_incr_top stack-overflow check macro, api_check assertion wrapper
+lauxlib.c	[aux]	Auxiliary library; luaL_loadfile, luaL_Buffer, luaL_ref, luaL_traceback, registry helpers
+lauxlib.h	[aux]	Auxiliary library header; luaL_Buffer, luaL_Reg, luaL_newstate, luaL_error declarations
+lbaselib.c	[stdlib]	Base library; luaB_print, luaB_pcall, luaB_xpcall, luaB_load, luaB_next, luaB_type
+lcode.c	[compiler]	Code generator; emits VM instructions, manages patch lists (NO_JUMP), constant folding, jump fixup
+lcode.h	[compiler]	Code generator header; BinOpr/UnOpr enums, expdesc result kinds, luaK_* function declarations
+lcorolib.c	[coroutine]	Coroutine library; luaB_cocreate, luaB_coresume, luaB_cowrap, luaB_costatus
+lctype.c	[core]	Custom ctype table; luai_ctype_[] byte array for fast lislalpha/lisdigit/etc without locale dependency
+lctype.h	[core]	Ctype macros; lislalpha, lisdigit, lisspace, lisprint defined over luai_ctype_[] table
+ldblib.c	[debug]	Debug library; lua_sethook, lua_getinfo, lua_getlocal wrappers; hook table at registry[HOOKKEY]
+ldebug.c	[debug]	Debug interface; luaG_runerror, luaG_typeerror, luaG_getfuncline, line/local/upvalue introspection
+ldebug.h	[debug]	Debug header; pcRel pc-to-offset macro, ci_func, resethookcount, ABSLINEINFO sentinel declarations
+ldo.c	[vm]	Stack and call engine; luaD_call, luaD_pcall, luaD_throw, luaD_rawrunprotected, stack reallocation
+ldo.h	[vm]	Call/stack header; luaD_checkstackaux growth macro, condmovestack HARDSTACKTESTS hook, throw/catch decls
+ldump.c	[compiler]	Bytecode serializer; DumpHeader, DumpFunction, DumpCode writing Proto to lua_Writer stream
+lfunc.c	[core]	Closure and prototype management; luaF_newCclosure, luaF_newLclosure, luaF_newUpval, open-upvalue list
+lfunc.h	[core]	Closure/upvalue header; sizeCclosure/sizeLclosure size macros, MAXUPVAL=255, isintwups check
+lgc.c	[gc]	Tri-color incremental garbage collector; mark/sweep/finalize phases, luaC_step, luaC_fullgc, barriers
+lgc.h	[gc]	GC header; white/gray/black color macros, luaC_barrier, luaC_barrierback, GC state constants
+linit.c	[core]	Standard library loader; stdlibs[] table mapping LUA_*LIBNAME to luaopen_* functions, luaL_openlibs
+liolib.c	[io]	I/O library; LuaFile userdata wrapping FILE*, io.open/close/read/write/lines/seek, popen support
+ljumptab.h	[vm]	GCC computed-goto dispatch table; disptab[] mapping NUM_OPCODES to &&L_OP_* labels for lvm.c
+llex.c	[parser]	Lexical analyzer; luaX_next token scanner, long strings, numeral parsing, reserved word table
+llex.h	[parser]	Lexer header; Token/SemInfo structs, FIRST_RESERVED boundary, LexState, luaX_* declarations
+llimits.h	[core]	Portability and type limits; l_mem/lu_mem, cast_* macros, MAXSTACK, luai_numunm, l_likely/unlikely
+lmathlib.c	[math]	Math library; math_abs through math_tointeger, random/randomseed with xoshiro256** PRNG
+lmem.c	[memory]	Memory manager; luaM_realloc_, luaM_growaux_, emergency GC on alloc failure, debt accounting
+lmem.h	[memory]	Memory header; luaM_new/newvector/growvector macros, overflow-safe luaM_limitN size check
+loadlib.c	[stdlib]	Dynamic loader; package.loadlib via dlopen/LoadLibrary, searchers for Lua/C modules, package.path
+lobject.c	[core]	Generic object operations; luaO_str2num, luaO_pushvfstring, luaO_tostring, integer/float coercion
+lobject.h	[core]	Core value/object type definitions; TValue tagged-union, GCObject CommonHeader, TString/Table/Proto layouts
+lopcodes.c	[vm]	Opcode mode table; luaP_opmodes[] encoding MM/OT/IT/T/A/format bits per opcode via opmode macro
+lopcodes.h	[vm]	VM instruction set; 32-bit iABC/iABx/isBx/iAx/isJ formats, OP_* enum, GET_OPCODE/GETARG_* macros
+lopnames.h	[vm]	Opcode name strings; opnames[] char* array parallel to OP_* enum for disassembly/error messages
+loslib.c	[stdlib]	OS library; os.time/date/clock/difftime/exit/getenv/remove/rename/tmpname, strftime format validation
+lparser.c	[parser]	Recursive-descent parser; luaY_parser entry, statement/expression/block rules, expdesc construction
+lparser.h	[parser]	Parser header; expdesc expkind enum (VVOID..VINDEXSTR), FuncState, BlockCnt, Dyndata declarations
+lprefix.h	[core]	Must-include-first header; sets _XOPEN_SOURCE=600, _LARGEFILE_SOURCE, _FILE_OFFSET_BITS=64 for POSIX
+lstate.c	[core]	Global and thread state init; lua_newstate, luaE_newthread, luaE_freethread, allgc list setup
+lstate.h	[core]	State structures; lua_State with stack/ci/twups/hookcount, global_State with GC roots and string table
+lstring.c	[string]	Interned string table; luaS_newlstr hash+dedup, short vs long string split at LUAI_MAXSHORTLEN=40
+lstring.h	[string]	String header; MEMERRMSG preallocated OOM string, LUAI_MAXSHORTLEN, luaS_new/eqlngstr declarations
+lstrlib.c	[string]	String library; string.format, pattern match/find/gmatch/gsub, string.pack/unpack/packsize
+ltable.c	[table]	Hash table; dual array+hash layout, Brent's variation chaining, luaH_set/get/resize/next
+ltable.h	[table]	Table header; gnode/gval/gnext access macros, invalidateTMcache, BITDUMMY flag, luaH_* declarations
+ltablib.c	[table]	Table library; table.insert/remove/sort (adaptive merge+quick), table.move, table.concat
+ltests.c	[debug]	Internal test module; memory limit injection, GC stress, opcode checkers, C test functions exposed to Lua
+ltests.h	[debug]	Test header; enables LUA_DEBUG/LUAI_ASSERT, redefines allocator for memory fault injection
+ltm.c	[core]	Tag method (metamethod) dispatch; luaT_typenames_, luaT_gettm, luaT_callTM, __index/__newindex chains
+ltm.h	[core]	Metamethod enum; TM_INDEX..TM_CLOSE ordered enum, TM_N count, fast-access cutoff at TM_EQ
+lua.c	[core]	Standalone interpreter; REPL loop, LUA_INIT handling, signal handler, dofile/dostring startup
+lua.h	[api]	Public API header; lua_State, TValue-free types, lua_push*/lua_to*/lua_call*/lua_pcall declarations
+luaconf.h	[build]	Master configuration; LUA_INT_TYPE, LUA_FLOAT_TYPE, LUAI_MAXSTACK, path defaults, platform detection
+lualib.h	[stdlib]	Standard library registry; LUA_*LIBNAME constants, LUA_*LIBK bitmask flags, luaopen_* declarations
+lundump.c	[compiler]	Bytecode loader; LoadHeader magic/version check, LoadFunction rebuilds Proto from luac binary format
+lundump.h	[compiler]	Undump header; LUAC_DATA/INT/INST/NUM verification constants, LUAC_VERSION nibble encoding
+lutf8lib.c	[string]	UTF-8 library; utf8.codes/codepoint/char/len/offset, MAXUNICODE=0x10FFFF decoder/encoder
+lvm.c	[vm]	Main interpreter loop; luaV_execute dispatch over all opcodes, arithmetic/comparison/metamethod calls
+lvm.h	[vm]	VM header; cvt2str/cvt2num coercion macros, luaV_execute/luaV_objcomp/luaV_idiv declarations
+lzio.c	[core]	Buffered input stream; luaZ_fill refill callback, luaZ_read block reader over ZIO
+lzio.h	[core]	ZIO stream header; zgetc single-char macro, Mbuffer dynamic buffer, luaZ_initbuffer/resetbuffer
+onelua.c	[build]	Unity build entry; #includes all core + lib sources for single-TU compilation via gcc -o lua onelua.c -lm
+
+
+## lua.h (lines 201-240 of 547)
+LUA_API lua_Integer     (lua_tointegerx) (lua_State *L, int idx, int *isnum);
+LUA_API int             (lua_toboolean) (lua_State *L, int idx);
+LUA_API const char     *(lua_tolstring) (lua_State *L, int idx, size_t *len);
+LUA_API lua_Unsigned    (lua_rawlen) (lua_State *L, int idx);
+LUA_API lua_CFunction   (lua_tocfunction) (lua_State *L, int idx);
+LUA_API void	       *(lua_touserdata) (lua_State *L, int idx);
+LUA_API lua_State      *(lua_tothread) (lua_State *L, int idx);
+LUA_API const void     *(lua_topointer) (lua_State *L, int idx);
+
+
+/*
+** Comparison and arithmetic functions
+*/
+
+#define LUA_OPADD	0	/* ORDER TM, ORDER OP */
+#define LUA_OPSUB	1
+#define LUA_OPMUL	2
+#define LUA_OPMOD	3
+#define LUA_OPPOW	4
+#define LUA_OPDIV	5
+#define LUA_OPIDIV	6
+#define LUA_OPBAND	7
+#define LUA_OPBOR	8
+#define LUA_OPBXOR	9
+#define LUA_OPSHL	10
+#define LUA_OPSHR	11
+#define LUA_OPUNM	12
+#define LUA_OPBNOT	13
+
+LUA_API void  (lua_arith) (lua_State *L, int op);
+
+#define LUA_OPEQ	0
+#define LUA_OPLT	1
+#define LUA_OPLE	2
+
+LUA_API int   (lua_rawequal) (lua_State *L, int idx1, int idx2);
+LUA_API int   (lua_compare) (lua_State *L, int idx1, int idx2, int op);
+
+
+/*
+
+## lua.h (lines 1-40 of 547)
+/*
+** $Id: lua.h $
+** Lua - A Scripting Language
+** Lua.org, PUC-Rio, Brazil (www.lua.org)
+** See Copyright Notice at the end of this file
+*/
+
+
+#ifndef lua_h
+#define lua_h
+
+#include <stdarg.h>
+#include <stddef.h>
+
+
+#define LUA_COPYRIGHT	LUA_RELEASE "  Copyright (C) 1994-2026 Lua.org, PUC-Rio"
+#define LUA_AUTHORS	"R. Ierusalimschy, L. H. de Figueiredo, W. Celes"
+
+
+#define LUA_VERSION_MAJOR_N	5
+#define LUA_VERSION_MINOR_N	5
+#define LUA_VERSION_RELEASE_N	1
+
+#define LUA_VERSION_NUM  (LUA_VERSION_MAJOR_N * 100 + LUA_VERSION_MINOR_N)
+#define LUA_VERSION_RELEASE_NUM  (LUA_VERSION_NUM * 100 + LUA_VERSION_RELEASE_N)
+
+
+#include "luaconf.h"
+
+
+/* mark for precompiled code ('<esc>Lua') */
+#define LUA_SIGNATURE	"\x1bLua"
+
+/* option for multiple returns in 'lua_pcall' and 'lua_call' */
+#define LUA_MULTRET	(-1)
+
+
+/*
+** Pseudo-indices
+** (The stack size is limited to INT_MAX/2; we keep some free empty
+
+## ltests.h (lines 81-120 of 167)
+/*
+** Function to print an object GC-friendly
+*/
+struct GCObject;
+extern void lua_printobj (lua_State *L, struct GCObject *o);
+
+
+/*
+** Function to print a value
+*/
+struct TValue;
+extern void lua_printvalue (struct TValue *v);
+
+/*
+** Function to print the stack
+*/
+extern void lua_printstack (lua_State *L);
+extern int lua_printallstack (lua_State *L);
+
+
+/* test for lock/unlock */
+
+struct L_EXTRA { int lock; int *plock; };
+#undef LUA_EXTRASPACE
+#define LUA_EXTRASPACE	sizeof(struct L_EXTRA)
+#define getlock(l)	cast(struct L_EXTRA*, lua_getextraspace(l))
+#define luai_userstateopen(l)  \
+	(getlock(l)->lock = 0, getlock(l)->plock = &(getlock(l)->lock))
+#define luai_userstateclose(l)  \
+  lua_assert(getlock(l)->lock == 1 && getlock(l)->plock == &(getlock(l)->lock))
+#define luai_userstatethread(l,l1) \
+  lua_assert(getlock(l1)->plock == getlock(l)->plock)
+#define luai_userstatefree(l,l1) \
+  lua_assert(getlock(l)->plock == getlock(l1)->plock)
+#define lua_lock(l)     lua_assert((*getlock(l)->plock)++ == 0)
+#define lua_unlock(l)   lua_assert(--(*getlock(l)->plock) == 0)
+
+
+
+LUA_API int luaB_opentests (lua_State *L);
+
+## ltests.h (lines 1-40 of 167)
+/*
+** $Id: ltests.h $
+** Internal Header for Debugging of the Lua Implementation
+** See Copyright Notice in lua.h
+*/
+
+#ifndef ltests_h
+#define ltests_h
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+/* test Lua with compatibility code */
+#define LUA_COMPAT_MATHLIB
+#undef LUA_COMPAT_GLOBAL
+#define LUA_COMPAT_GLOBAL	0
+
+
+#define LUA_DEBUG
+
+
+/* turn on assertions */
+#define LUAI_ASSERT
+
+
+/* to avoid warnings, and to make sure value is really unused */
+#define UNUSED(x)       (x=0, (void)(x))
+
+
+/* test for sizes in 'l_sprintf' (make sure whole buffer is available) */
+#undef l_sprintf
+#if !defined(LUA_USE_C89)
+#define l_sprintf(s,sz,f,i)	(memset(s,0xAB,sz), snprintf(s,sz,f,i))
+#else
+#define l_sprintf(s,sz,f,i)	(memset(s,0xAB,sz), sprintf(s,f,i))
+#endif
+
+
+/* get a chance to test code without jump tables */
+
+## lapi.c (lines 521-560 of 1479)
+
+LUA_API void lua_pushnumber (lua_State *L, lua_Number n) {
+  lua_lock(L);
+  setfltvalue(s2v(L->top.p), n);
+  api_incr_top(L);
+  lua_unlock(L);
+}
+
+
+LUA_API void lua_pushinteger (lua_State *L, lua_Integer n) {
+  lua_lock(L);
+  setivalue(s2v(L->top.p), n);
+  api_incr_top(L);
+  lua_unlock(L);
+}
+
+
+/*
+** Pushes on the stack a string with given length. Avoid using 's' when
+** 'len' == 0 (as 's' can be NULL in that case), due to later use of
+** 'memcmp' and 'memcpy'.
+*/
+LUA_API const char *lua_pushlstring (lua_State *L, const char *s, size_t len) {
+  TString *ts;
+  lua_lock(L);
+  ts = (len == 0) ? luaS_new(L, "") : luaS_newlstr(L, s, len);
+  setsvalue2s(L, L->top.p, ts);
+  api_incr_top(L);
+  luaC_checkGC(L);
+  lua_unlock(L);
+  return getstr(ts);
+}
+
+
+LUA_API const char *lua_pushexternalstring (lua_State *L,
+	        const char *s, size_t len, lua_Alloc falloc, void *ud) {
+  TString *ts;
+  lua_lock(L);
+  api_check(L, len <= MAX_SIZE, "string too large");
+  api_check(L, s[len] == '\0', "string not ending with zero");
+
+## lapi.c (lines 1-40 of 1479)
+/*
+** $Id: lapi.c $
+** Lua API
+** See Copyright Notice in lua.h
+*/
+
+#define lapi_c
+#define LUA_CORE
+
+#include "lprefix.h"
+
+
+#include <limits.h>
+#include <stdarg.h>
+#include <string.h>
+
+#include "lua.h"
+
+#include "lapi.h"
+#include "ldebug.h"
+#include "ldo.h"
+#include "lfunc.h"
+#include "lgc.h"
+#include "lmem.h"
+#include "lobject.h"
+#include "lstate.h"
+#include "lstring.h"
+#include "ltable.h"
+#include "ltm.h"
+#include "lundump.h"
+#include "lvm.h"
+
+
+
+const char lua_ident[] =
+  "$LuaVersion: " LUA_COPYRIGHT " $"
+  "$LuaAuthors: " LUA_AUTHORS " $";
+
+
+
+
+## lzio.h (lines 1-40 of 67)
+/*
+** $Id: lzio.h $
+** Buffered streams
+** See Copyright Notice in lua.h
+*/
+
+
+#ifndef lzio_h
+#define lzio_h
+
+#include "lua.h"
+
+#include "lmem.h"
+
+
+#define EOZ	(-1)			/* end of stream */
+
+typedef struct Zio ZIO;
+
+#define zgetc(z)  (((z)->n--)>0 ?  cast_uchar(*(z)->p++) : luaZ_fill(z))
+
+
+typedef struct Mbuffer {
+  char *buffer;
+  size_t n;
+  size_t buffsize;
+} Mbuffer;
+
+#define luaZ_initbuffer(L, buff) ((buff)->buffer = NULL, (buff)->buffsize = 0)
+
+#define luaZ_buffer(buff)	((buff)->buffer)
+#define luaZ_sizebuffer(buff)	((buff)->buffsize)
+#define luaZ_bufflen(buff)	((buff)->n)
+
+#define luaZ_buffremove(buff,i)	((buff)->n -= cast_sizet(i))
+#define luaZ_resetbuffer(buff) ((buff)->n = 0)
+
+
+#define luaZ_resizebuffer(L, buff, size) \
+	((buff)->buffer = luaM_reallocvchar(L, (buff)->buffer, \
+
+## lvm.h (lines 81-120 of 136)
+#define luaV_fastget(t,k,res,f, tag) \
+  (tag = (!ttistable(t) ? LUA_VNOTABLE : f(hvalue(t), k, res)))
+
+
+/*
+** Special case of 'luaV_fastget' for integers, inlining the fast case
+** of 'luaH_getint'.
+*/
+#define luaV_fastgeti(t,k,res,tag) \
+  if (!ttistable(t)) tag = LUA_VNOTABLE; \
+  else { luaH_fastgeti(hvalue(t), k, res, tag); }
+
+
+#define luaV_fastset(t,k,val,hres,f) \
+  (hres = (!ttistable(t) ? HNOTATABLE : f(hvalue(t), k, val)))
+
+#define luaV_fastseti(t,k,val,hres) \
+  if (!ttistable(t)) hres = HNOTATABLE; \
+  else { luaH_fastseti(hvalue(t), k, val, hres); }
+
+
+/*
+** Finish a fast set operation (when fast set succeeds).
+*/
+#define luaV_finishfastset(L,t,v)	luaC_barrierback(L, gcvalue(t), v)
+
+
+/*
+** Shift right is the same as shift left with a negative 'y'
+*/
+#define luaV_shiftr(x,y)	luaV_shiftl(x,intop(-, 0, y))
+
+
+
+LUAI_FUNC int luaV_equalobj (lua_State *L, const TValue *t1, const TValue *t2);
+LUAI_FUNC int luaV_lessthan (lua_State *L, const TValue *l, const TValue *r);
+LUAI_FUNC int luaV_lessequal (lua_State *L, const TValue *l, const TValue *r);
+LUAI_FUNC int luaV_tonumber_ (const TValue *obj, lua_Number *n);
+LUAI_FUNC int luaV_tointeger (const TValue *obj, lua_Integer *p, F2Imod mode);
+LUAI_FUNC int luaV_tointegerns (const TValue *obj, lua_Integer *p,
+
+## lvm.h (lines 1-40 of 136)
+/*
+** $Id: lvm.h $
+** Lua virtual machine
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lvm_h
+#define lvm_h
+
+
+#include "ldo.h"
+#include "lobject.h"
+#include "ltm.h"
+
+
+#if !defined(LUA_NOCVTN2S)
+#define cvt2str(o)	ttisnumber(o)
+#else
+#define cvt2str(o)	0	/* no conversion from numbers to strings */
+#endif
+
+
+#if !defined(LUA_NOCVTS2N)
+#define cvt2num(o)	ttisstring(o)
+#else
+#define cvt2num(o)	0	/* no conversion from strings to numbers */
+#endif
+
+
+/*
+** You can define LUA_FLOORN2I if you want to convert floats to integers
+** by flooring them (instead of raising an error if they are not
+** integral values)
+*/
+#if !defined(LUA_FLOORN2I)
+#define LUA_FLOORN2I		F2Ieq
+#endif
+
+
+/*
+
+## lundump.h (lines 1-40 of 40)
+/*
+** $Id: lundump.h $
+** load precompiled Lua chunks
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lundump_h
+#define lundump_h
+
+#include <limits.h>
+
+#include "llimits.h"
+#include "lobject.h"
+#include "lzio.h"
+
+
+/* data to catch conversion errors */
+#define LUAC_DATA	"\x19\x93\r\n\x1a\n"
+
+#define LUAC_INT	-0x5678
+#define LUAC_INST	0x12345678
+#define LUAC_NUM	cast_num(-370.5)
+
+/*
+** Encode major-minor version in one byte, one nibble for each
+*/
+#define LUAC_VERSION	(LUA_VERSION_MAJOR_N*16+LUA_VERSION_MINOR_N)
+
+#define LUAC_FORMAT	0	/* this is the official format */
+
+
+/* load one chunk; from lundump.c */
+LUAI_FUNC LClosure* luaU_undump (lua_State* L, ZIO* Z, Table *anchor,
+                                 const char* name, int fixed);
+
+/* dump one chunk; from ldump.c */
+LUAI_FUNC int luaU_dump (lua_State* L, const Proto* f, lua_Writer w,
+                         void* data, int strip);
+
+#endif
+
+## Question
+What header files define the Lua public API vs internal API?

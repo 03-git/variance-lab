@@ -1,0 +1,79 @@
+I'll show you an async TCP echo server using Python's `asyncio` module that handles multiple concurrent clients.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If client closes connection, data will be empty
+            if not data:
+                break
+            
+            # Echo the data back to the client
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    
+    except asyncio.CancelledError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**To run it:**
+
+```bash
+# Terminal 1: Start the server
+python3 echo_server.py
+```
+
+```bash
+# Terminal 2: Connect a client
+nc localhost 8888
+hello
+# Server echoes back: hello
+world
+# Server echoes back: world
+```
+
+Or use `telnet`:
+```bash
+telnet localhost 8888
+```
+
+**How it works:**
+- `asyncio.start_server()` creates a server that accepts connections
+- `handle_client()` runs concurrently for each connected client
+- `reader.readline()` waits for a line of text without blocking other clients
+- `writer.write()` + `writer.drain()` sends data back to the client
+- Multiple clients can connect simultaneously and are handled concurrently
+
+Try opening multiple terminal windows with `nc localhost 8888` to test concurrent connections—each client is handled independently.

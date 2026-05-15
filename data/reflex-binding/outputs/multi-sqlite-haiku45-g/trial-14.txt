@@ -1,0 +1,86 @@
+Here's a complete Python script that creates a SQLite database, adds notes, and queries them:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create/connect to database
+conn = sqlite3.connect(':memory:')  # Use ':memory:' for in-memory DB, or 'notes.db' for a file
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Python Tips', 'Remember to use list comprehensions for cleaner code', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discussed Q2 roadmap and timeline adjustments', datetime.now().isoformat()),
+    ('Book Recommendation', 'Clean Code by Robert Martin is excellent for best practices', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+
+# Commit changes
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+# Print notes
+print("All Notes:")
+print("-" * 60)
+for note in notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 60)
+
+# Close connection
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python3 script.py
+```
+
+**Output:**
+```
+All Notes:
+------------------------------------------------------------
+ID: 1
+Title: Python Tips
+Body: Remember to use list comprehensions for cleaner code
+Created: 2026-05-10T...
+------------------------------------------------------------
+ID: 2
+Title: Meeting Notes
+Body: Discussed Q2 roadmap and timeline adjustments
+Created: 2026-05-10T...
+------------------------------------------------------------
+ID: 3
+Title: Book Recommendation
+Body: Clean Code by Robert Martin is excellent for best practices
+Created: 2026-05-10T...
+------------------------------------------------------------
+```
+
+**Key points:**
+- Uses `:memory:` for an in-memory database (data lost on exit). Change to `'notes.db'` to persist to disk.
+- Uses parameterized queries (`?` placeholders) to prevent SQL injection.
+- `executemany()` efficiently inserts multiple rows at once.
+- All three notes are created with current timestamps.

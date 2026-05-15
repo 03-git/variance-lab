@@ -1,0 +1,523 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from runtime/hosuni/hosuni.c)
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
+/* ================================================================
+   json escape (shared — every inference call site uses this)
+   ================================================================ */
+
+static int json_escape(const char *in, char *out, int out_max) {
+    int o = 0;
+    for (int i = 0; in[i] && o < out_max - 6; i++) {
+        switch (in[i]) {
+        case '"':  out[o++] = '\\'; out[o++] = '"'; break;
+        case '\\': out[o++] = '\\'; out[o++] = '\\'; break;
+        case '\n': out[o++] = '\\'; out[o++] = 'n'; break;
+        case '\r': out[o++] = '\\'; out[o++] = 'r'; break;
+        case '\t': out[o++] = '\\'; out[o++] = 't'; break;
+        default:
+            if ((unsigned char)in[i] < 0x20) {
+                o += snprintf(out + o, out_max - o, "\\u%04x", in[i]);
+            } else {
+                out[o++] = in[i];
+            }
+        }
+    }
+    out[o] = 0;
+    return o;
+}
+
+/* ================================================================
+   lookdown — instant answers from TSV pattern tables
+   ================================================================ */
+
+#define MAX_LOOKDOWN 4096
+#define LOOKDOWN_PAT_MAX 256
+#define LOOKDOWN_CMD_MAX 2048
+
+#define LOOKDOWN_EXEC   1
+#define LOOKDOWN_PINNED 2
+
+
+
+### Chunk 2 (from runtime/hosuni/hosuni.c)
+#define LOOKDOWN_CMD_MAX 2048
+
+#define LOOKDOWN_EXEC   1
+#define LOOKDOWN_PINNED 2
+
+static struct {
+    char pattern[LOOKDOWN_PAT_MAX];
+    char command[LOOKDOWN_CMD_MAX];
+    uint8_t flags;
+    char source_file[256];
+    int source_line;
+} lookdown_table[MAX_LOOKDOWN];
+static int lookdown_count;
+
+static void lookdown_load(const char *path) {
+    FILE *fp = fopen(path, "r");
+    if (!fp) return;
+    int line_num = 0;
+    char line[LOOKDOWN_PAT_MAX + LOOKDOWN_CMD_MAX + 8];
+    while (fgets(line, sizeof(line), fp) && lookdown_count < MAX_LOOKDOWN) {
+        line_num++;
+        int len = strlen(line);
+        if (len > 0 && line[len - 1] == '\n') line[--len] = '\0';
+        if (len == 0 || line[0] == '#') continue;
+        char *tab = strchr(line, '\t');
+        if (!tab) continue;
+        *tab = '\0';
+        char *cmd = tab + 1;
+        uint8_t flags = 0;
+        if (cmd[0] == '[') {
+            char *close = strchr(cmd, ']');
+            char *tab2 = strchr(cmd, '\t');
+            if (tab2) {
+                if (close && close < tab2 &&
+                    (strncmp(cmd, "[player]", 8) == 0 || strncmp(cmd, "[exec]", 6) == 0))
+                    flags = LOOKDOWN_EXEC;
+                cmd = tab2 + 1;
+            } else continue;
+        }
+        if (!*cmd) continue;
+
+
+### Chunk 3 (from runtime/hosuni/hosuni.h)
+#define KEY_F         33
+#define KEY_G         34
+#define KEY_H         35
+#define KEY_J         36
+#define KEY_K         37
+#define KEY_L         38
+#define KEY_SEMICOLON 39
+#define KEY_APOSTROPHE 40
+#define KEY_GRAVE     41
+#define KEY_LEFTSHIFT 42
+#define KEY_BACKSLASH 43
+#define KEY_Z         44
+#define KEY_X         45
+#define KEY_C         46
+#define KEY_V         47
+#define KEY_B         48
+#define KEY_N         49
+#define KEY_M         50
+#define KEY_COMMA     51
+#define KEY_DOT       52
+#define KEY_SLASH     53
+#define KEY_RIGHTSHIFT 54
+#define KEY_SPACE     57
+#define KEY_F1        59
+#define KEY_F2        60
+#define KEY_F3        61
+#define KEY_F4        62
+#define KEY_F5        63
+#define KEY_UP        103
+#define KEY_LEFT      105
+#define KEY_RIGHT     106
+#define KEY_DOWN      108
+#define KEY_DELETE    111
+#define KEY_0         11
+#endif
+
+/* --- modes --- */
+
+typedef enum {
+    MODE_READ,
+
+
+### Chunk 4 (from runtime/hosuni/hosuni.c)
+    for (int i = 0; i < lookdown_count; i++)
+        if (lookdown_table[i].flags & LOOKDOWN_PINNED)
+            fprintf(fp, "%s\n", lookdown_table[i].pattern);
+    fclose(fp);
+}
+
+static void pinned_load(void) {
+    char *home = getenv("HOME");
+    if (!home) return;
+    char path[512];
+    snprintf(path, sizeof(path), "%s/.subtract/.pinned", home);
+    FILE *fp = fopen(path, "r");
+    if (!fp) return;
+    char pat[LOOKDOWN_PAT_MAX];
+    while (fgets(pat, sizeof(pat), fp)) {
+        int len = strlen(pat);
+        while (len > 0 && (pat[len-1] == '\n' || pat[len-1] == '\r')) pat[--len] = 0;
+        for (int i = 0; i < lookdown_count; i++)
+            if (strcmp(lookdown_table[i].pattern, pat) == 0)
+                lookdown_table[i].flags |= LOOKDOWN_PINNED;
+    }
+    fclose(fp);
+}
+
+static int has_any_pinned(void) {
+    for (int i = 0; i < lookdown_count; i++)
+        if ((lookdown_table[i].flags & LOOKDOWN_EXEC) && (lookdown_table[i].flags & LOOKDOWN_PINNED))
+            return 1;
+    return 0;
+}
+
+/* ================================================================
+   font rendering (stb_truetype)
+   ================================================================ */
+
+/* ---- glyph cache ---- */
+
+#define GCACHE_SLOTS 512
+#define GCACHE_MASK  (GCACHE_SLOTS - 1)
+
+
+
+### Chunk 5 (from runtime/hosuni/hosuni.h)
+void platform_reclaim(void);
+void platform_drain_input(void);
+void platform_close_child_fds(void);
+void platform_xkb_update(int evdev_code, int value);
+int  platform_key_utf8(int evdev_code, char *out, int out_max);
+
+/* --- keycodes (linux canonical, macOS translates inbound) --- */
+
+#ifndef KEY_ESC
+#define KEY_ESC       1
+#define KEY_1         2
+#define KEY_2         3
+#define KEY_3         4
+#define KEY_4         5
+#define KEY_5         6
+#define KEY_MINUS     12
+#define KEY_EQUAL     13
+#define KEY_BACKSPACE 14
+#define KEY_TAB       15
+#define KEY_Q         16
+#define KEY_W         17
+#define KEY_E         18
+#define KEY_R         19
+#define KEY_T         20
+#define KEY_Y         21
+#define KEY_U         22
+#define KEY_I         23
+#define KEY_O         24
+#define KEY_P         25
+#define KEY_LEFTBRACE 26
+#define KEY_RIGHTBRACE 27
+#define KEY_ENTER     28
+#define KEY_A         30
+#define KEY_S         31
+#define KEY_D         32
+#define KEY_F         33
+#define KEY_G         34
+#define KEY_H         35
+#define KEY_J         36
+#define KEY_K         37
+
+
+### Chunk 6 (from lookdown.universal.tsv)
+*system*call*close*	echo "close() - closes a file descriptor"
+what is close	echo "close() - system call that releases a file descriptor"
+*system*call*read*	echo "read() - reads data from a file descriptor into a buffer"
+*system*call*write*	echo "write() - writes data from a buffer to a file descriptor"
+what is write	echo "write() - writes bytes from buffer to file descriptor"
+*system*call*dup*	echo "dup()/dup2() - duplicates a file descriptor"
+what is dup	echo "dup()/dup2() - duplicates file descriptor, used for I/O redirection"
+*system*call*socket*	echo "socket() - creates an endpoint for communication"
+what is socket	echo "socket() - creates network communication endpoint"
+*system*call*bind*	echo "bind() - assigns an address to a socket"
+*system*call*listen*	echo "listen() - marks socket as passive, accepting incoming connections"
+*system*call*accept*	echo "accept() - extracts first connection request from queue"
+*system*call*connect*	echo "connect() - initiates connection on a socket"
+*system*call*select*	echo "select() - monitors multiple file descriptors for I/O readiness"
+*system*call*epoll*	echo "epoll - Linux scalable I/O event notification (epoll_create, epoll_ctl, epoll_wait)"
+*system*call*poll*	echo "poll() - waits for events on file descriptors"
+*system*call*signal*	echo "signal()/sigaction() - sets disposition of a signal"
+*system*call*kill*	echo "kill() - sends signal to a process"
+what is kill	echo "kill() - system call that sends a signal to a process or process group"
+*system*call*stat*	echo "stat()/fstat()/lstat() - retrieves file metadata"
+what is stat	echo "stat() - retrieves file metadata (size, permissions, timestamps)"
+*system*call*chdir*	echo "chdir() - changes current working directory"
+*system*call*getcwd*	echo "getcwd() - gets current working directory"
+*system*call*mkdir*	echo "mkdir() - creates a directory"
+*system*call*rmdir*	echo "rmdir() - removes an empty directory"
+*system*call*unlink*	echo "unlink() - removes a file (deletes directory entry)"
+*system*call*chmod*	echo "chmod() - changes file permissions"
+*system*call*chown*	echo "chown() - changes file owner and group"
+#
+# === FILE OPERATIONS (expanded) ===
+#
+make*executable	echo "usage: chmod +x FILENAME"
+*executable*permission*	echo "usage: chmod +x FILENAME"
+who*owns*this*file	ls -l
+who*owns*file	ls -l
+change*owner	echo "usage: chown USER:GROUP FILENAME"
+copy*file	cp
+copy*files	cp -r
+copy*directory	cp -r
+move*file	mv
+
+
+### Chunk 7 (from runtime/hosuni/hosuni.c)
+                    flags = LOOKDOWN_EXEC;
+                cmd = tab2 + 1;
+            } else continue;
+        }
+        if (!*cmd) continue;
+        snprintf(lookdown_table[lookdown_count].pattern, LOOKDOWN_PAT_MAX, "%s", line);
+        snprintf(lookdown_table[lookdown_count].command, LOOKDOWN_CMD_MAX, "%s", cmd);
+        lookdown_table[lookdown_count].flags = flags;
+        snprintf(lookdown_table[lookdown_count].source_file, 256, "%s", path);
+        lookdown_table[lookdown_count].source_line = line_num;
+        lookdown_count++;
+    }
+    fclose(fp);
+}
+
+static int lookdown_check(const char *input, char *output, int output_max,
+                          int *exec_out, int *match_idx) {
+    char lower[4096];
+    int i;
+    for (i = 0; input[i] && i < (int)sizeof(lower) - 1; i++)
+        lower[i] = (input[i] >= 'A' && input[i] <= 'Z') ? input[i] + 32 : input[i];
+    lower[i] = '\0';
+    if (exec_out) *exec_out = 0;
+    if (match_idx) *match_idx = -1;
+
+    for (int j = 0; j < lookdown_count; j++) {
+        if (lookdown_table[j].flags & LOOKDOWN_EXEC) continue;
+        if (fnmatch(lookdown_table[j].pattern, lower, 0) == 0) {
+            if (match_idx) *match_idx = j;
+            FILE *fp = popen(lookdown_table[j].command, "r");
+            if (!fp) return -1;
+            int len = fread(output, 1, output_max - 1, fp);
+            output[len] = '\0';
+            pclose(fp);
+            while (len > 0 && output[len - 1] == '\n') output[--len] = '\0';
+            return len;
+        }
+    }
+    return -1;
+}
+
+
+### Chunk 8 (from runtime/hosuni/hosuni.h)
+
+/* --- modes --- */
+
+typedef enum {
+    MODE_READ,
+    MODE_RUN,
+    MODE_TEACH,
+    MODE_COUNT
+} hosuni_mode;
+
+/* --- colors --- */
+
+#define COL_BG        0xFF000000
+#define COL_FG        0xFFFFFFFF
+#define COL_GREEN     0xFF50FA7B
+#define COL_YELLOW    0xFFFFB86C
+#define COL_DIM       0xFF666666
+#define COL_CURSOR    0xFFFF79C6
+#define COL_INPUT_BG  0xFF111111
+
+/* --- font --- */
+
+typedef struct {
+    unsigned char *bitmap;
+    int w, h;
+    float scale;
+    int ascent, descent, linegap;
+    void *info; /* stbtt_fontinfo* */
+    void *fallback_info; /* stbtt_fontinfo* for CJK fallback */
+    unsigned char *fallback_data;
+} hosuni_font;
+
+int  hosuni_font_init(hosuni_font *f, const char *ttf_path, float px);
+void hosuni_font_free(hosuni_font *f);
+void hosuni_draw_char(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   uint32_t cp, uint32_t color);
+int  hosuni_draw_text(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   const char *text, uint32_t color);
+int  hosuni_char_width(hosuni_font *f, uint32_t cp);
+int  hosuni_line_height(hosuni_font *f);
+
+
+### Chunk 9 (from runtime/parsimony.c)
+ *   coproc INF { ./parsimony model.gguf --prelude-file ~/subtract.ing/SOUL.txt; }
+ */
+
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+
+#include "ggml-backend.h"
+#include "llama.h"
+
+#define MAX_INPUT        (2 * 1024 * 1024)
+#define MAX_PROMPT_TOKENS 131072
+#define DEFAULT_MAX_GEN   4096
+#define MAX_RESPONSE     65536
+#define MAX_ESCAPED     131072
+#define MAX_MESSAGES        64
+
+static struct message {
+    char role[32];
+    char content[8192];
+} msgs_buf[MAX_MESSAGES];
+
+static char prompt_buf[MAX_INPUT];
+static char response_buf[MAX_RESPONSE];
+static char escaped_buf[MAX_ESCAPED];
+static char tools_buf[MAX_INPUT];
+static char augmented_prelude[MAX_INPUT * 2];
+
+static const char *skip_to_value_quote(const char *p) {
+    while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r' || *p == ':')
+        p++;
+    if (*p == '"') return p;
+    return NULL;
+}
+
+
+
+### Chunk 10 (from lookdown.universal.tsv)
+# --- reconfigure ---
+reconfigure*	rm -f $HOME/.subtract/.onboarded && echo "type anything to re-onboard"
+#
+# --- media ---
+#
+#
+subtract	cat ~/.subtract/about
+#
+# --- player (media rendered fullscreen via mpv) ---
+# add media entries as: play*<name>	[player]	mpv --fs --no-terminal --no-osd-bar --osd-level=0 /path/to/file
+#
+#
+# === SYSCALLS (kernel primitives curriculum) ===
+# These answer "what system call does X" without hitting T2
+#
+*system*call*creates*child*process*	echo "fork() - creates child process by duplicating the calling process"
+*system*call*fork*	echo "fork() - creates child process by duplicating the calling process"
+*create*child*process*	echo "fork() - creates child process by duplicating the calling process"
+what is fork	echo "fork() - system call that creates a child process by duplicating the calling process"
+*create*pipe*between*processes*	echo "pipe() - creates a unidirectional data channel for IPC"
+*system*call*pipe*	echo "pipe() - creates a unidirectional data channel for IPC"
+what is shell*pipe	echo "the | operator — connects stdout of one process to stdin of the next, composing programs into a pipeline"
+what is pipe	echo "pipe() - system call creating unidirectional data channel between processes"
+*replace*current*process*	echo "exec() family (execl, execv, execve, execvp) - replaces current process image"
+*system*call*exec*	echo "exec() family (execl, execv, execve, execvp) - replaces current process image"
+what is exec	echo "exec() family - replaces current process image with a new program"
+*wait*for*child*process*	echo "wait() or waitpid() - suspends execution until a child process terminates"
+*system*call*wait*	echo "wait() or waitpid() - suspends execution until a child process terminates"
+*what*is*inotifywait*	echo "Watches filesystem events. inotifywait -m -e modify /path — blocks until the file changes, prints the event. Loop it for a file watcher. inotifywait -r for recursive. Linux only (inotify-tools package)."
+what is wait	echo "wait()/waitpid() - blocks parent until child process terminates"
+*map*file*into*memory*	echo "mmap() - maps files or devices into memory"
+*system*call*mmap*	echo "mmap() - maps files or devices into memory"
+what is mmap	echo "mmap() - maps files or devices into memory for efficient I/O"
+*system*call*open*	echo "open() - opens a file and returns a file descriptor"
+what is open	echo "open() - system call that opens a file and returns a file descriptor"
+*system*call*close*	echo "close() - closes a file descriptor"
+what is close	echo "close() - system call that releases a file descriptor"
+*system*call*read*	echo "read() - reads data from a file descriptor into a buffer"
+*system*call*write*	echo "write() - writes data from a buffer to a file descriptor"
+what is write	echo "write() - writes bytes from buffer to file descriptor"
+
+
+### Chunk 11 (from runtime/hosuni/hosuni.c)
+    char *home = getenv("HOME");
+    if (!home) return;
+    char path[512];
+    snprintf(path, sizeof(path), "%s/.subtract/.starred", home);
+    FILE *fp = fopen(path, "w");
+    if (fp) {
+        fprintf(fp, "%s\n", lookdown_table[lookdown_idx].pattern);
+        fclose(fp);
+    }
+}
+
+static int starred_load(void) {
+    char *home = getenv("HOME");
+    if (!home) return -1;
+    char path[512];
+    snprintf(path, sizeof(path), "%s/.subtract/.starred", home);
+    FILE *fp = fopen(path, "r");
+    if (!fp) return -1;
+    char pat[LOOKDOWN_PAT_MAX];
+    if (!fgets(pat, sizeof(pat), fp)) { fclose(fp); return -1; }
+    fclose(fp);
+    int len = strlen(pat);
+    while (len > 0 && (pat[len-1] == '\n' || pat[len-1] == '\r')) pat[--len] = 0;
+    for (int i = 0; i < lookdown_count; i++)
+        if (strcmp(lookdown_table[i].pattern, pat) == 0) return i;
+    return -1;
+}
+
+static void pinned_save(void) {
+    char *home = getenv("HOME");
+    if (!home) return;
+    char path[512];
+    snprintf(path, sizeof(path), "%s/.subtract/.pinned", home);
+    FILE *fp = fopen(path, "w");
+    if (!fp) return;
+    for (int i = 0; i < lookdown_count; i++)
+        if (lookdown_table[i].flags & LOOKDOWN_PINNED)
+            fprintf(fp, "%s\n", lookdown_table[i].pattern);
+    fclose(fp);
+}
+
+
+### Chunk 12 (from runtime/squared.c)
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/x509_crt.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/net_sockets.h>
+#endif
+
+#define BUF_SIZE 16384
+#define MAX_STREAMS 64
+
+#define CHUNK_SIZE_STATE  0
+#define CHUNK_DATA_STATE  1
+#define CHUNK_CRLF_STATE  2
+#define CHUNK_DONE_STATE  3
+
+static char *backend_host = "127.0.0.1";
+static char *backend_port = "8080";
+
+static int tls_mode = 0;
+#ifndef NO_TLS
+static mbedtls_ssl_config tls_conf;
+static mbedtls_x509_crt tls_cert;
+static mbedtls_pk_context tls_pkey;
+static mbedtls_entropy_context tls_entropy;
+static mbedtls_ctr_drbg_context tls_ctr_drbg;
+static const char *tls_alpn[] = {"h2", NULL};
+#endif
+
+typedef struct {
+    int32_t stream_id;
+    int backend_fd;
+    char *req_path;
+    char *req_method;
+    char *req_body;
+    size_t req_body_len;
+    size_t req_body_cap;
+    int h2_submitted;
+    char *resp_buf;
+    size_t resp_len;
+    size_t resp_cap;
+    size_t resp_sent;
+
+
+
+## Question
+What files define the lookdown system and how are they organized?

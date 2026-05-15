@@ -1,0 +1,114 @@
+I'll show you a complete REST API endpoint implementation with validation. Here's the code:
+
+```python
+from flask import Flask, request, jsonify
+from functools import wraps
+import re
+
+app = Flask(__name__)
+
+def validate_json(*expected_fields):
+    """Decorator to validate JSON structure and required fields"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not request.is_json:
+                return jsonify({"error": "Content-Type must be application/json"}), 400
+            
+            data = request.get_json()
+            if not isinstance(data, dict):
+                return jsonify({"error": "Request body must be a JSON object"}), 400
+            
+            for field in expected_fields:
+                if field not in data:
+                    return jsonify({"error": f"Missing required field: {field}"}), 400
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def validate_email(email):
+    """Validate email format"""
+    return isinstance(email, str) and "@" in email and len(email) > 2 and email.index("@") > 0
+
+@app.route('/users', methods=['POST'])
+@validate_json('name', 'email', 'age')
+def create_user():
+    data = request.get_json()
+    errors = {}
+    
+    # Validate name
+    if not isinstance(data['name'], str) or not data['name'].strip():
+        errors['name'] = "Name must be a non-empty string"
+    
+    # Validate email
+    if not validate_email(data['email']):
+        errors['email'] = "Email must be a string containing @"
+    
+    # Validate age
+    if not isinstance(data['age'], int) or data['age'] < 1 or data['age'] > 150:
+        errors['age'] = "Age must be an integer between 1 and 150"
+    
+    if errors:
+        return jsonify({"error": "Validation failed", "details": errors}), 400
+    
+    # Success - return validated user
+    user = {
+        "id": 1,  # In production, generate a real ID
+        "name": data['name'],
+        "email": data['email'],
+        "age": data['age']
+    }
+    
+    return jsonify(user), 201
+
+@app.errorhandler(400)
+def bad_request(error):
+    return jsonify({"error": "Bad Request"}), 400
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**How to run it:**
+
+```bash
+# Install Flask if you haven't
+pip install flask
+
+# Save the code to a file (e.g., app.py) and run
+python app.py
+```
+
+**Test it with curl:**
+
+```bash
+# Success case
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+
+# Missing field
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "age": 25}'
+
+# Invalid email
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Charlie", "email": "invalid-email", "age": 35}'
+
+# Invalid age (out of range)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Diana", "email": "diana@example.com", "age": 200}'
+
+# Invalid age (not an integer)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Eve", "email": "eve@example.com", "age": "thirty"}'
+```
+
+The endpoint returns:
+- **201** with the validated user object on success
+- **400** with detailed error information if any validation fails

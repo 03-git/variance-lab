@@ -1,0 +1,89 @@
+I'll show you an async TCP echo server using Python's `asyncio` module that handles multiple concurrent clients.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If no data, client closed connection
+            if not data:
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    
+    except asyncio.CancelledError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def start_server():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Server started on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(start_server())
+```
+
+**How to run it:**
+
+1. **Start the server** in one terminal:
+```bash
+python echo_server.py
+```
+
+2. **Connect with a client** in another terminal (use `nc` or `telnet`):
+```bash
+nc localhost 8888
+```
+
+3. **Test it** by typing messages:
+```
+hello
+hello
+world
+world
+```
+
+Each line you send gets echoed back immediately.
+
+**Key features:**
+- `asyncio.start_server()` creates a TCP server listening on 127.0.0.1:8888
+- `handle_client()` runs concurrently for each connected client
+- `reader.readline()` reads until a newline, blocking only that client's task
+- `writer.drain()` ensures data is sent before reading the next line
+- Multiple clients can connect simultaneously—each runs its own async task
+- `finally` block ensures proper cleanup when clients disconnect
+
+To test with multiple clients at once:
+```bash
+# Terminal 2
+nc localhost 8888
+
+# Terminal 3
+nc localhost 8888
+
+# Both can send/receive simultaneously
+```

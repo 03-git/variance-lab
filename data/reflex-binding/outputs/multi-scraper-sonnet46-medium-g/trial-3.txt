@@ -1,0 +1,66 @@
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._current_text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            attrs_dict = dict(attrs)
+            self._current_href = attrs_dict.get("href")
+            self._current_text = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._current_text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            self.links.append((self._current_href, "".join(self._current_text).strip()))
+            self._current_href = None
+            self._current_text = []
+
+with urllib.request.urlopen("https://example.com") as response:
+    html = response.read().decode("utf-8")
+
+parser = LinkParser()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"{text!r:30} -> {href}")
+```
+
+**How to run** (no dependencies beyond the stdlib):
+
+```bash
+python3 script.py
+```
+
+Or inline as a one-liner pipe:
+
+```bash
+python3 -c "
+import urllib.request
+from html.parser import HTMLParser
+
+class LP(HTMLParser):
+    def __init__(self): super().__init__(); self.links=[]; self._h=None; self._t=[]
+    def handle_starttag(self,tag,attrs):
+        if tag=='a': self._h=dict(attrs).get('href'); self._t=[]
+    def handle_data(self,d):
+        if self._h: self._t.append(d)
+    def handle_endtag(self,tag):
+        if tag=='a' and self._h: self.links.append((self._h,''.join(self._t).strip())); self._h=None
+
+with urllib.request.urlopen('https://example.com') as r: html=r.read().decode()
+p=LP(); p.feed(html)
+[print(f'{t!r:30} -> {h}') for h,t in p.links]
+"
+```
+
+`example.com` only has one link (`<a href="https://www.iana.org/domains/reserved">More information...</a>`), so you'll see one line of output. Swap the URL to test against a richer page.

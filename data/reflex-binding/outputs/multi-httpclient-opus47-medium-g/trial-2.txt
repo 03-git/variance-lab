@@ -1,0 +1,57 @@
+reflex.1 — kernel primitive is the TCP socket + HTTP; the no-dependency wrapper for that is stdlib `urllib.request`, not `requests`. Using stdlib only.
+
+```python
+#!/usr/bin/env python3
+import sys
+import urllib.request
+import urllib.error
+
+def main():
+    if len(sys.argv) != 2:
+        print(f"usage: {sys.argv[0]} URL", file=sys.stderr)
+        sys.exit(2)
+
+    url = sys.argv[1]
+    req = urllib.request.Request(url, headers={"User-Agent": "fetch.py"})
+
+    try:
+        # urllib follows redirects by default (HTTPRedirectHandler)
+        with urllib.request.urlopen(req) as resp:
+            status = resp.status
+            headers = resp.headers
+            body = resp.read(500).decode(resp.headers.get_content_charset() or "utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        # HTTPError is also a response — report it instead of crashing
+        status = e.code
+        headers = e.headers
+        body = e.read(500).decode("utf-8", errors="replace")
+    except urllib.error.URLError as e:
+        print(f"request failed: {e.reason}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Status: {status}\n")
+    print("Headers:")
+    for k, v in headers.items():
+        print(f"  {k}: {v}")
+    print("\nBody (first 500 chars):")
+    print(body)
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it:
+
+```bash
+# save as fetch.py, then:
+python3 fetch.py https://example.com
+
+# or make it executable:
+chmod +x fetch.py
+./fetch.py https://httpbin.org/redirect/2    # demonstrates redirect-following
+```
+
+Notes:
+- `urllib.request.urlopen` follows redirects automatically via the default `HTTPRedirectHandler` — no flag needed. The final `resp.url` would show where you landed if you want to add that.
+- `resp.read(500)` reads at most 500 bytes; for multibyte UTF-8 that can be slightly fewer than 500 decoded chars. If you need exactly 500 *characters*, read more bytes then slice `[:500]`.
+- 4xx/5xx raise `HTTPError`, which *is* a file-like response object — caught above so you still get status/headers/body instead of a traceback.

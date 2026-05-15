@@ -1,0 +1,84 @@
+Here's a Python script that creates a SQLite database with a notes table, inserts sample data, and queries it:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create or connect to the database
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+now = datetime.now().isoformat()
+cursor.execute(
+    "INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+    ("First Note", "This is the body of the first note", now)
+)
+cursor.execute(
+    "INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+    ("Second Note", "This is the body of the second note", now)
+)
+cursor.execute(
+    "INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+    ("Third Note", "This is the body of the third note", now)
+)
+
+# Commit the changes
+conn.commit()
+
+# Query all notes
+cursor.execute("SELECT * FROM notes")
+notes = cursor.fetchall()
+
+# Print the results
+print("All Notes:")
+print("-" * 60)
+for note in notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 60)
+
+# Close the connection
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the code to a file (e.g., `notes.py`)
+2. Run it with: `python notes.py`
+
+**Output:**
+```
+All Notes:
+------------------------------------------------------------
+ID: 1
+Title: First Note
+Body: This is the body of the first note
+Created: 2026-05-10T...
+------------------------------------------------------------
+ID: 2
+Title: Second Note
+Body: This is the body of the second note
+Created: 2026-05-10T...
+------------------------------------------------------------
+ID: 3
+Title: Third Note
+Body: This is the body of the third note
+Created: 2026-05-10T...
+------------------------------------------------------------
+```
+
+This script uses an in-memory database (`:memory:`), so the data exists only while the script runs. If you want to persist data to a file, replace `':memory:'` with a filename like `'notes.db'`.

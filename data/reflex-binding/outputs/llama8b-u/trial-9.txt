@@ -1,0 +1,44 @@
+**Endpoint Code**
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    """Return the current time as JSON"""
+    return jsonify({"time": datetime.now().isoformat()})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+**Explanation**
+
+This code defines a simple Flask web application that exposes a single endpoint at `/time` which returns the current time in ISO 8601 format as JSON.
+
+Here's a brief explanation of the code:
+
+* We import the necessary modules: `Flask` for the web framework, `jsonify` to return JSON responses, and `datetime` to get the current time.
+* We create a new Flask application instance.
+* We define the `/time` endpoint using the `@app.route()` decorator. This endpoint responds to GET requests and returns a JSON response.
+* Inside the `get_time()` function, we use `datetime.now()` to get the current time and `isoformat()` to convert it to an ISO 8601 timestamp.
+* We return the JSON response using the `jsonify()` function.
+* Finally, we start the Flask development server with `app.run(debug=True)`, which makes the endpoint available at `http://localhost:5000/time`.
+
+**Running the Code**
+
+To run the code, follow these steps:
+
+1. Install Flask using pip: `pip install flask`
+2. Save the code in a file named `app.py`
+3. Run the application using Python: `python app.py`
+4. Open a web browser and navigate to `http://localhost:5000/time` to see the current time in JSON format.
+
+**Example Response**
+```json
+{
+  "time": "2023-03-16T14:30:00.000000"
+}
+```

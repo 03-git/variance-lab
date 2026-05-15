@@ -1,0 +1,79 @@
+I'll show you an async TCP echo server using Python's `asyncio` module:
+
+```python
+# echo_server.py
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readuntil(b'\n')
+            
+            if not data:
+                break
+            
+            message = data.decode().strip()
+            print(f"Received from {addr}: {message}")
+            
+            # Echo it back
+            writer.write(data)
+            await writer.drain()
+            
+    except asyncio.CancelledError:
+        print(f"Client {addr} disconnected")
+    except Exception as e:
+        print(f"Error with client {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**To run the server:**
+```bash
+python echo_server.py
+```
+
+**Test it with a simple client** (in another terminal):
+```bash
+# Using netcat
+nc localhost 8888
+# Type something and press Enter - it echoes back
+# Ctrl+C to exit
+
+# Or using telnet
+telnet localhost 8888
+
+# Or using a Python client
+python -c "import socket; s = socket.socket(); s.connect(('localhost', 8888)); s.sendall(b'Hello\n'); print(s.recv(1024))"
+```
+
+**Key features:**
+- `asyncio.start_server()` creates a server that accepts connections
+- `handle_client()` runs concurrently for each connected client
+- `reader.readuntil(b'\n')` waits for a complete line
+- `writer.drain()` ensures data is flushed to the network
+- Multiple clients can connect simultaneously—each gets its own task
+
+You can test with multiple clients at once and they'll all work concurrently without blocking each other.

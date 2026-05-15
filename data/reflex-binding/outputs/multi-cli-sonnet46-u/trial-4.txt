@@ -1,0 +1,67 @@
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(description="Network configuration tool")
+    parser.add_argument("--host", default="localhost", help="Target host")
+    parser.add_argument("--port", type=int, required=True, help="Target port (1-65535)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+
+    args = parser.parse_args()
+
+    if not (1 <= args.port <= 65535):
+        parser.error(f"--port must be between 1 and 65535, got {args.port}")
+
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose,
+    }
+
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it** (save as `config_tool.py`):
+
+```bash
+# Basic usage
+python config_tool.py --host example.com --port 8080
+
+# With verbose flag
+python config_tool.py --host example.com --port 443 --verbose
+
+# Default host (localhost)
+python config_tool.py --port 3000
+```
+
+**Example output:**
+```json
+{
+  "host": "example.com",
+  "port": 8080,
+  "verbose": false
+}
+```
+
+**Error cases handled:**
+
+```bash
+# Port out of range
+python config_tool.py --port 99999
+# error: --port must be between 1 and 65535, got 99999
+
+# Port not an integer
+python config_tool.py --port abc
+# error: argument --port: invalid int value: 'abc'
+
+# Missing required --port
+python config_tool.py --host example.com
+# error: the following arguments are required: --port
+```
+
+`argparse` handles the non-integer case automatically since `type=int` is declared; the manual range check covers the 1–65535 constraint. `parser.error()` exits with code 2 and prints to stderr, matching standard CLI conventions.

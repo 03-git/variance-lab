@@ -1,0 +1,74 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using the `pytest` framework.
+
+Here's the complete code:
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    def test_zero_celsius(self):
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty(self):
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("not a number")
+
+# Alternative: using unittest
+import unittest
+
+class TestCelsiusToFahrenheitUnit(unittest.TestCase):
+    def test_zero_celsius(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+    
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+    
+    def test_negative_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+    
+    def test_non_numeric_input(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("not a number")
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+**How to run it:**
+
+**Using pytest** (recommended):
+```bash
+pytest test_file.py -v
+# or for more detailed output
+pytest test_file.py -v --tb=short
+```
+
+**Using unittest:**
+```bash
+python test_file.py
+# or with verbose output
+python -m unittest test_file -v
+```
+
+**What each test does:**
+- **test_zero_celsius**: Verifies freezing point (0°C = 32°F)
+- **test_boiling_point**: Verifies boiling point (100°C = 212°F)
+- **test_negative_forty**: Tests the unique point where Celsius equals Fahrenheit (-40 = -40)
+- **test_non_numeric_input**: Ensures the function raises `TypeError` when given a string
+
+The pytest version is more concise and modern. If you run it, you'll see output like:
+```
+test_file.py::TestCelsiusToFahrenheit::test_zero_celsius PASSED
+test_file.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+test_file.py::TestCelsiusToFahrenheit::test_negative_forty PASSED
+test_file.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+```

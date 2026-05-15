@@ -1,0 +1,43 @@
+I'll show you a simple HTTP endpoint in Python that returns the current time as JSON.
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            response = {
+                "time": datetime.utcnow().isoformat() + "Z"
+            }
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+if __name__ == '__main__':
+    server = HTTPServer(('localhost', 8000), TimeHandler)
+    print("Server running at http://localhost:8000")
+    server.serve_forever()
+```
+
+**To run it:**
+```bash
+python3 server.py
+```
+
+**To test it:**
+```bash
+curl http://localhost:8000/time
+```
+
+This will return something like:
+```json
+{"time": "2026-05-10T14:32:45.123456Z"}
+```
+
+The endpoint listens on `localhost:8000` and responds to GET requests at `/time` with the current UTC time in ISO 8601 format. Any other path returns a 404.

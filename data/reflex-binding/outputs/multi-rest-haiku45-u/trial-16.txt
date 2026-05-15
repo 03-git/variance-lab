@@ -1,0 +1,89 @@
+I'll show you a Node.js/Express implementation with full validation:
+
+## Code
+
+**app.js:**
+```javascript
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+app.post('/users', (req, res) => {
+  const { name, email, age } = req.body;
+  const errors = [];
+
+  // Validate name
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    errors.push('name is required and must be a non-empty string');
+  }
+
+  // Validate email
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    errors.push('email is required and must contain @');
+  }
+
+  // Validate age
+  if (age === undefined || age === null) {
+    errors.push('age is required');
+  } else if (!Number.isInteger(age) || age < 1 || age > 150) {
+    errors.push('age must be an integer between 1 and 150');
+  }
+
+  // Return 400 if any validation errors
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  // Return 201 with validated user
+  res.status(201).json({
+    id: Math.random().toString(36).substring(7),
+    name: name.trim(),
+    email,
+    age
+  });
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
+```
+
+## How to Run
+
+```bash
+# Initialize project
+npm init -y
+
+# Install Express
+npm install express
+
+# Run the server
+node app.js
+```
+
+## Test Examples
+
+```bash
+# Success case (returns 201)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "john@example.com", "age": 30}'
+
+# Invalid email (returns 400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Jane", "email": "invalid-email", "age": 25}'
+
+# Missing required field (returns 400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com", "age": 30}'
+
+# Invalid age (returns 400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "email": "bob@example.com", "age": 200}'
+```
+
+The endpoint validates all three fields, returns descriptive error arrays on validation failure, and returns a 201 with the validated user object on success.

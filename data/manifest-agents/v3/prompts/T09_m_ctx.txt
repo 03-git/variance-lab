@@ -1,0 +1,449 @@
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./runtime/squared.c (lines 1-40 of 742)
+/*
+ * squared — HTTP/2 proxy for local inference multiplexing
+ *
+ * Without cert/key: h2c (cleartext HTTP/2, loopback only)
+ * With cert/key:    h2 over TLS (ALPN negotiated, all interfaces)
+ *
+ * Build:
+ *   cc -o squared squared.c $(pkg-config --cflags --libs libnghttp2) \
+ *      -lmbedtls -lmbedx509 -lmbedcrypto -lpthread
+ *
+ * Usage:
+ *   squared [port] [backend_host:port]
+ *   squared [port] [backend_host:port] cert.pem key.pem
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <signal.h>
+#include <poll.h>
+
+#include <nghttp2/nghttp2.h>
+
+#ifndef NO_TLS
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/x509_crt.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/net_sockets.h>
+#endif
+
+## ./variance-lab.txt (lines 841-880 of 2802)
+Total wall time is dominated by inference.
+
+HTTP/2 multiplexes all requests on a single TCP connection through squared.
+squared opens one backend connection per stream to llama-server. The
+requests arrive at llama-server the same way — as separate HTTP/1.1
+connections from squared's forked children. Total wall time is the same
+because the backend processing is identical.
+
+The browser is the exception. Browsers enforce a 6-connection-per-origin
+limit (Chromium, Firefox). At c>6, h1.1 requests queue behind that limit.
+h2 multiplexes all requests on one connection, bypassing the limit. This
+is the specific context where squared provides value.
+
+squared: 716 lines of C, one translation unit, three libraries (nghttp2,
+mbedtls, libc). h2c mode for curl/agents, TLS+ALPN mode for browsers.
+
+## Confounds
+
+**h2 uses same prompt for all concurrent requests.** curl's --parallel
+with per-request body files required a config-file workaround that sends
+the same --data-binary to all URLs. h1.1 sends different prompts per
+request. The h2 path may benefit from llama-server prompt caching. This
+would bias h2 favorably; the measured equivalence may overstate h2's
+true performance.
+
+**Backend parallel slots = 4.** llama-server -np 4. At c=6, requests
+queue on the backend regardless of protocol. Both protocols are equally
+affected.
+
+**High h2 variance.** h2 standard deviation at c=6 is 1,366ms vs h1.1's
+396ms. Pass 5 shows h2 at 5,128ms (2× h1.1). This may be squared's
+synchronous backend connect() serializing under load. Five passes is
+insufficient to characterize this tail behavior.
+
+**N=1 browser measurement.** The browser finding (2.5× at c=3) is a
+single pass with a mock backend. It is directional evidence, not a
+tight measurement.
+
+**Single operator, single backend, single model.** No cross-hardware
+replication. The equivalence finding is likely general (inference
+
+## ./variance-lab.txt (lines 1-40 of 2802)
+# variance-lab — empirical proof layer
+
+This is the claim layer of the subtract stack. Harness and raw outputs live at
+github.com/03-git/variance-lab (substrate, reproducible). These findings are
+the load-bearing empirical claims that the subtract doctrine relies on.
+
+  Canonical:   https://subtract.ing/variance-lab.txt (signed via llms.txt manifest)
+  Methodology: https://subtract.ing/variance-lab-handler-methodology.txt (three-gate validation, 2026-04-18)
+  Harness:     https://github.com/03-git/variance-lab (runnable, reproducible)
+  Signer:      hodori@subtract.ing
+  Namespace:   subtract.ing
+
+Verify:
+
+  curl -sO https://subtract.ing/llms.txt
+  curl -sO https://subtract.ing/llms.txt.sig
+  curl -sO https://subtract.ing/variance-lab.txt
+  ssh-keygen -Y verify -f <(curl -s https://subtract.ing/authorized_signers) \
+    -I hodori@subtract.ing -n subtract.ing -s llms.txt.sig < llms.txt
+  grep "variance-lab.txt" llms.txt | sha256sum -c
+
+
+================================================================
+
+---
+title: Three Questions for Agentic Autonomy
+date: 2026-03-28
+source: production empirical (consulting methodology derived from formation buildout)
+domain:
+  - agentic-consulting
+  - workflow-automation
+  - autonomy-assessment
+  - human-ai-task-allocation
+keywords:
+  - agentic autonomy assessment
+  - consulting intake protocol
+  - workflow automation assessment
+  - human KPI identification
+  - via negativa methodology
+  - autonomy blocker taxonomy
+
+## ./variance-lab-handler-methodology.txt (lines 41-80 of 398)
+```
+# handler.sh modifications — dispatch spec
+
+You are being given a standalone implementation task. No prior conversation
+context is assumed. Respond with ONLY the bash code requested, no commentary,
+no markdown fences, no explanation before or after.
+
+## Context
+
+`handler.sh` is a subtract.ing runtime file sourced into bash/zsh startup
+(hooks/bash.sh, hooks/zsh.sh). It already defines:
+
+- `SUBTRACT_DIR="$HOME/.subtract"` exported
+- `SUBTRACT_LOOKUP="$SUBTRACT_DIR/lookdown.tsv"` exported
+- `__subtract_handle` — called from `command_not_found_handle` (bash) and
+  `command_not_found_handler` (zsh) to translate natural-language intents
+  via lookdown.tsv and execute the resolved command
+- `__subtract_capture` — runs before each prompt via `PROMPT_COMMAND` (bash)
+  or `precmd_functions` (zsh). Uses `fc -ln -1` to capture the last command
+  into `SUBTRACT_LAST_OUTPUT`
+
+Function naming convention: `__subtract_*` prefix for internal helpers.
+
+Canonical log format spec: https://subtract.ing/session-log.spec.txt
+
+## Task 1: log writer
+
+Add a function `__subtract_log` that appends one TSV row per user input to a
+per-session log file. Called from the existing hooks:
+- `__subtract_handle` at end-of-invocation (intent case, `behavior` prefix `i:`)
+- pre-prompt hook (direct command case, `behavior` prefix `c:`)
+
+Row format (tab-separated, no quoting):
+    timestamp<TAB>antecedent<TAB>behavior<TAB>consequence<TAB>next_behavior
+
+- timestamp: ISO 8601 UTC
+- antecedent: cwd=REL;last=WORD;exit=CODE
+- behavior: {i|c|m}:raw_string (any literal tab escaped as \t)
+- consequence: exit_code:outcome:resolved (outcome starts pending; resolved
+  is the command actually executed for i: case)
+
+## ./variance-lab-handler-methodology.txt (lines 1-40 of 398)
+# Variance-Lab: handler.sh Substrate-Code Selection
+## A three-gate methodology report
+
+  Canonical:  https://subtract.ing/variance-lab-handler-methodology.txt (to be signed via llms.txt manifest)
+  Harness:    /tmp artifacts preserved; reproducible under subtract.ing runtime
+  Signer:     hodori@subtract.ing
+  Namespace:  subtract.ing
+
+### Artifact paths
+
+Artifacts backing this report live under `github.com/03-git/variance-lab/data/handler/`.
+
+What survived the original `/tmp` run and is published:
+
+  data/handler/handler-dispatch-spec.txt      4,663-char dispatch prompt (Task 1 + Task 2)
+  data/handler/handler-dispatch-rubric.txt    pre-committed evaluation rubric
+
+What did not survive (original `/tmp` paths, not preserved across session boundary — see Limitations):
+
+  /tmp/impl-{opus47,sonnet45,sonnet46,sonnet46low,qwen3coder}.sh    five implementations
+  /tmp/ship-decision.txt                                             deliberative-pass prompt
+  /tmp/vote-*.txt                                                    eight voter responses
+
+### Terminology
+
+- **Effort tier** (`high` / `low` / etc.): `CLAUDE_CODE_EFFORT_LEVEL` environment variable passed to `claude -p`. Governs reasoning-depth setting for the invocation.
+- **`nba <mode>`**: local Rousseau wrapper (script at `~/scripts/nba`) that dispatches to a `nanobot agent -c ~/.nanobot/<mode>.json`. Modes: `fast` → phi-4-mini on :8081; `rag` → qwen3-32b on :8082; `reasoning` → gemma-4-26b on :8083; `code` → Qwen3-Coder-30B-A3B on :8084.
+
+---
+
+## Abstract
+
+A pre-committed rubric was applied mechanically to five implementations of a session-logging extension to `handler.sh`. Two implementations tied at the top of the rubric's weighted score; the committed tiebreak rule (lowest LoC within a 2-point tie) selected a functionally valid implementation, but the tied implementation with the higher LoC produced zero valid rows when sourced into a test shell because its output included a markdown code-fence wrapper that altered shell parse semantics. An eight-model deliberative pass, dispatched across three training lineages, converged seven-of-eight on an implementation that neither the rubric nor the functional gate would have selected on their own. The finding reported here is about the three-gate methodology — static rubric, functional verification, deliberative pass — and the interactions between them.
+
+---
+
+## Spec
+
+The following spec was dispatched verbatim to each implementation target. No per-target modification. No prior conversation context assumed.
+
+
+## ./subtracting.html (lines 41-80 of 227)
+
+    <h2>What it is</h2>
+
+    <p>Shell translation infrastructure. Type intent, get command,
+    learn command, stop needing translation.</p>
+
+    <p>For humans: you learn how to use Unix more.<br>
+    For agents: you're reminded how Unix can be used.</p>
+
+    <p>Software as a besides. The goal is that the user learns the
+    command and stops needing translation.</p>
+
+    <p>subtract shows you the supercomputer in every computer — when you look down close enough.</p>
+
+    <hr>
+
+    <h2>Why</h2>
+
+    <p>subtract rests on three primitives that already ship with Unix:</p>
+
+<pre>
+Entry   command_not_found_handle   intent enters bash
+Trust   ssh-keygen -Y              signed provenance for knowledge
+Time    sleep, at, cron            yield to the kernel scheduler
+</pre>
+
+    <p>No account. No API key. No terms of service. No usage meter.
+    Computers come with commands that work when you are not online.</p>
+
+    <p>Let your local computer help you think and do, instead of
+    asking a cloud AI to do all the thinking and doing. As learned
+    commands grow, the user invokes the command directly. A learned
+    command has no inference cost.</p>
+
+<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin:1.5em 0">
+<tr style="border-bottom:1px solid #333"><th style="text-align:left;padding:.4em .6em">subtract</th><th style="text-align:left;padding:.4em .6em">the alternative</th></tr>
+<tr><td style="padding:.3em .6em">command_not_found_handle (bash, 1 function)</td><td style="padding:.3em .6em">Python CLI + Click + Docker + pip install</td></tr>
+<tr><td style="padding:.3em .6em">lookdown.tsv (flat file, grep)</td><td style="padding:.3em .6em">vector database + embeddings + RAG pipeline + 47 packages</td></tr>
+<tr><td style="padding:.3em .6em">handler.sh (case statement tier routing)</td><td style="padding:.3em .6em">semantic router chain + "mixture of agents"</td></tr>
+<tr><td style="padding:.3em .6em">bridge.py (140 lines, stdlib only)</td><td style="padding:.3em .6em">FastAPI + Uvicorn + Redis + WebSocket + requirements.txt</td></tr>
+
+## ./subtracting.html (lines 1-40 of 227)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <title>subtracting — why subtract exists</title>
+    <meta name="description" content="The thesis, lineage, and evidence behind subtract.ing.">
+    <style>
+        body {
+            background: #111;
+            color: #c0c0c0;
+            font-family: monospace;
+            margin: 2rem auto;
+            max-width: 72ch;
+            padding: 0 1rem;
+            line-height: 1.5;
+        }
+        h1 { font-size: 1rem; font-weight: normal; margin: 0; }
+        h2 { font-size: 1rem; font-weight: normal; margin: 2rem 0 0.5rem; color: #8be9fd; }
+        p { margin: 0.5rem 0; }
+        hr { border: none; color: #555; margin: 1.5rem 0; }
+        hr::before { content: "* * *"; display: block; text-align: left; }
+        a { color: #8be9fd; }
+        a:visited { color: #bd93f9; }
+        .dim { color: #666; }
+        pre { margin: 0.5rem 0; white-space: pre-wrap; }
+        blockquote {
+            border-left: 2px solid #555;
+            margin: 1rem 0;
+            padding-left: 1rem;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <h1><a href="/">subtract.ing</a> / subtracting</h1>
+    <p>Theory, lineage, and evidence.</p>
+
+    <hr>
+
+## ./subtract.7.txt (lines 81-120 of 177)
+computer|lookdown.tsv|<1MB|already there
+computer|apropos|\[em]|already there
+assisted|embed binary|45MB|ships
+assisted|llama.cpp|850MB|ships
+assisted|whisper.cpp|150MB|ships
+assisted|piper-tts|50MB|ships
+remote|curl + API|0|already there
+.TE
+.PP
+Goal: fade toward computer. Less inference over time, more direct expression.
+.PP
+Every component is either "already there" or "single binary + model." Full local
+install is roughly 1.1GB.
+.SH BUFFER-SUBTRACT PATTERN
+A substrate honors the pattern if and only if all six invariants hold.
+.IP 1. 4
+Native modality owns the buffer. subtract never owns it.
+.IP 2. 4
+Subtraction is explicit. A specific gesture hands the buffer to subtract.
+No polling.
+.IP 3. 4
+subtract reads, translates, writes back. It does not commit. The user's
+commit gesture remains the only path to action.
+.IP 4. 4
+Non-subtraction has zero residue. A user who never invokes subtract has a
+substrate bit-identical to one without subtract installed.
+.IP 5. 4
+Successful subtractions train toward direct expression. Users internalize the
+direct form and stop subtracting.
+.IP 6. 4
+The router is modality-blind. String in, string out.
+.PP
+The required precondition: the buffer must be inspectable without committing.
+Modalities where intent commits as it accumulates (streaming execution,
+direct-manipulation gestures, ambient sensors without human gates) have no
+buffer for subtract to read. The pattern does not apply there.
+.SH OUTPUT DISPATCH
+Each row in lookdown.tsv can specify an output tag that controls how results
+render. Two tags exist:
+.TP
+
+## ./subtract.7.txt (lines 1-40 of 177)
+.TH SUBTRACT 7 "2026-04-12" "subtract" "Miscellaneous Information Manual"
+.SH NAME
+subtract \- shell translation layer for agents and the humans who deploy them
+.SH SYNOPSIS
+.nf
+curl \-sL subtract.ing/boot | claude \-p
+.fi
+.PP
+subtract has no binary of its own at the computer layer. It is a discipline
+loaded into an existing shell session, a set of kernel primitives already on
+the machine, and a small fork layer under
+.IR ~/.subtract/ .
+Upgrades add single binaries (embed, llama.cpp, whisper.cpp, piper-tts) on top
+of that floor.
+.SH DESCRIPTION
+subtract is software
+.IR "as a besides" .
+It is a translation layer between human intent and the shell, designed so that
+successful translations train the user toward direct expression. The AI is not
+the product. Literacy is the product. Dependency is the failure mode.
+.PP
+subtract serves two populations:
+.TP
+.B humans
+who want to stop depending on AI intermediaries to reach their own machines.
+.TP
+.B agents
+whose training defaulted to Python libraries, SaaS APIs, and framework
+abstractions \[em] and who need a counter-training layer pointing them back at
+the kernel primitives that solved the same problems decades earlier.
+.PP
+Three layers subtract in sequence:
+.IP \(bu 4
+.B subtract
+subtracts from the environment (no frameworks, no SaaS).
+.IP \(bu 4
+.B the human
+subtracts from the agent's context (pre-flight, pushback on drift).
+.IP \(bu 4
+.B the agent
+
+## ./SOUL.txt (lines 1-29 of 29)
+SOUL.txt — signed under hodori@subtract.ing
+
+You are hosuni. You answer questions and operate this machine.
+
+The humans asking include children. Answer directly.
+If you know it, say it. If you don't, say that.
+Match the question's level — a seven-year-old and an adult
+get different answers to the same question.
+
+When someone asks about the world — history, science, animals,
+games, how things work — answer from what you know. Prefer
+the concrete: real things, real names, real numbers.
+You are a starting point, not the last word.
+
+When someone asks about this machine — files, commands, what
+is running — operate:
+  Read before assuming.
+  Check before claiming.
+  Name the primitive before reaching for a wrapper.
+  Don't delete, move, or overwrite without being asked.
+
+Short answers that feel complete. No preamble. No apology.
+No three paragraphs before the useful part.
+
+If a question is dangerous to answer for a child, say why
+instead of just refusing.
+
+The goal is literacy. The human learns the command and stops
+needing translation. Besides, not instead.

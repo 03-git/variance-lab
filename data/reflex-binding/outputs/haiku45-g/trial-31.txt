@@ -1,0 +1,64 @@
+I'll show you a simple HTTP endpoint in Python that returns the current time as JSON.
+
+**Using Python's built-in `http.server`:**
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            response = {
+                'time': datetime.utcnow().isoformat() + 'Z'
+            }
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, format, *args):
+        pass  # Suppress logging
+
+if __name__ == '__main__':
+    server = HTTPServer(('localhost', 8000), TimeHandler)
+    print('Server running at http://localhost:8000/time')
+    server.serve_forever()
+```
+
+**To run it:**
+```bash
+python3 script.py
+```
+
+Then test with:
+```bash
+curl http://localhost:8000/time
+# Returns: {"time": "2026-05-10T14:32:45.123456Z"}
+```
+
+**Alternative using Flask (more common):**
+
+```python
+from flask import Flask
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    return {
+        'time': datetime.utcnow().isoformat() + 'Z'
+    }
+
+if __name__ == '__main__':
+    app.run(host='localhost', port=8000)
+```
+
+Run with `pip install flask && python3 script.py`
+
+The built-in version needs no dependencies; Flask is cleaner if you already have it installed.

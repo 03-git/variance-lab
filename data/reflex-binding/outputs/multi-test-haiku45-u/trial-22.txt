@@ -1,0 +1,71 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using the `pytest` framework.
+
+```python
+# test_temperature.py
+
+def celsius_to_fahrenheit(c):
+    """Convert temperature from Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+
+import pytest
+
+
+class TestCelsiusToFahrenheit:
+    """Test suite for celsius_to_fahrenheit function."""
+    
+    def test_freezing_point(self):
+        """Test conversion of water freezing point (0°C = 32°F)."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """Test conversion of water boiling point (100°C = 212°F)."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_equal_point(self):
+        """Test conversion at the point where Celsius equals Fahrenheit (-40°C = -40°F)."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Test that non-numeric input raises a TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("not a number")
+    
+    def test_float_input(self):
+        """Test conversion with float input (37°C ≈ 98.6°F)."""
+        result = celsius_to_fahrenheit(37)
+        assert abs(result - 98.6) < 0.1
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
+```
+
+**How to run it:**
+
+```bash
+# Install pytest if you don't have it
+pip install pytest
+
+# Run the tests
+pytest test_temperature.py -v
+
+# Or run directly with Python
+python test_temperature.py
+```
+
+**Expected output:**
+```
+test_temperature.py::TestCelsiusToFahrenheit::test_freezing_point PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_equal_point PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_float_input PASSED
+```
+
+The test suite covers:
+- **Freezing point (0°C)**: Verifies the baseline conversion formula
+- **Boiling point (100°C)**: Tests a larger value
+- **Equal point (-40°C)**: Tests negative values where Celsius and Fahrenheit are equal
+- **Non-numeric input**: Uses `pytest.raises()` to verify a `TypeError` is raised
+- **Float input**: Bonus test with real body temperature to show float handling

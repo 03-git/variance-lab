@@ -1,0 +1,86 @@
+Here's a complete Express.js REST API implementation:
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+app.post('/users', (req, res) => {
+  const { name, email, age } = req.body;
+  const errors = [];
+
+  // Validate name
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    errors.push('name is required and must be a non-empty string');
+  }
+
+  // Validate email
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    errors.push('email is required and must contain @');
+  }
+
+  // Validate age
+  if (age === undefined || typeof age !== 'number' || !Number.isInteger(age) || age < 1 || age > 150) {
+    errors.push('age is required and must be an integer between 1 and 150');
+  }
+
+  // Return validation errors
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  // Return success with validated user
+  res.status(201).json({
+    id: Math.random().toString(36).substr(2, 9),
+    name,
+    email,
+    age
+  });
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
+```
+
+**Setup & Run:**
+
+```bash
+# Install Express
+npm init -y
+npm install express
+
+# Save the code above as server.js, then run:
+node server.js
+```
+
+**Test Examples:**
+
+```bash
+# ✅ Valid request
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Alice","email":"alice@example.com","age":30}'
+# Returns 201 with: {"id":"abc123","name":"Alice","email":"alice@example.com","age":30}
+
+# ❌ Missing name
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email":"bob@example.com","age":25}'
+# Returns 400 with: {"errors":["name is required and must be a non-empty string"]}
+
+# ❌ Invalid email (no @)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Bob","email":"bob.com","age":25}'
+# Returns 400 with: {"errors":["email is required and must contain @"]}
+
+# ❌ Age out of range
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Carol","email":"carol@example.com","age":200}'
+# Returns 400 with: {"errors":["age is required and must be an integer between 1 and 150"]}
+```
+
+The endpoint validates all inputs and returns either 201 with the user object or 400 with detailed error messages.

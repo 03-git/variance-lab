@@ -1,0 +1,74 @@
+I'll show you a Python CLI tool with argument parsing, port validation, and JSON output:
+
+```python
+#!/usr/bin/env python3
+import argparse
+import json
+import sys
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Parse host and port configuration"
+    )
+    parser.add_argument(
+        "--host",
+        default="localhost",
+        help="Host address (default: localhost)"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Port number (default: 8080)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+
+    args = parser.parse_args()
+
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        parser.error(f"port must be between 1 and 65535, got {args.port}")
+
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage with defaults
+python3 cli_tool.py
+# Output: {"host": "localhost", "port": 8080, "verbose": false}
+
+# With custom host and port
+python3 cli_tool.py --host example.com --port 3000
+# Output: {"host": "example.com", "port": 3000, "verbose": false}
+
+# With verbose flag
+python3 cli_tool.py --host api.local --port 9000 --verbose
+# Output: {"host": "api.local", "port": 9000, "verbose": true}
+
+# Invalid port (triggers validation error)
+python3 cli_tool.py --port 99999
+# Error: usage: cli_tool.py [-h] [--host HOST] [--port PORT] [--verbose]
+#        cli_tool.py: error: port must be between 1 and 65535, got 99999
+
+# Help
+python3 cli_tool.py --help
+```
+
+The tool uses `argparse` to handle argument parsing. Port validation happens after parsing by checking the integer is in the valid range (1-65535). The `--verbose` flag uses `store_true` for a boolean, and all config is printed as formatted JSON.

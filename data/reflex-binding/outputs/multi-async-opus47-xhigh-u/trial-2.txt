@@ -1,0 +1,48 @@
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    addr = writer.get_extra_info("peername")
+    print(f"Connected: {addr}")
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:
+                break
+            writer.write(data)
+            await writer.drain()
+    except ConnectionResetError:
+        pass
+    finally:
+        print(f"Disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main(host="127.0.0.1", port=8888):
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"Serving on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+```
+
+**How to run:**
+
+1. Save as `echo_server.py` (Python 3.8+).
+2. Start the server: `python echo_server.py`
+3. From another terminal, connect with any line-oriented client:
+   - `nc 127.0.0.1 8888` — type a line, see it echoed.
+   - Or `telnet 127.0.0.1 8888`.
+4. Open multiple clients at once — each runs concurrently on the same event loop.
+5. Stop with Ctrl+C.
+
+**Key points:**
+- `asyncio.start_server` spawns a new `handle_client` task per connection, so concurrency is handled by the event loop — no threads.
+- `reader.readline()` returns `b""` on EOF, which is how we detect a client disconnect.
+- `writer.drain()` applies backpressure if a client is slow to read.

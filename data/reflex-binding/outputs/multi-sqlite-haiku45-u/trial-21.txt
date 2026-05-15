@@ -1,0 +1,65 @@
+Here's a complete Python script that creates a SQLite database with a notes table, inserts sample data, and queries it:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create/connect to database
+conn = sqlite3.connect(':memory:')  # Use ':memory:' for in-memory, or 'notes.db' for file
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('First Note', 'This is the body of the first note', datetime.now().isoformat()),
+    ('Second Note', 'This is the body of the second note', datetime.now().isoformat()),
+    ('Third Note', 'This is the body of the third note', datetime.now().isoformat()),
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+# Print results
+print("All Notes:")
+print("-" * 50)
+for note in notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 50)
+
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python script.py
+```
+
+**Key points:**
+- Uses `:memory:` for an in-memory database (data disappears after script exits)
+- Change to `'notes.db'` to persist the database to a file
+- `executemany()` efficiently inserts multiple rows
+- `?` placeholders prevent SQL injection
+- Uses `isoformat()` for timestamps, which is a standard format for storing dates as TEXT in SQLite
+
+The script will print each note with its ID, title, body, and creation timestamp.

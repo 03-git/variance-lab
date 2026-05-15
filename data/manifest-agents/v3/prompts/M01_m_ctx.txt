@@ -1,0 +1,398 @@
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./runtime/lookdown.m2mini.tsv (lines 1-32 of 32)
+# lookdown.m2mini.tsv — emile node-specific entries
+# kids' media lives on acer1660ti:/mnt/media/kids/
+# adult media on m1studio — not routed from this node
+
+# --- media (kids, via acer) ---
+*smurfs*	mpv sftp://media@acer1660ti/mnt/media/kids/movies/Smurfs\ -\ The\ Lost\ Village\ \(2017\)/Smurfs.The.Lost.Village.2017.1080p.HULU.WEB-DL.DDP.5.1.H.264-PiRaTeS.mkv </dev/null >/dev/null 2>&1 & echo "playing smurfs"
+*happy*fun*time*	echo "playing happy fun time"; mpv sftp://media@acer1660ti/mnt/media/kids/misc/Home\ Arcade\ Walkthrough!\ July\ 2023\ \(2023\).mp4 </dev/null >/dev/null 2>&1 &
+*arcade*classic*	mpv sftp://media@acer1660ti/mnt/media/kids/misc/Basic\ Fun\ Arcade\ Classics\ Complete\ Collection\ 1-19.mp4 </dev/null >/dev/null 2>&1 & echo "playing arcade classics"
+*cosmic*cottage*	mpv sftp://media@acer1660ti/mnt/media/kids/misc/Home\ Arcade\ Walkthrough!\ July\ 2023\ \(2023\).mp4 </dev/null >/dev/null 2>&1 & echo "playing cosmic cottage arcade"
+*monsters*university*	f=$(ssh acer1660ti "find /mnt/media/kids/movies -maxdepth 2 -iname '*monsters*university*' -name '*.mkv' -print -quit" 2>/dev/null); [ -n "$f" ] && mpv "sftp://media@acer1660ti$f" </dev/null >/dev/null 2>&1 & echo "playing monsters university" || echo "monsters university not downloaded yet"
+watch*	f=$(ssh acer1660ti "find /mnt/media/kids -maxdepth 4 -iname '*${input#*watch }*' -print -quit" 2>/dev/null); [ -n "$f" ] && echo "playing $(basename "$f")" && mpv "sftp://media@acer1660ti$f" </dev/null >/dev/null 2>&1 & || echo "not found: ${input#*watch }"
+*what*movies*	ssh acer1660ti "ls /mnt/media/kids/movies/" 2>/dev/null
+*what*shows*	ssh acer1660ti "ls /mnt/media/kids/tv/" 2>/dev/null
+*what*videos*	ssh acer1660ti "ls /mnt/media/kids/misc/" 2>/dev/null
+list*movies	ssh acer1660ti "ls /mnt/media/kids/movies/" 2>/dev/null
+list*tv*shows	ssh acer1660ti "ls /mnt/media/kids/tv/" 2>/dev/null
+list*tv	ssh acer1660ti "ls /mnt/media/kids/tv/" 2>/dev/null
+stop*music*	pkill mpv 2>/dev/null; echo "stopped"
+*music*stop*	pkill mpv 2>/dev/null; echo "stopped"
+*stop*play*	pkill mpv 2>/dev/null; echo "stopped"
+
+# --- clinical ---
+*yes*no*	~/.subtract/bin/subtract-program yes-no
+*questions*	~/.subtract/bin/subtract-program wh-flashcards
+*words*	~/.subtract/bin/subtract-program sight-words-spanish
+*follow*	~/.subtract/bin/subtract-program one-step
+*practicar*	~/.subtract/bin/subtract-program yes-no --lang es
+
+# --- system ---
+*more*computer*	tmux split-window -h
+search*for*	echo "{\"input\":\"web search: ${input#*search for }\",\"channel\":\"terminal\"}" | ssh m1studio "bash ~/subtract.ing/runtime/hosuni.sh" 2>/dev/null | jq -r ".response // empty"
+search*	echo "{\"input\":\"web search: ${input#*search }\",\"channel\":\"terminal\"}" | ssh m1studio "bash ~/subtract.ing/runtime/hosuni.sh" 2>/dev/null | jq -r ".response // empty"
+
+## ./runtime/hosuni/hosuni.c (lines 81-120 of 2661)
+    int source_line;
+} lookdown_table[MAX_LOOKDOWN];
+static int lookdown_count;
+
+static void lookdown_load(const char *path) {
+    FILE *fp = fopen(path, "r");
+    if (!fp) return;
+    int line_num = 0;
+    char line[LOOKDOWN_PAT_MAX + LOOKDOWN_CMD_MAX + 8];
+    while (fgets(line, sizeof(line), fp) && lookdown_count < MAX_LOOKDOWN) {
+        line_num++;
+        int len = strlen(line);
+        if (len > 0 && line[len - 1] == '\n') line[--len] = '\0';
+        if (len == 0 || line[0] == '#') continue;
+        char *tab = strchr(line, '\t');
+        if (!tab) continue;
+        *tab = '\0';
+        char *cmd = tab + 1;
+        uint8_t flags = 0;
+        if (cmd[0] == '[') {
+            char *close = strchr(cmd, ']');
+            char *tab2 = strchr(cmd, '\t');
+            if (tab2) {
+                if (close && close < tab2 &&
+                    (strncmp(cmd, "[player]", 8) == 0 || strncmp(cmd, "[exec]", 6) == 0))
+                    flags = LOOKDOWN_EXEC;
+                cmd = tab2 + 1;
+            } else continue;
+        }
+        if (!*cmd) continue;
+        snprintf(lookdown_table[lookdown_count].pattern, LOOKDOWN_PAT_MAX, "%s", line);
+        snprintf(lookdown_table[lookdown_count].command, LOOKDOWN_CMD_MAX, "%s", cmd);
+        lookdown_table[lookdown_count].flags = flags;
+        snprintf(lookdown_table[lookdown_count].source_file, 256, "%s", path);
+        lookdown_table[lookdown_count].source_line = line_num;
+        lookdown_count++;
+    }
+    fclose(fp);
+}
+
+
+## ./runtime/hosuni/hosuni.c (lines 1-40 of 2661)
+/*
+ * hosuni.c — framebuffer computing for humans
+ * Named for Hodori's digital governess.
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+
+/*
+   Linux:  cc -O2 -I/usr/include/libdrm -o hosuni hosuni.c platform_linux.c -ldrm -lm -lxkbcommon
+   macOS:  cc -O2 -o hosuni hosuni.c platform_macos.m -framework Cocoa
+*/
+
+#include "hosuni.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <errno.h>
+#include <sys/select.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include <fnmatch.h>
+#include <signal.h>
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
+/* ================================================================
+
+## ./runtime/bin/lookdown-audit.sh (lines 1-40 of 40)
+#!/bin/bash
+# lookdown-audit.sh — shadow detection using the same [[ ]] glob the handler uses
+set -euo pipefail
+
+NODE="${1:-$HOME/.subtract/lookdown.$(hostname -s).tsv}"
+UNIVERSAL="${2:-$HOME/.subtract/lookdown.universal.tsv}"
+
+# load in handler order: node first, then universal
+entries=()
+files=()
+for f in "$NODE" "$UNIVERSAL"; do
+    [ -f "$f" ] || continue
+    n=0
+    while IFS= read -r line; do
+        n=$((n + 1))
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        pat="${line%%	*}"
+        entries+=("$pat")
+        files+=("$(basename "$f"):$n")
+    done < "$f"
+done
+
+total=${#entries[@]}
+shadows=0
+
+for ((i=0; i<total; i++)); do
+    pat_i="${entries[$i]}"
+    cand="${pat_i//\*/x}"
+    cand=$(printf '%s' "$cand" | tr '[:upper:]' '[:lower:]')
+    for ((j=0; j<i; j++)); do
+        pat_j="${entries[$j]}"
+        if [[ "$cand" == $pat_j ]]; then
+            shadows=$((shadows + 1))
+            printf 'shadow: %s %s eaten by %s %s\n' "${files[$i]}" "$pat_i" "${files[$j]}" "$pat_j"
+            break
+        fi
+    done
+done
+
+printf '\n%d entries, %d shadows\n' "$total" "$shadows"
+
+## ./lookdown.universal.tsv (lines 1761-1800 of 2624)
+*square*feet*to*square*meter*	echo "Multiply square feet by 0.0929 to get square meters."
+*long*boil*egg*	echo "6 minutes for soft, 9 for medium, and 12 for hard-boiled."
+*cook*rice*	echo "Combine 1 part rice with 2 parts water, bring to boil, cover, and simmer for 15-18 minutes."
+*tell*chicken*cooked*	echo "Ensure internal temperature reaches 165°F (74°C) using a meat thermometer."
+*substitute*buttermilk*	echo "Mix 1 cup of milk with 1 tablespoon of lemon juice or white vinegar and let sit for 5 minutes."
+*dice*onion*	echo "Cut off ends, peel, slice vertically and horizontally, then cut across to create cubes."
+*bake*potato*	echo "Prick with a fork, rub with oil and salt, and bake at 400°F (200°C) for 45-60 minutes."
+*make*scrambled*egg*	echo "Whisk eggs with milk/salt, pour into a buttered pan over medium heat, and stir gently until set."
+*long*roast*chicken*	echo "Roast at 375°F (190°C) for approximately 20 minutes per pound."
+*defrost*chicken*safely*	echo "Thaw in the refrigerator overnight or in a sealed bag under cold running water."
+*store*avocado*	echo "Store ripe avocados in the fridge; store unripe ones on the counter."
+*peel*garlic*	echo "Smash the clove with a knife blade to loosen the skin, then peel away."
+*make*pancake*	echo "Mix flour, sugar, baking powder, salt, milk, egg, and melted butter; cook on a hot griddle."
+*cook*quinoa*	echo "Combine 1 part quinoa with 2 parts water, bring to boil, cover, and simmer for 15 minutes."
+*make*garlic*bread*	echo "Spread butter, minced garlic, and herbs on bread, then toast in the oven until golden."
+*tie*windsor*knot*	echo "Cross wide end over thin end, loop under, wrap around, pull through neck loop, and tighten."
+how*tie*a*tie	echo "Use the Four-in-Hand method by looping the wide end around the narrow end, or watch a video tutorial."
+*tie*a*tie*	echo "Use the Four-in-Hand method by looping the wide end around the narrow end, or watch a video tutorial."
+*remove*coffee*stain*	echo "Blot with cold water, then apply dish soap or a mixture of vinegar and water."
+*change*flat*tire*	echo "Loosen lug nuts, jack up the car, replace the tire, tighten lug nuts, and lower the car."
+sew*button*back*	echo "Thread the needle through the button holes and secure it with a knot on the inside."
+*sew*button*	echo "Thread needle, pass through fabric and button hole, wrap thread around the base, and knot."
+*unclog*toilet*	echo "Use a plunger with a strong seal, or use a toilet auger to break the blockage."
+*clean*microwave*	echo "Heat a bowl of water and lemon juice for 5 minutes, then wipe the steam away with a cloth."
+*fold*fitted*sheet*	echo "Tuck the corners into each other to form a rectangle, then fold into a square."
+*jumpstart*car*	echo "Connect red to dead, red to good, black to good, and black to an unpainted metal part of the dead car."
+*make*budget*	echo "List all monthly income, subtract fixed and variable expenses, and track the remainder."
+*remove*red*wine*stain*	echo "Blot the stain, apply salt to absorb liquid, then use club soda or dish soap."
+*get*rid*ants*	echo "Clean surfaces, use vinegar spray to disrupt trails, and apply ant bait."
+*plant*tomato*	echo "Plant in well-draining soil with 6-8 hours of sun and provide support stakes."
+*iron*shirt*	echo "Iron the collar first, then sleeves, then the back, and finally the front panels."
+*fix*leaky*faucet*	echo "Turn off water, disassemble the faucet, and replace worn washers or cartridges."
+*treat*burn*	echo "Run cool water over the area for 10-20 minutes; do not use ice or butter."
+*clean*white*sneaker*	echo "Scrub with baking soda and detergent, then air dry."
+*use*fire*extinguisher*	echo "Use the PASS method: Pull pin, Aim at base, Squeeze lever, Sweep side to side."
+*remove*rust*	echo "Apply white vinegar or a commercial rust remover and scrub with a wire brush."
+*wash*delicate*cloth*	echo "Use a gentle cycle with cold water or hand wash using mild detergent."
+*stop*nosebleed*	echo "Lean forward and pinch the soft part of your nose firmly for 10 minutes."
+*bee*sting*	echo "Remove the stinger with a flat object, then apply ice and hydrocortisone cream."
+*fall*asleep*faster*	echo "Maintain a dark room, avoid screens, and try deep breathing or relaxation."
+
+## ./lookdown.universal.tsv (lines 1-40 of 2624)
+# subtract -- intent lookup table
+# format: glob_pattern<TAB>[tag]<TAB>command
+#   tags: [stdout] (default), [player]
+#   two-column lines (no tag) default to [stdout] for backwards compat
+# first match wins. specific before general.
+
+# children — these entries go first
+godzilla minus one	echo "Post-war Japan faces a terrifying new threat from the deep. It's a powerful story of survival and redemption."
+godzilla	echo "Godzilla is a giant monster from Japan, first appearing in a 1954 movie. The name comes from the Japanese word Gojira, combining gorilla and whale. Godzilla has fought over 30 legendary opponents including King Ghidorah, Mothra, Mechagodzilla, and King Kong across more than 35 films — the longest-running film franchise in history."
+*what*dinosaur*	echo "Dinosaurs were reptiles that lived millions of years ago. Some were huge like T-Rex, others small as chickens. They went extinct about 66 million years ago when an asteroid hit Earth."
+what*is*caterpillar*	echo "A caterpillar is the larva stage of a butterfly or moth. It hatches from an egg and eats leaves to grow bigger. Caterpillars have soft bodies with many segments and tiny legs. When it is big enough, it builds a cocoon or chrysalis and transforms inside."
+what*caterpillar	echo "A caterpillar is the larva stage of a butterfly or moth. It hatches from an egg and eats leaves to grow bigger. Caterpillars have soft bodies with many segments and tiny legs. When it is big enough, it builds a cocoon or chrysalis and transforms inside."
+what*is*cocoon*	echo "A cocoon is a silk covering that a caterpillar spins around itself. Inside the cocoon, the caterpillar changes into a moth. Butterflies make a chrysalis instead of a cocoon, but people use the word cocoon for both. The change inside is called metamorphosis."
+what*cocoon	echo "A cocoon is a silk covering that a caterpillar spins around itself. Inside the cocoon, the caterpillar changes into a moth. Butterflies make a chrysalis instead of a cocoon, but people use the word cocoon for both. The change inside is called metamorphosis."
+what*is*chrysalis*	echo "A chrysalis is the hard shell a butterfly caterpillar makes when it is ready to transform. Inside, the caterpillar's body breaks down and rebuilds into a butterfly. It takes about 10 to 14 days. When it opens, a butterfly comes out with wet wings that need to dry."
+what*chrysalis	echo "A chrysalis is the hard shell a butterfly caterpillar makes when it is ready to transform. Inside, the caterpillar's body breaks down and rebuilds into a butterfly. It takes about 10 to 14 days. When it opens, a butterfly comes out with wet wings that need to dry."
+what*is*butterfly*	echo "A butterfly is an insect with large colorful wings. It starts as an egg, becomes a caterpillar, forms a chrysalis, and emerges as a butterfly. Butterflies drink nectar from flowers through a long curled tongue called a proboscis. Monarch butterflies migrate thousands of miles."
+what*butterfly	echo "A butterfly is an insect with large colorful wings. It starts as an egg, becomes a caterpillar, forms a chrysalis, and emerges as a butterfly. Butterflies drink nectar from flowers through a long curled tongue called a proboscis. Monarch butterflies migrate thousands of miles."
+what*is*a*moth	echo "A moth is an insect closely related to a butterfly. Most moths fly at night and are attracted to light. A moth caterpillar spins a cocoon made of silk. Moths have feathery antennae and usually duller colors than butterflies. Some moths, like the luna moth, are very large and beautiful."
+tell*me*about*moth*	echo "A moth is an insect closely related to a butterfly. Most moths fly at night and are attracted to light. A moth caterpillar spins a cocoon made of silk. Moths have feathery antennae and usually duller colors than butterflies. Some moths, like the luna moth, are very large and beautiful."
+what*is*metamorphosis*	echo "Metamorphosis is the process where an animal completely changes its body shape as it grows. A caterpillar becoming a butterfly is metamorphosis. A tadpole becoming a frog is metamorphosis. The word comes from Greek and means 'change of form.'"
+what*metamorphosis	echo "Metamorphosis is the process where an animal completely changes its body shape as it grows. A caterpillar becoming a butterfly is metamorphosis. A tadpole becoming a frog is metamorphosis. The word comes from Greek and means 'change of form.'"
+what*is*larva*	echo "A larva is the young form of an animal that looks very different from the adult. A caterpillar is the larva of a butterfly. A tadpole is the larva of a frog. A maggot is the larva of a fly. Larvae eat and grow until they are ready to change into their adult form."
+what*larva	echo "A larva is the young form of an animal that looks very different from the adult. A caterpillar is the larva of a butterfly. A tadpole is the larva of a frog. A maggot is the larva of a fly. Larvae eat and grow until they are ready to change into their adult form."
+what*is*pupa*	echo "A pupa is the stage between larva and adult in insects that undergo metamorphosis. The caterpillar stops eating, attaches to something, and its outer skin hardens into a protective case. Inside, the body completely reorganizes. The pupa does not eat or move. When the transformation is complete, the adult insect emerges."
+what*pupa	echo "A pupa is the stage between larva and adult in insects that undergo metamorphosis. The caterpillar stops eating, attaches to something, and its outer skin hardens into a protective case. Inside, the body completely reorganizes. The pupa does not eat or move. When the transformation is complete, the adult insect emerges."
+# edit this file to teach your machine new intents.
+# languages: add a section. translate the intents, keep the commands.
+#
+# --- files ---
+what*in*this*directory	ls .
+what*in*current*directory	ls .
+what*files*are*here	ls .
+list*files	ls .
+show*hidden*files	ls -la
+show*all*files	ls -la
+show*file*sizes	ls -lh
+show*largest*files	ls -lhS | head -20
+show*files	ls .
+list*home	ls ~/
+
+## ./lookdown.example.tsv (lines 1-28 of 28)
+# lookdown.<hostname>.tsv — host-specific overrides
+# copy to ~/.subtract/lookdown.<hostname>.tsv
+# these entries are checked BEFORE lookdown.universal.tsv
+# first match wins. use this for:
+#   - machine-specific commands (services, hardware, paths)
+#   - personal shortcuts
+#   - child-specific or user-specific content
+#
+# format: glob_pattern<TAB>command
+#   or:   glob_pattern<TAB>[tag]<TAB>command
+
+# --- host-specific services ---
+start*jellyfin	sudo systemctl start jellyfin
+stop*jellyfin	sudo systemctl stop jellyfin
+restart*jellyfin	sudo systemctl restart jellyfin
+*jellyfin*status*	systemctl is-active jellyfin && echo "running" || echo "stopped"
+
+# --- hardware this machine has ---
+*gpu*status*	nvidia-smi 2>/dev/null || echo "no nvidia gpu found"
+*temperature*	sensors 2>/dev/null || echo "install lm-sensors: sudo apt install lm-sensors"
+
+# --- personal shortcuts ---
+*my*projects*	ls ~/repos/
+*work*notes*	cat ~/human/via-negativa/notes.txt 2>/dev/null || echo "no notes yet"
+
+# --- note on children's entries ---
+# children's entries go in lookdown.universal.tsv, not here.
+# every node should answer a child's question. the village helps.
+
+## ./emile.txt (lines 81-120 of 192)
+  Bench harness: https://github.com/03-git/variance-lab
+
+## Software
+
+  llama-server         inference engine (llama.cpp, standalone binary)
+  model.gguf           sub-4B quantized model selected by bench
+  application HTML     static files served over HTTP
+  ssh                  remote access, tunneling, file transfer
+  ssh-keygen -Y        artifact signing and verification (already installed)
+  cron                 scheduled cloud prompts (the change window)
+  curl                 cloud API calls (batch endpoint)
+
+  lookdown.tsv         universal (ships besides subtract.ing)
+  lookdown.*.tsv       yours (ships beside you)
+
+No package managers. No frameworks. No containers. The kernel runs
+the binary. The binary serves completions. The HTML calls the API.
+The signing primitive is already on the machine.
+
+## Three connectivity tiers
+
+  1. Continuous (local only)
+     The device runs. Applications respond. Sessions log.
+     The model handles translation: natural language to command,
+     intent to interface action. No network required.
+
+  2. Planned (scheduled cloud)
+     The operator writes a concrete prompt describing what should
+     change. The prompt queues locally. When connectivity exists,
+     it fires against a cloud LLM. The diff returns. The operator
+     reviews and applies. This is a change management window —
+     metered, audited, batched.
+
+  3. Absent
+     If the local model fails, the application still serves static
+     content. If the cloud connection fails, the change waits for
+     the next window. Nothing in the local surface requires
+     emergency cloud access.
+
+## The change window
+
+## ./emile.txt (lines 1-40 of 192)
+# Emile
+
+A local-first deployment pattern for sole proprietors. Named for
+Rousseau's treatise on education: the environment teaches, not
+the instructor.
+
+One device, one model, one operator. No cloud subscription.
+No always-on internet.
+
+subtract shows you the supercomputer in every computer — when you look down close enough.
+
+## What the substrate commits to
+
+Five primitives. All Unix or OpenSSH. None of them name a role,
+a profession, or an org model.
+
+  1. One admin principal (the operator who owns the hardware).
+  2. One or more non-admin user principals, each with a home
+     directory, their own content and records, and their own
+     signing key.
+  3. A shared directory (/Users/Shared/emile/ or equivalent)
+     that non-admin users read from and do not write to.
+  4. A signing model where any principal authors signed artifacts
+     under their own key. The substrate trusts signatures based
+     on authorized_signers entries at the admin layer.
+  5. SSH authorized_keys per user, not shared.
+
+## What the substrate does not commit to
+
+  - How many non-admin users exist.
+  - Whether one of them supervises others.
+  - Who holds custody of which records.
+  - Whether records are siloed, shared, or flow to a supervisor.
+  - Whether programs are authored once or authored per-user.
+  - Which user answers to which licensing board.
+  - Whether an LLM assistant acts under a user's identity or its own.
+  - Who the billing identifier belongs to.
+
+Every one of those is an organizational decision. If the substrate
+expresses a preference about any of them, the substrate has

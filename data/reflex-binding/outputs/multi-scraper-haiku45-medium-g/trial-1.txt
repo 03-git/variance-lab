@@ -1,0 +1,101 @@
+I'll show you a Python script that fetches a URL and extracts hyperlinks.
+
+```python
+import requests
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self.current_text = []
+    
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            attrs_dict = dict(attrs)
+            href = attrs_dict.get('href', '')
+            self.current_text = []
+    
+    def handle_data(self, data):
+        self.current_text.append(data.strip())
+    
+    def handle_endtag(self, tag):
+        if tag == 'a':
+            text = ' '.join(self.current_text)
+            if hasattr(self, '_last_href'):
+                self.links.append({
+                    'href': self._last_href,
+                    'text': text
+                })
+    
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            attrs_dict = dict(attrs)
+            self._last_href = attrs_dict.get('href', '')
+            self.current_text = []
+
+def extract_links(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return []
+    
+    parser = LinkExtractor()
+    parser.feed(response.text)
+    return parser.links
+
+# Fetch and display links
+url = 'https://example.com'
+links = extract_links(url)
+
+if links:
+    print(f"Found {len(links)} links:\n")
+    for link in links:
+        href = link['href']
+        text = link['text'] or '(no text)'
+        print(f"URL:  {href}")
+        print(f"Text: {text}\n")
+else:
+    print("No links found or error occurred")
+```
+
+**To run it:**
+
+```bash
+# Install requests library if needed
+pip install requests
+
+# Run the script
+python3 script_name.py
+```
+
+The script:
+1. Uses `requests` to fetch the page
+2. Parses HTML with `HTMLParser` to find `<a>` tags
+3. Extracts the `href` attribute and link text
+4. Prints each link's URL and display text
+
+For production use, consider using `BeautifulSoup` instead—it's more robust:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+url = 'https://example.com'
+response = requests.get(url, timeout=10)
+response.raise_for_status()
+
+soup = BeautifulSoup(response.text, 'html.parser')
+links = soup.find_all('a')
+
+print(f"Found {len(links)} links:\n")
+for link in links:
+    href = link.get('href', '')
+    text = link.get_text(strip=True) or '(no text)'
+    print(f"URL:  {href}")
+    print(f"Text: {text}\n")
+```
+
+Install with: `pip install requests beautifulsoup4`

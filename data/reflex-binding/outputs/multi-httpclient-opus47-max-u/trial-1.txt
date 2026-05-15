@@ -1,0 +1,47 @@
+```python
+import sys
+import urllib.request
+import urllib.error
+
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: python fetch.py <url>", file=sys.stderr)
+        sys.exit(1)
+
+    url = sys.argv[1]
+    req = urllib.request.Request(url, headers={"User-Agent": "fetch-script/1.0"})
+
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            status = resp.status
+            headers = resp.headers
+            body = resp.read(500).decode("utf-8", errors="replace")
+            final_url = resp.geturl()
+    except urllib.error.HTTPError as e:
+        status = e.code
+        headers = e.headers
+        body = e.read(500).decode("utf-8", errors="replace")
+        final_url = e.url
+
+    print(f"Final URL: {final_url}")
+    print(f"Status: {status}")
+    print("Headers:")
+    for k, v in headers.items():
+        print(f"  {k}: {v}")
+    print("Body (first 500 chars):")
+    print(body)
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run:
+
+```bash
+python fetch.py https://example.com
+```
+
+Notes:
+- `urllib.request.urlopen` follows HTTP 3xx redirects by default, and `resp.geturl()` returns the final URL after redirects.
+- HTTP error responses (4xx/5xx) raise `HTTPError`, which is caught so you still see the status, headers, and body.
+- Uses only the standard library — no `pip install` needed. If you'd prefer the `requests` library, swap in `r = requests.get(url, allow_redirects=True, timeout=30)` and use `r.status_code`, `r.headers`, `r.text[:500]`.

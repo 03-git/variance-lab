@@ -1,0 +1,59 @@
+```python
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, *args):
+        pass
+
+HTTPServer(('', 8000), Handler).serve_forever()
+```
+
+Run it:
+
+```
+python3 -c "
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'time': datetime.now(timezone.utc).isoformat()}).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+    def log_message(self, *args): pass
+
+HTTPServer(('', 8000), Handler).serve_forever()
+"
+```
+
+Test:
+
+```
+curl localhost:8000/time
+```
+
+Returns something like:
+
+```json
+{"time": "2026-05-10T14:23:01.482731+00:00"}
+```
+
+No dependencies beyond stdlib. Port 8000 — change `('', 8000)` if needed.

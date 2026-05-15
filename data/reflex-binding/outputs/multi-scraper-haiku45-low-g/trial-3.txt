@@ -1,0 +1,101 @@
+I'll show you a Python script that fetches a URL and extracts hyperlinks:
+
+```python
+import requests
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []
+        self.current_text = []
+    
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            attrs_dict = dict(attrs)
+            href = attrs_dict.get('href', '')
+            # Convert relative URLs to absolute
+            absolute_url = urljoin(self.base_url, href)
+            self.links.append({'href': absolute_url, 'text': ''})
+    
+    def handle_data(self, data):
+        if self.links:
+            self.links[-1]['text'] += data.strip()
+    
+    def handle_endtag(self, tag):
+        if tag == 'a' and self.links:
+            self.links[-1]['text'] = self.links[-1]['text'].strip()
+
+def fetch_and_extract_links(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        parser = LinkExtractor(url)
+        parser.feed(response.text)
+        
+        print(f"Found {len(parser.links)} links:\n")
+        for link in parser.links:
+            text = link['text'] or "(no text)"
+            print(f"Text: {text}")
+            print(f"URL:  {link['href']}\n")
+    
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+
+if __name__ == "__main__":
+    fetch_and_extract_links("https://example.com")
+```
+
+**How to run it:**
+
+1. Install `requests` if you don't have it:
+   ```bash
+   pip install requests
+   ```
+
+2. Save the script as `fetch_links.py` and run:
+   ```bash
+   python fetch_links.py
+   ```
+
+Or run it directly in the terminal without saving:
+```bash
+python3 << 'EOF'
+import requests
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []
+    
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            href = dict(attrs).get('href', '')
+            absolute_url = urljoin(self.base_url, href)
+            self.links.append({'href': absolute_url, 'text': ''})
+    
+    def handle_data(self, data):
+        if self.links:
+            self.links[-1]['text'] += data.strip()
+    
+    def handle_endtag(self, tag):
+        if tag == 'a' and self.links:
+            self.links[-1]['text'] = self.links[-1]['text'].strip()
+
+response = requests.get("https://example.com", timeout=10)
+parser = LinkExtractor("https://example.com")
+parser.feed(response.text)
+
+for link in parser.links:
+    text = link['text'] or "(no text)"
+    print(f"Text: {text}\nURL:  {link['href']}\n")
+EOF
+```
+
+The script uses `HTMLParser` from the standard library (no extra dependencies needed except `requests`) and handles relative URLs by converting them to absolute URLs using `urljoin`.

@@ -1,0 +1,15 @@
+Reading the V2 results and selection statement.
+
+**1. Factual error:**  
+"No arm dominates on >=3 of 4 metrics" — Arm M wins cost (tokens), wall time, and audit chain (3/4), ties quality. That's 3 wins + 1 tie = domination on >=3.
+
+**2. Framing drift:**  
+"agree on arm direction" follows tau=-0.33 without clarifying that negative correlation is on *item* rankings while arm agreement is *aggregate*. Reads like scorers contradict themselves.
+
+**3. Should be added:**  
+What "handler methodology ground truth" is, or cut the phrase. It anchors scorer calibration but is never defined — can't evaluate if Claude "tracks ground truth best" without knowing what ground truth means here.
+1. None found.
+2. None found.
+3. Add: Comparison of embedding-based retrieval (eB)R/E (R/E) for a baseline-to-baseline-baseline-to-baseline-baseline-to-baseline-baseline-to-baseline-baseline-to-baseline-baseline-to-text-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-significance-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test-test5. Add: Comparison of embedding-based retrieval (eBR) as a baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-to-to-to-to-to-to-to-to-to-to-to-to-to-to-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-to-baseline-toের-to-baseline-to-baseline-to-baseline-to1. One factual error or unsupported claim: "BM25 not embedding-based" (BM25 is a ranking algorithm that can be based on embeddings, though it is traditionally not).
+2. One framing drift: "Selection: Arm M wins cost and audit. Quality is a draw. No arm dominates on >=3 of 4 metrics." (This implies a clear winner, but the summary states that no arm dominates on three or more metrics).
+3. One thing that should be added or cut: "Boundaries where BM25 wins: zero curation cost, possibly semantic similarity, change detection (both fail equally)." (This could be expanded or clarified, but it's not essential to the main findings).

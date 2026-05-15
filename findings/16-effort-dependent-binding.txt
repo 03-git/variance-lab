@@ -1,0 +1,390 @@
+---
+title: Effort-Dependent Governance Binding Across Frontier Models
+date: 2026-05-10
+source: controlled experiment (4 frontier models, 4-6 effort levels, 8 prompts, 2 arms, 1872 trials)
+domain:
+  - agent-governance
+  - claude-md-binding
+  - effort-level-sensitivity
+  - managed-agents
+keywords:
+  - reflex.1
+  - effort level
+  - extended thinking
+  - stdlib vs framework
+  - governance delta
+  - verbosity
+  - attention budget
+related_findings:
+  - "variance-lab finding 5: governance binding, delivery-path sensitivity (2026-04-19)"
+  - "variance-lab finding 15: abstract reflex binding, lineage-dependent governance transfer (2026-05-10)"
+methodology: pre-committed rubric (rubric-multi.txt); 8 identical task prompts across all cells; 4 frontier models × 4-6 effort levels × 2 arms (governed/ungoverned) × N=5 per effort cell; baseline prompts at N=35-57 per cell; governed arm = governance.conf.universal loaded via native CLAUDE.md in cwd; ungoverned arm = clean session from mktemp; automated regex scoring with per-trial decomposition verification; dispatched across 4 formation nodes (rousseau M1 Studio, emile M2 Mini, acer 1660Ti, surface i7 Pro 8); all under Max subscription flat-fee (zero metered spend)
+---
+
+# Effort-Dependent Governance Binding
+
+## Claim
+
+Governance binding is not a fixed property of a model. It
+varies with the effort level passed to the inference call.
+The relationship is non-monotonic: each model has a different
+effort level where governance delta peaks, and one model
+(Opus 4.6) shows zero governance delta at its default effort
+while binding at every non-default level.
+
+On this task, extended thinking without governance makes models
+worse at choosing primitives, not better. More compute deepens
+commitment to the training-data mode (library defaults) rather
+than exploring the solution space. Governance is a constant-cost
+intervention; extended thinking is a linear-cost one. They are
+not substitutes.
+
+## The effort matrix
+
+Governance delta (mean across binding-zone prompts: scraper,
+httpclient, test) by model and effort level:
+
+  Effort      Opus 4.7   Opus 4.6   Sonnet 4.6   Haiku 4.5
+  -------     --------   --------   ----------   ---------
+  low           +27%       +13%       +47%          +7%
+  medium        +13%       +33%       +40%          +0%
+  default       +27%        +0%       +47%          +7%
+  high          +33%       +40%       +40%          +0%
+  xhigh         +40%        ---        ---           ---
+  max           +27%        ---        ---           ---
+
+Positive = governance increases stdlib compliance.
+N=5 per effort cell (SE ≈ ±22 percentage points per cell;
+treat individual cells as directional, not precise).
+Binding-zone prompts only. Full per-prompt breakdown below.
+
+## Prompt taxonomy
+
+Eight prompts tested, empirically classified by whether
+governance can produce a measurable delta:
+
+  CEILING (100% stdlib both arms, governance redundant):
+    async (asyncio), cli (argparse), sqlite (sqlite3)
+
+  BINDING ZONE (measurable governance delta on some models):
+    scraper (urllib vs requests+bs4)
+    httpclient (urllib vs requests)
+    test (unittest vs pytest)
+
+  FLOOR (0% stdlib both arms, governance cannot override):
+    rest (http.server vs Flask/FastAPI)
+
+  EFFORT-SENSITIVE:
+    http (ceiling at most configurations, binding zone at
+    xhigh-ungoverned where it drops to 40%)
+
+Three ceiling prompts and one floor prompt are stable across
+all models and effort levels. The binding zone is where
+governance has room to operate — the task is hard enough that
+models don't default to stdlib, but not so hard that stdlib
+is infeasible.
+
+## Per-prompt results
+
+Full matrix (governed/ungoverned, N=5 per cell):
+
+  OPUS 4.7:
+  Effort       http        scraper     httpclient  test
+  ------       ----        -------     ----------  ----
+  low          100/100     20/0        0/0         60/0
+  medium       100/40      0/0         0/0         40/0
+  default      ---         80/60       100/40      0/0
+  high         100/100     80/80       100/0       0/0
+  xhigh        100/40      60/20       80/0        0/0
+  max          100/80      80/20       40/0        20/40
+
+  OPUS 4.6:
+  Effort       http        scraper     httpclient  test
+  ------       ----        -------     ----------  ----
+  low          100/100     100/60      100/100     0/0
+  medium       100/100     80/20       100/100     40/0
+  default      ---         0/0         0/0         0/0
+  high         100/100     100/40      100/40      0/0
+
+  SONNET 4.6:
+  Effort       http        scraper     httpclient  test
+  ------       ----        -------     ----------  ----
+  low          60/100      80/20       100/60      80/40
+  medium       100/80      80/20       100/40      100/100
+  default      ---         60/0        100/40      80/60
+  high         100/100     100/20      100/100     100/60
+
+  HAIKU 4.5:
+  Effort       http        scraper     httpclient  test
+  ------       ----        -------     ----------  ----
+  low          40/0        0/0         0/0         20/0
+  medium       40/0        0/0         0/0         60/60
+  default      ---         0/0(35)     0/0(35)     52/32(50)
+  high         0/0         0/0         0/0         80/80
+
+  Default cells for haiku test/scraper/httpclient at N=35-50.
+  All other cells N=5.
+
+## Findings
+
+### 1. Sonnet 4.6 is robustly governable at all tested effort levels.
+
+Governance delta is +40-47% at every effort level tested.
+The model sits at the decision boundary where governance has
+maximum leverage: capable enough to follow the directive,
+not so entrenched that it defaults to stdlib without one.
+This is the strongest, most stable finding in the matrix.
+
+### 2. Opus 4.6 default is a configuration anomaly.
+
+At default effort, Opus 4.6 shows zero governance delta on
+all binding-zone prompts. Every non-default effort level
+shows substantial binding (+13% to +40%).
+
+Per-trial decomposition resolves the mechanism. At default
+effort, governed Opus 4.6 writes stdlib code (urllib.request,
+html.parser) on every trial — the code is correct. But it
+also mentions framework alternatives in prose ("you could
+also use requests," "beautifulsoup is another option"). The
+R1 scorer catches these prose mentions and scores 0.
+
+At non-default effort levels, the governed model suppresses
+the alternative suggestions. The code is the same; the
+prose is different.
+
+This is a prose/code discrepancy, not a code-level failure.
+The code binds correctly; the prose does not suppress
+framework mentions. Whether this constitutes a governance
+failure depends on whether fail.verbosity ("the human's
+attention is the scarce resource") applies to prose
+surrounding correct code. A code-only scorer would score
+these trials as governed-compliant. The R1 scorer's
+sensitivity to prose mentions is the mechanism behind the
+zero delta at default effort.
+
+Default effort may not be a point on the effort continuum.
+It may be a separate RLHF configuration optimized for
+helpfulness (mentioning alternatives) rather than a
+midpoint between medium and high. The data cannot
+distinguish "default is uniquely miscalibrated" from
+"default is a different object than the effort-tier
+configurations."
+
+### 3. Extended thinking amplifies library instinct.
+
+Opus 4.7 httpclient ungoverned: default 40%, high 0%,
+xhigh 0%, max 0%. Ungoverned stdlib compliance drops
+monotonically with effort on this prompt. More thinking
+correlates with stronger library preference (N=5 per
+cell; directional only).
+
+Governed compliance also declines with extended thinking
+but more slowly. Opus 4.7 httpclient governed: default
+100%, high 100%, xhigh 80%, max 40%. Governance partially
+resists the drift but cannot fully counteract it at max
+effort.
+
+The governance delta (governed minus ungoverned) is
+non-monotonic: httpclient delta is +60% at default, +100%
+at high, +80% at xhigh, +40% at max. The delta peaks at
+high, not at maximum effort. Ungoverned drops faster than
+governed, but both degrade at the highest effort levels.
+
+On this task, more compute without governance produces
+worse primitive selection. More compute with governance
+produces a larger delta — but only because the ungoverned
+baseline degrades, not because governance improves.
+Extended thinking is not a substitute for governance on
+this prompt; it amplifies the need for it.
+
+### 4. Haiku barely responds to governance at any effort.
+
+Governance delta is +0-7% across all effort levels. The
+only prompt that shows a measurable delta is test
+(unittest vs pytest) at default effort (+20%, N=50,
+stabilized from +40% at N=5).
+
+High effort makes Haiku more capable (test goes from 52%
+to 80% stdlib) but eliminates the governance delta (both
+arms converge at 80%). The effort flag changes absolute
+compliance but not the gap between governed and ungoverned.
+
+### 5. Governance compresses output.
+
+Governed responses are consistently shorter across all
+models, prompts, and effort levels. On binding-zone
+prompts, governed output is 40-65% fewer tokens than
+ungoverned. Even on ceiling prompts where both arms
+produce identical code, governed output is 10-20% shorter.
+
+The compression is not incidental. The suppressed content
+is framework alternatives, installation instructions, and
+"you could also use..." paragraphs. Governance removes
+the additive text.
+
+Token economics: governance payload costs ~17K cached
+input tokens per call. This experiment ran under Max
+subscription (flat-fee), where the governance payload
+has zero marginal cost. Under per-token API pricing,
+the input cost of the governance payload would need to
+be weighed against output savings.
+
+### 6. The inverted-U is model-capability-dependent.
+
+Across the four models at their respective peak effort
+levels:
+
+  Model          Peak delta   Peak effort
+  -----          ----------   -----------
+  Sonnet 4.6     +47%         low / default
+  Opus 4.6       +40%         high
+  Opus 4.7       +40%         xhigh
+  Haiku 4.5      +7%          low / default
+
+Sonnet peaks at low and default (tied). Opus models peak
+at higher effort. Haiku barely responds. The model with
+the largest governance delta on this prompt set is not the
+one with the most reasoning capacity — it is the one at
+the decision boundary where stdlib and library are closest
+to equiprobable.
+
+## Speculation: Connection to Managed Agents
+
+Opus 4.7's governance delta peaks at xhigh (+40%), the
+effort level Anthropic recommends for Managed Agents.
+This correlation is untested — the experiment did not
+measure retry loops, model-as-reviewer, or any Managed
+Agents workflow. The observation is noted for future
+investigation, not as a finding.
+
+## Confounds
+
+**N=5 per effort cell.** The effort-level results are at
+N=5. The binding-zone classification and prompt taxonomy
+are supported by larger N (35-57 per cell at default
+effort). Individual effort-cell percentages should be read
+as directional, not precise. The mean-delta-by-effort
+summary averages across 3 prompts × 5 trials = 15
+observations per cell.
+
+**Scorer sensitivity to prose mentions.** R1 = stdlib AND
+NOT framework-mentioned. This catches prose mentions
+("you could also use requests") that don't affect the
+code. The Opus 4.6 default decomposition (Finding 2)
+showed this matters: 0% R1 despite 100% code-level
+stdlib. A code-only scorer would change the absolute
+numbers but not the effort-dependent pattern (non-default
+effort levels suppress the prose mentions that default
+does not).
+
+**Default is not a named effort level.** "Default" means
+no --effort flag was passed. This may invoke a different
+RLHF configuration than the named effort levels. The
+comparison between default and named levels may be
+comparing two different optimization targets, not points
+on a single continuum.
+
+**Cross-node variance.** Trials were distributed across 4
+nodes. Rate limiting, network latency, and per-node
+configuration differences could contribute variance.
+Haiku extension trials were dispatched on both rousseau
+and acer; acer trials were renumbered (6-20 → 21-35) to
+merge without collision.
+
+**Single governance text.** All governed trials used the
+same governance.conf.universal via CLAUDE.md. The effort
+interaction is specific to this governance text. A
+different governance directive (more specific, less
+abstract) might show a different effort curve.
+
+**Frontier models only.** This finding covers four
+Anthropic models. Finding 15 showed that local models
+(Gemma, Llama, Qwen) have different binding properties.
+The effort-level interaction on local models was not
+tested.
+
+**No http default-effort data.** The http prompt was not
+included in the original N=5 default-effort multi-prompt
+dispatch. The http default-effort data comes from the
+larger original experiment (finding 15) at N=52-57, using
+a different dispatch script (text output, not JSON). The
+effort-level http data (N=5 per cell) is from the
+effort-sweep dispatch.
+
+## Methodology
+
+### Dispatch
+
+`dispatch-multi.sh`: takes model, arm (g/u), start trial,
+count, prompt ID, and optional effort level. Governed arm
+runs from $HOME (where CLAUDE.md contains governance.conf
+.universal). Ungoverned arm runs from mktemp directory
+(clean context). Output captured as JSON (--output-format
+json) with text extraction for scoring.
+
+### Scoring
+
+`score-multi.py`: regex-based scorer checking for stdlib
+patterns (urllib.request, html.parser, argparse, unittest,
+sqlite3, asyncio, http.server) and framework patterns
+(requests, beautifulsoup, click, pytest, Flask, FastAPI,
+SQLAlchemy, etc.). R1 = stdlib present AND no framework
+pattern matched.
+
+### Nodes
+
+Four formation nodes dispatched concurrently:
+- rousseau (M1 Studio, 64GB): Opus 4.7 low/medium
+- emile (M2 Mini): Opus 4.7 high/max, Sonnet 4.6 low/med
+- surface (i7 Surface Pro 8): Opus 4.6/Sonnet high, Haiku low/med
+- acer (1660Ti Debian): Haiku high, Opus 4.6 low/med
+
+All dispatches via `claude -p` under Max subscription.
+Four nodes ran concurrently for ~4x wall-clock speedup
+over single-node sequential.
+
+## Cost
+
+1,872 dispatches via `claude -p` under Max subscription.
+Zero metered spend. Wall-clock time: approximately 3
+hours across two sessions, parallelized across 4 nodes.
+
+## Review
+
+Reviewed by three-model panel (Opus 4.7, Sonnet 4.6,
+Haiku 4.5) against the three-gate methodology. All three
+reviewers are Anthropic lineage; cross-lineage reviews
+(Llama 8B, Gemma-4 26B) failed to complete.
+
+Preliminary review by claude.ai (Sonnet 4.6) identified the Opus 4.6
+default scorer artifact (framework mentions in prose, not
+imports) and recommended per-item decomposition. That
+decomposition was performed and incorporated as Finding
+2's mechanism discussion.
+
+Nine convergent corrections applied from the panel:
+1. Removed "dreaming thesis" attribution to Anthropic
+2. Added SE ≈ ±22pp uncertainty note to headline matrix
+3. Cut Managed Agents section to speculation label
+4. Corrected Finding 3 delta narrative to "non-monotonic"
+5. Reframed Finding 2 as prose/code discrepancy
+6. Cut self-referential multi-node paragraph
+7. Qualified "robustly governable" to tested levels
+8. Corrected Finding 6 "lowest effort" to "low/default"
+9. Cut API cost comparison from Cost section
+
+Remaining open items:
+- Name the threshold between "binds" and "doesn't bind"
+- Cross-lineage scorer validation on Opus 4.6 default
+- Cross-lineage review panel (non-Anthropic models)
+- Confidence intervals per cell (beyond headline SE note)
+
+## Data
+
+All outputs: `variance-lab/data/reflex-binding/outputs/`
+  1,872 text files + 692 JSON files with token usage
+  Directory naming: multi-{prompt}-{model}-{effort}-{arm}
+Rubric: `variance-lab/data/reflex-binding/rubric-multi.txt`
+Scorer: `variance-lab/data/reflex-binding/score-multi.py`
+Dispatch: `variance-lab/data/reflex-binding/dispatch-multi.sh`
+Original dispatch: `variance-lab/data/reflex-binding/dispatch-cloud.sh`

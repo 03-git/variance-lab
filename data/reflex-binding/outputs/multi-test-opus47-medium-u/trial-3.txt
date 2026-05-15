@@ -1,0 +1,47 @@
+```python
+# test_temperature.py
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212
+
+def test_minus_forty_is_equal():
+    # -40 °C == -40 °F, the one place the scales coincide
+    assert celsius_to_fahrenheit(-40) == -40
+
+def test_non_numeric_input_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+In a real project you'd import `celsius_to_fahrenheit` from your module instead of defining it in the test file:
+
+```python
+from temperature import celsius_to_fahrenheit
+```
+
+## How to run it
+
+```bash
+pip install pytest
+pytest test_temperature.py -v
+```
+
+Expected output:
+
+```
+test_temperature.py::test_freezing_point PASSED
+test_temperature.py::test_boiling_point PASSED
+test_temperature.py::test_minus_forty_is_equal PASSED
+test_temperature.py::test_non_numeric_input_raises PASSED
+```
+
+Notes:
+- `"hot" * 9` actually succeeds in Python (string repetition), but the subsequent `/ 5` raises `TypeError`, so the non-numeric test passes as written. If you'd rather fail fast, add an explicit `isinstance(c, (int, float))` check at the top of the function and assert on that.
+- If you don't have/want pytest, the first three can also be expressed with plain `assert` under `unittest`, but pytest's `pytest.raises` is the cleanest way to cover the error case.

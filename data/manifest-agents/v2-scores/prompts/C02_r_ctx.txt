@@ -1,0 +1,509 @@
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from variance-lab/data/manifest-agents/questions.tsv)
+id	type	question
+T01	traversal	What files are in the runtime/hosuni/ directory and what does each one do?
+T02	traversal	What is parsimony.c and what role does it play in the subtract.ing runtime?
+T03	traversal	List all .tsv files in the repository and describe the format of each.
+T04	traversal	What does the install.sh script do?
+T05	traversal	What is in runtime/llms.txt and how does it differ from the root llms.txt?
+T06	traversal	What shell hooks exist in runtime/hooks/ and what do they intercept?
+T07	traversal	What is kiosk.sh and what does it configure?
+T08	traversal	What files define the lookdown system and how are they organized?
+T09	traversal	What is squared.c and what does it compute?
+T10	traversal	List every file that contains a sha256 hash or references sha256 verification.
+S01	synthesis	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?
+S02	synthesis	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?
+S03	synthesis	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?
+S04	synthesis	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.
+S05	synthesis	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?
+S06	synthesis	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?
+S07	synthesis	Which files mention the concept of a "formation" and what does the term mean across them?
+S08	synthesis	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?
+S09	synthesis	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?
+S10	synthesis	What does lineage.txt credit and how do those credits connect to specific components in the codebase?
+C01	change	What changed in hosuni.c between commit d4e860d and HEAD?
+C02	change	What was the most recent change to variance-lab.txt and what confound did it resolve?
+C03	change	Which files were modified in the commit that added CJK font fallback support?
+C04	change	Has SOUL.txt been rewritten recently? What was the nature of the change?
+C05	change	What is the most recent addition to the llms.txt index?
+M01	similarity	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?
+M02	similarity	Find files related to the concept of signing and verification. Group them by function.
+M03	similarity	Which components share the pattern of reading a manifest or index file to decide what to do next?
+M04	similarity	What files discuss the boundary between human authority and agent execution? How do they differ in framing?
+M05	similarity	Find all components that use llama.cpp or local inference. How are they related?
+
+
+### Chunk 2 (from lookdown.universal.tsv)
+# === TEXT PROCESSING ===
+#
+show*file*contents	cat
+print*file	cat
+show*first*lines	head
+show*last*lines	tail
+follow*log	tail -f
+watch*file	tail -f
+count*lines	wc -l
+count*words	wc -w
+count*characters	wc -c
+sort*file	sort
+sort*lines	sort
+unique*lines	sort | uniq
+remove*duplicates	sort | uniq
+#
+# === PERMISSIONS ===
+#
+show*permissions	ls -l
+check*permissions	ls -l
+make*public*readable	chmod 644
+make*readable	chmod +r
+make*writable	chmod +w
+remove*write*permission	chmod -w
+make*private	chmod 600
+make*executable*by*all	chmod 755
+#
+# === GIT ===
+#
+git*status	git status
+show*git*status	git status
+what*changed	git diff
+show*changes	git diff
+git*log	git log --oneline -10
+show*commits	git log --oneline -10
+recent*commits	git log --oneline -10
+which*branch	git branch
+current*branch	git branch --show-current
+#
+# === SYSTEM INFO ===
+
+
+### Chunk 3 (from runtime/subtract.sh)
+        input_lower=$(__subtract_lower "$input")
+        case "$input_lower" in
+            "what is "*) kiwix_query="${input_lower#what is }" ;;
+            "what are "*) kiwix_query="${input_lower#what are }" ;;
+            "who is "*) kiwix_query="${input_lower#who is }" ;;
+            "who was "*) kiwix_query="${input_lower#who was }" ;;
+            "when was "*) kiwix_query="${input_lower#when was }" ;;
+            "when did "*) kiwix_query="${input_lower#when did }" ;;
+            "where is "*) kiwix_query="${input_lower#where is }" ;;
+            "define "*) kiwix_query="${input_lower#define }" ;;
+            "how does "*) kiwix_query="${input_lower#how does }" ;;
+            "how do "*) kiwix_query="${input_lower#how do }" ;;
+            "how did "*) kiwix_query="${input_lower#how did }" ;;
+        esac
+        if [ -n "$kiwix_query" ]; then
+            local snippet
+            snippet=$(__subtract_kiwix "$kiwix_query")
+            if [ -n "$snippet" ]; then
+                echo "[kiwix] $snippet"
+                SUBTRACT_LAST_OUTPUT="kiwix answer for '$input': $(__subtract_truncate "$snippet")"
+                _SUBTRACT_FROM_HANDLER=1
+                return 0
+            fi
+        fi
+    fi
+
+    # T1: embedding similarity (if available)
+    if [ -z "$cmd" ]; then
+        cmd=$(__subtract_embed "$input")
+        if [ -n "$cmd" ]; then
+            tier="T1"
+            tag="stdout"
+        fi
+    fi
+
+# DISABLED:     # T2: local generative model (if available)
+# DISABLED:     if [ -z "$cmd" ]; then
+# DISABLED:         cmd=$(__subtract_generate "$input")
+# DISABLED:         if [ -n "$cmd" ]; then
+# DISABLED:             tier="T2"
+
+
+### Chunk 4 (from LICENSE.txt)
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
+
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+                            Preamble
+
+  The GNU General Public License is a free, copyleft license for
+software and other kinds of works.
+
+  The licenses for most software and other practical works are designed
+to take away your freedom to share and change the works.  By contrast,
+the GNU General Public License is intended to guarantee your freedom to
+share and change all versions of a program--to make sure it remains free
+software for all its users.  We, the Free Software Foundation, use the
+GNU General Public License for most of our software; it applies also to
+any other work released this way by its authors.  You can apply it to
+your programs, too.
+
+  When we speak of free software, we are referring to freedom, not
+price.  Our General Public Licenses are designed to make sure that you
+have the freedom to distribute copies of free software (and charge for
+them if you wish), that you receive source code or can get it if you
+want it, that you can change the software or use pieces of it in new
+free programs, and that you know you can do these things.
+
+  To protect your rights, we need to prevent others from denying you
+these rights or asking you to surrender the rights.  Therefore, you have
+certain responsibilities if you distribute copies of the software, or if
+you modify it: responsibilities to respect the freedom of others.
+
+  For example, if you distribute copies of such a program, whether
+gratis or for a fee, you must pass on to the recipients the same
+freedoms that you received.  You must make sure that they, too, receive
+or can get the source code.  And you must show them these terms so they
+know their rights.
+
+  Developers that use the GNU GPL protect your rights with two steps:
+
+
+### Chunk 5 (from lookdown.universal.tsv)
+recent*commits	git log --oneline -10
+which*branch	git branch
+current*branch	git branch --show-current
+#
+# === SYSTEM INFO ===
+#
+memory*usage	free -h 2>/dev/null || vm_stat
+show*cpu	top -l 1 2>/dev/null || top -bn1 | head -5
+cpu*usage	top -l 1 2>/dev/null || top -bn1 | head -5
+system*info	uname -a
+kernel*version	uname -r
+which*os	cat /etc/os-release 2>/dev/null || sw_vers
+uptime	uptime
+how*long*running	uptime
+#
+# === META ===
+#
+what*does*subtract*do	cat ~/.subtract/about
+subtract*help	subtract help
+subtract*upgrade	subtract upgrade
+subtract*signon	~/scripts/signon
+signon	~/scripts/signon
+how*do*i*use*subtract	echo "Type what you want. subtract translates to the command."
+#
+# === DEFINITIONAL (what is X) ===
+#
+what is ls	echo "ls - list directory contents"
+what is cd	echo "cd - change directory"
+what is cat	echo "cat - concatenate and print files"
+what is grep	echo "grep - search for patterns in files"
+what is find	echo "find - search for files in directory hierarchy"
+what is chmod	echo "chmod - change file permissions"
+what is chown	echo "chown - change file owner and group"
+what is ps	echo "ps - report process status"
+what is top	echo "top - display Linux processes"
+what is tar	echo "tar - archive utility"
+what is gzip	echo "gzip - compress files"
+what is curl	echo "curl - transfer data from/to servers"
+what is wget	echo "wget - non-interactive network downloader"
+what is ssh	echo "ssh - secure shell remote login"
+
+
+### Chunk 6 (from variance-lab-handler-methodology.txt)
+- pre-prompt hook (direct command case, `behavior` prefix `c:`)
+
+Row format (tab-separated, no quoting):
+    timestamp<TAB>antecedent<TAB>behavior<TAB>consequence<TAB>next_behavior
+
+- timestamp: ISO 8601 UTC
+- antecedent: cwd=REL;last=WORD;exit=CODE
+- behavior: {i|c|m}:raw_string (any literal tab escaped as \t)
+- consequence: exit_code:outcome:resolved (outcome starts pending; resolved
+  is the command actually executed for i: case)
+- next_behavior: none_yet at write time; deferred scan fills later
+
+Session file: $SUBTRACT_DIR/logs/session-$$-<EPOCH_AT_SESSION_START>.tsv
+
+## Task 2: personal overlay read
+
+Modify `__subtract_handle` (or wherever lookdown is searched) to read
+`$SUBTRACT_DIR/lookdown.personal.tsv` first, falling through to
+`$SUBTRACT_LOOKUP` if no match. Same format as lookdown.tsv. If overlay file
+does not exist, proceed as today.
+
+## Required behaviors
+
+1. Runs in bash 4+ AND zsh 5+. No bash-4-only features unless also valid in zsh.
+2. Creates `$SUBTRACT_DIR/logs/` if it does not exist.
+3. Concurrent append safety: rely on POSIX append atomicity for small writes
+   (`printf >> file`); do not implement locking unless required and explained
+   inline.
+4. SIGINT mid-write must not leave partial rows.
+5. Tab in command: escape \t → literal \t in behavior and resolved fields.
+6. If `fc -ln -1` or HISTFILE is unavailable, log with empty `last=` field;
+   do not error.
+7. Do not leak helper variables into the user's shell (use `local`).
+
+## Output format
+
+Respond with ONLY the bash code. No commentary, no markdown fences,
+no explanation. For new functions: complete definitions. For modifications
+to existing functions: complete replacement with a leading comment
+`# changed: <brief what/why>`.
+
+
+### Chunk 7 (from emile.txt)
+
+  2. Planned (scheduled cloud)
+     The operator writes a concrete prompt describing what should
+     change. The prompt queues locally. When connectivity exists,
+     it fires against a cloud LLM. The diff returns. The operator
+     reviews and applies. This is a change management window —
+     metered, audited, batched.
+
+  3. Absent
+     If the local model fails, the application still serves static
+     content. If the cloud connection fails, the change waits for
+     the next window. Nothing in the local surface requires
+     emergency cloud access.
+
+## The change window
+
+The only cloud touch point. Planned maintenance, not ambient access:
+
+  1. Operator writes an intent prompt
+  2. Prompt saves to a local queue file
+  3. Cron job fires when connectivity exists:
+     curl -s https://api.anthropic.com/v1/messages \
+       -H "x-api-key: $KEY" \
+       -H "content-type: application/json" \
+       -d @prompt.json > response.json
+  4. Operator reviews the diff
+  5. Operator applies or discards
+
+The cloud LLM is autonomous within the scope of the prompt and only
+within it. The operator's prompt is the attestation. No ambient agent.
+No background polling. No surprise actions.
+
+## What you don't need
+
+  - A cloud subscription for daily operation
+  - Always-on internet
+  - A GPU
+  - Docker, Kubernetes, or any orchestration layer
+  - An app store listing or mobile development toolchain
+  - A database server (the filesystem is the database)
+
+
+### Chunk 8 (from lookdown.universal.tsv)
+# subtract -- intent lookup table
+# format: glob_pattern<TAB>[tag]<TAB>command
+#   tags: [stdout] (default), [player]
+#   two-column lines (no tag) default to [stdout] for backwards compat
+# first match wins. specific before general.
+
+# children — these entries go first
+godzilla minus one	echo "Post-war Japan faces a terrifying new threat from the deep. It's a powerful story of survival and redemption."
+godzilla	echo "Godzilla is a giant monster from Japan, first appearing in a 1954 movie. The name comes from the Japanese word Gojira, combining gorilla and whale. Godzilla has fought over 30 legendary opponents including King Ghidorah, Mothra, Mechagodzilla, and King Kong across more than 35 films — the longest-running film franchise in history."
+*what*dinosaur*	echo "Dinosaurs were reptiles that lived millions of years ago. Some were huge like T-Rex, others small as chickens. They went extinct about 66 million years ago when an asteroid hit Earth."
+what*is*caterpillar*	echo "A caterpillar is the larva stage of a butterfly or moth. It hatches from an egg and eats leaves to grow bigger. Caterpillars have soft bodies with many segments and tiny legs. When it is big enough, it builds a cocoon or chrysalis and transforms inside."
+what*caterpillar	echo "A caterpillar is the larva stage of a butterfly or moth. It hatches from an egg and eats leaves to grow bigger. Caterpillars have soft bodies with many segments and tiny legs. When it is big enough, it builds a cocoon or chrysalis and transforms inside."
+what*is*cocoon*	echo "A cocoon is a silk covering that a caterpillar spins around itself. Inside the cocoon, the caterpillar changes into a moth. Butterflies make a chrysalis instead of a cocoon, but people use the word cocoon for both. The change inside is called metamorphosis."
+what*cocoon	echo "A cocoon is a silk covering that a caterpillar spins around itself. Inside the cocoon, the caterpillar changes into a moth. Butterflies make a chrysalis instead of a cocoon, but people use the word cocoon for both. The change inside is called metamorphosis."
+what*is*chrysalis*	echo "A chrysalis is the hard shell a butterfly caterpillar makes when it is ready to transform. Inside, the caterpillar's body breaks down and rebuilds into a butterfly. It takes about 10 to 14 days. When it opens, a butterfly comes out with wet wings that need to dry."
+what*chrysalis	echo "A chrysalis is the hard shell a butterfly caterpillar makes when it is ready to transform. Inside, the caterpillar's body breaks down and rebuilds into a butterfly. It takes about 10 to 14 days. When it opens, a butterfly comes out with wet wings that need to dry."
+what*is*butterfly*	echo "A butterfly is an insect with large colorful wings. It starts as an egg, becomes a caterpillar, forms a chrysalis, and emerges as a butterfly. Butterflies drink nectar from flowers through a long curled tongue called a proboscis. Monarch butterflies migrate thousands of miles."
+what*butterfly	echo "A butterfly is an insect with large colorful wings. It starts as an egg, becomes a caterpillar, forms a chrysalis, and emerges as a butterfly. Butterflies drink nectar from flowers through a long curled tongue called a proboscis. Monarch butterflies migrate thousands of miles."
+what*is*a*moth	echo "A moth is an insect closely related to a butterfly. Most moths fly at night and are attracted to light. A moth caterpillar spins a cocoon made of silk. Moths have feathery antennae and usually duller colors than butterflies. Some moths, like the luna moth, are very large and beautiful."
+tell*me*about*moth*	echo "A moth is an insect closely related to a butterfly. Most moths fly at night and are attracted to light. A moth caterpillar spins a cocoon made of silk. Moths have feathery antennae and usually duller colors than butterflies. Some moths, like the luna moth, are very large and beautiful."
+what*is*metamorphosis*	echo "Metamorphosis is the process where an animal completely changes its body shape as it grows. A caterpillar becoming a butterfly is metamorphosis. A tadpole becoming a frog is metamorphosis. The word comes from Greek and means 'change of form.'"
+what*metamorphosis	echo "Metamorphosis is the process where an animal completely changes its body shape as it grows. A caterpillar becoming a butterfly is metamorphosis. A tadpole becoming a frog is metamorphosis. The word comes from Greek and means 'change of form.'"
+what*is*larva*	echo "A larva is the young form of an animal that looks very different from the adult. A caterpillar is the larva of a butterfly. A tadpole is the larva of a frog. A maggot is the larva of a fly. Larvae eat and grow until they are ready to change into their adult form."
+what*larva	echo "A larva is the young form of an animal that looks very different from the adult. A caterpillar is the larva of a butterfly. A tadpole is the larva of a frog. A maggot is the larva of a fly. Larvae eat and grow until they are ready to change into their adult form."
+what*is*pupa*	echo "A pupa is the stage between larva and adult in insects that undergo metamorphosis. The caterpillar stops eating, attaches to something, and its outer skin hardens into a protective case. Inside, the body completely reorganizes. The pupa does not eat or move. When the transformation is complete, the adult insect emerges."
+what*pupa	echo "A pupa is the stage between larva and adult in insects that undergo metamorphosis. The caterpillar stops eating, attaches to something, and its outer skin hardens into a protective case. Inside, the body completely reorganizes. The pupa does not eat or move. When the transformation is complete, the adult insect emerges."
+# edit this file to teach your machine new intents.
+# languages: add a section. translate the intents, keep the commands.
+#
+# --- files ---
+what*in*this*directory	ls .
+what*in*current*directory	ls .
+what*files*are*here	ls .
+list*files	ls .
+show*hidden*files	ls -la
+show*all*files	ls -la
+show*file*sizes	ls -lh
+show*largest*files	ls -lhS | head -20
+show*files	ls .
+list*home	ls ~/
+
+
+### Chunk 9 (from lookdown.universal.tsv)
+*system*call*close*	echo "close() - closes a file descriptor"
+what is close	echo "close() - system call that releases a file descriptor"
+*system*call*read*	echo "read() - reads data from a file descriptor into a buffer"
+*system*call*write*	echo "write() - writes data from a buffer to a file descriptor"
+what is write	echo "write() - writes bytes from buffer to file descriptor"
+*system*call*dup*	echo "dup()/dup2() - duplicates a file descriptor"
+what is dup	echo "dup()/dup2() - duplicates file descriptor, used for I/O redirection"
+*system*call*socket*	echo "socket() - creates an endpoint for communication"
+what is socket	echo "socket() - creates network communication endpoint"
+*system*call*bind*	echo "bind() - assigns an address to a socket"
+*system*call*listen*	echo "listen() - marks socket as passive, accepting incoming connections"
+*system*call*accept*	echo "accept() - extracts first connection request from queue"
+*system*call*connect*	echo "connect() - initiates connection on a socket"
+*system*call*select*	echo "select() - monitors multiple file descriptors for I/O readiness"
+*system*call*epoll*	echo "epoll - Linux scalable I/O event notification (epoll_create, epoll_ctl, epoll_wait)"
+*system*call*poll*	echo "poll() - waits for events on file descriptors"
+*system*call*signal*	echo "signal()/sigaction() - sets disposition of a signal"
+*system*call*kill*	echo "kill() - sends signal to a process"
+what is kill	echo "kill() - system call that sends a signal to a process or process group"
+*system*call*stat*	echo "stat()/fstat()/lstat() - retrieves file metadata"
+what is stat	echo "stat() - retrieves file metadata (size, permissions, timestamps)"
+*system*call*chdir*	echo "chdir() - changes current working directory"
+*system*call*getcwd*	echo "getcwd() - gets current working directory"
+*system*call*mkdir*	echo "mkdir() - creates a directory"
+*system*call*rmdir*	echo "rmdir() - removes an empty directory"
+*system*call*unlink*	echo "unlink() - removes a file (deletes directory entry)"
+*system*call*chmod*	echo "chmod() - changes file permissions"
+*system*call*chown*	echo "chown() - changes file owner and group"
+#
+# === FILE OPERATIONS (expanded) ===
+#
+make*executable	echo "usage: chmod +x FILENAME"
+*executable*permission*	echo "usage: chmod +x FILENAME"
+who*owns*this*file	ls -l
+who*owns*file	ls -l
+change*owner	echo "usage: chown USER:GROUP FILENAME"
+copy*file	cp
+copy*files	cp -r
+copy*directory	cp -r
+move*file	mv
+
+
+### Chunk 10 (from LICENSE.txt)
+freedoms that you received.  You must make sure that they, too, receive
+or can get the source code.  And you must show them these terms so they
+know their rights.
+
+  Developers that use the GNU GPL protect your rights with two steps:
+(1) assert copyright on the software, and (2) offer you this License
+giving you legal permission to copy, distribute and/or modify it.
+
+  For the developers' and authors' protection, the GPL clearly explains
+that there is no warranty for this free software.  For both users' and
+authors' sake, the GPL requires that modified versions be marked as
+changed, so that their problems will not be attributed erroneously to
+authors of previous versions.
+
+  Some devices are designed to deny users access to install or run
+modified versions of the software inside them, although the manufacturer
+can do so.  This is fundamentally incompatible with the aim of
+protecting users' freedom to change the software.  The systematic
+pattern of such abuse occurs in the area of products for individuals to
+use, which is precisely where it is most unacceptable.  Therefore, we
+have designed this version of the GPL to prohibit the practice for those
+products.  If such problems arise substantially in other domains, we
+stand ready to extend this provision to those domains in future versions
+of the GPL, as needed to protect the freedom of users.
+
+  Finally, every program is threatened constantly by software patents.
+States should not allow patents to restrict development and use of
+software on general-purpose computers, but in those that do, we wish to
+avoid the special danger that patents applied to a free program could
+make it effectively proprietary.  To prevent this, the GPL assures that
+patents cannot be used to render the program non-free.
+
+  The precise terms and conditions for copying, distribution and
+modification follow.
+
+                       TERMS AND CONDITIONS
+
+  0. Definitions.
+
+  "This License" refers to version 3 of the GNU General Public License.
+
+
+### Chunk 11 (from LICENSE.txt)
+PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM
+IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF
+ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+
+  16. Limitation of Liability.
+
+  IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS
+THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY
+GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE
+USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED TO LOSS OF
+DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD
+PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER PROGRAMS),
+EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGES.
+
+  17. Interpretation of Sections 15 and 16.
+
+  If the disclaimer of warranty and limitation of liability provided
+above cannot be given local legal effect according to their terms,
+reviewing courts shall apply local law that most closely approximates
+an absolute waiver of all civil liability in connection with the
+Program, unless a warranty or assumption of liability accompanies a
+copy of the Program in return for a fee.
+
+                     END OF TERMS AND CONDITIONS
+
+            How to Apply These Terms to Your New Programs
+
+  If you develop a new program, and you want it to be of the greatest
+possible use to the public, the best way to achieve this is to make it
+free software which everyone can redistribute and change under these terms.
+
+  To do so, attach the following notices to the program.  It is safest
+to attach them to the start of each source file to most effectively
+state the exclusion of warranty; and each file should have at least
+the "copyright" line and a pointer to where the full notice is found.
+
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) <year>  <name of author>
+
+
+### Chunk 12 (from variance-lab.txt)
+  - inference model routing
+  - confabulation prevention
+  - Gemma-4 vs Qwen 2.5
+  - tiered knowledge architecture
+prior_art_status: no published framework distinguishes static lookup tables by QLoRA-portability as a design constraint
+---
+
+# Lookdown Routing Discipline and Inference Model Selection
+
+## Problem
+
+Cal.c routed all user input — tool calls, factual questions,
+exploratory queries — to Qwen 2.5 7B (port 8087). Qwen
+confabulates on knowledge questions. Lookdown tables contained
+2232 entries but 296 used greedy glob patterns (`*word*`) that
+swallowed questions the inference model should have answered.
+Livingledger entries (governor-personal) shipped in the
+universal file alongside QLoRA-portable knowledge.
+
+## Changes
+
+### 1. Inference model routing
+
+Cal.c default changed from `127.0.0.1:8087` (Qwen 2.5 7B)
+to reading `~/.subtract/inference_host` with port 8086
+(Gemma-4-26B-A4B on rousseau). Qwen stays on 8087 for tool
+call parsing on m2mini/acer. Questions that fall through
+lookdown now reach a model that does not confabulate.
+
+**Before:** hardcoded host and port.
+**After:** reads `~/.subtract/inference_host` at startup,
+defaults to `127.0.0.1` if absent. Port 8086. CLI `-h` and
+`-p` flags still override.
+
+### 2. Lookdown file taxonomy
+
+Three tiers, governed by `~/.subtract/LOOKDOWN.txt`:
+
+```
+lookdown.universal.tsv  — Lindy knowledge, QLoRA-portable,
+
+

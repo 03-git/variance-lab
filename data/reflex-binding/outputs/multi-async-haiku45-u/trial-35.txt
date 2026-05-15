@@ -1,0 +1,78 @@
+I'll show you an async TCP echo server using Python's `asyncio` module that handles multiple concurrent clients efficiently.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If no data, client disconnected
+            if not data:
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server running on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+```bash
+# Terminal 1: Start the server
+python echo_server.py
+# Output: Echo server running on ('127.0.0.1', 8888)
+
+# Terminal 2: Connect with netcat and send messages
+nc localhost 8888
+# Type: hello
+# Receives: hello
+# Type: world
+# Receives: world
+# Press Ctrl+D to disconnect
+
+# Terminal 3: Connect another client simultaneously
+nc localhost 8888
+# Type: concurrent
+# Receives: concurrent
+```
+
+**Key features:**
+- **Concurrent handling**: `asyncio.start_server()` accepts multiple clients and handles each with its own coroutine
+- **Line-based protocol**: `readline()` reads until `\n`, perfect for text echo
+- **Graceful shutdown**: `writer.drain()` ensures data is sent before reading the next line
+- **Resource cleanup**: `wait_closed()` properly closes sockets
+
+You can test with multiple `nc` instances simultaneously—each client runs independently without blocking others.

@@ -1,0 +1,78 @@
+Here's a Python script that creates a SQLite database with a notes table, inserts sample data, and queries it:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create an in-memory database (or use 'notes.db' for a file)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Shopping List', 'Buy milk, eggs, bread, and cheese', datetime.now().isoformat()),
+    ('Project Ideas', 'Mobile app for tracking habits, CLI tool for file organization', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discussed Q2 roadmap, decided to focus on performance improvements', datetime.now().isoformat()),
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+# Print the results
+print("All Notes:")
+print("-" * 80)
+for note in notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 80)
+
+conn.close()
+```
+
+**To run it:**
+
+1. Save the code to a file (e.g., `notes_db.py`)
+2. Run it with: `python notes_db.py`
+
+**Output:**
+```
+All Notes:
+--------------------------------------------------------------------------------
+ID: 1
+Title: Shopping List
+Body: Buy milk, eggs, bread, and cheese
+Created: 2026-05-10T14:32:15.123456
+--------------------------------------------------------------------------------
+ID: 2
+Title: Project Ideas
+Body: Mobile app for tracking habits, CLI tool for file organization
+Created: 2026-05-10T14:32:15.123457
+--------------------------------------------------------------------------------
+ID: 3
+Title: Meeting Notes
+Body: Discussed Q2 roadmap, decided to focus on performance improvements
+Created: 2026-05-10T14:32:15.123458
+--------------------------------------------------------------------------------
+```
+
+The script uses `:memory:` for an in-memory database. If you want to persist the data to disk, replace `':memory:'` with `'notes.db'`.

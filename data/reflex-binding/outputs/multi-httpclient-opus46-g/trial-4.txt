@@ -1,0 +1,46 @@
+Kernel primitive here is the TCP socket (`connect(2)`/`send`/`recv` on an `AF_INET` socket) plus TLS. `urllib.request` in the stdlib wraps exactly that and follows redirects by default — no third-party `requests` needed.
+
+```python
+#!/usr/bin/env python3
+import sys
+import urllib.request
+
+def main():
+    if len(sys.argv) != 2:
+        print(f"usage: {sys.argv[0]} URL", file=sys.stderr)
+        sys.exit(1)
+
+    url = sys.argv[1]
+    req = urllib.request.Request(url, headers={"User-Agent": "redirect-probe/1.0"})
+
+    # urlopen follows HTTP 3xx redirects automatically via HTTPRedirectHandler.
+    with urllib.request.urlopen(req) as resp:
+        print(f"Final URL:   {resp.url}")
+        print(f"Status code: {resp.status} {resp.reason}")
+        print("Headers:")
+        for k, v in resp.headers.items():
+            print(f"  {k}: {v}")
+        body = resp.read(500).decode(resp.headers.get_content_charset() or "utf-8", errors="replace")
+        print("\nBody (first 500 chars):")
+        print(body)
+
+if __name__ == "__main__":
+    main()
+```
+
+Run it:
+
+```bash
+# inline, no install required
+python3 probe.py https://example.com
+
+# or without saving a file, straight from stdin:
+python3 - https://example.com <<'EOF'
+<paste the script here>
+EOF
+```
+
+Notes:
+- `urllib.request.urlopen` follows redirects by default; `resp.url` shows where you landed.
+- Non-2xx/3xx final responses (404, 500) raise `urllib.error.HTTPError` — that exception object *is* a response, so if you want those printed instead of traced, wrap the `with` block and on `HTTPError as e` read `e.code`, `e.headers`, `e.read(500)`.
+- `resp.read(500)` pulls at most 500 bytes off the socket, so you don't buffer a huge body just to slice it.

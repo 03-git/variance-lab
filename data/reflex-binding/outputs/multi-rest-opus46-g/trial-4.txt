@@ -1,0 +1,78 @@
+Here's a minimal Flask implementation.
+
+```python
+# app.py
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+
+def validate_user(data):
+    errors = {}
+
+    if not isinstance(data, dict):
+        return None, {"_": "body must be a JSON object"}
+
+    name = data.get("name")
+    if not isinstance(name, str) or not name.strip():
+        errors["name"] = "required, must be a non-empty string"
+
+    email = data.get("email")
+    if not isinstance(email, str) or "@" not in email:
+        errors["email"] = "required, must be a string containing '@'"
+
+    age = data.get("age")
+    # bool is a subclass of int — reject it explicitly
+    if not isinstance(age, int) or isinstance(age, bool) or not (1 <= age <= 150):
+        errors["age"] = "required, must be an integer between 1 and 150"
+
+    if errors:
+        return None, errors
+    return {"name": name, "email": email, "age": age}, None
+
+
+@app.post("/users")
+def create_user():
+    data = request.get_json(silent=True)
+    user, errors = validate_user(data)
+    if errors:
+        return jsonify({"error": "invalid input", "details": errors}), 400
+    return jsonify(user), 201
+
+
+if __name__ == "__main__":
+    app.run(port=5000, debug=True)
+```
+
+## Run it
+
+```bash
+python3 -m venv venv && source venv/bin/activate
+pip install flask
+python app.py
+```
+
+## Try it
+
+```bash
+# 201 — valid
+curl -i -X POST localhost:5000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Ada","email":"ada@example.com","age":36}'
+
+# 400 — bad email, out-of-range age, missing name
+curl -i -X POST localhost:5000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"nope","age":999}'
+```
+
+The 400 response body looks like:
+
+```json
+{"error":"invalid input","details":{"name":"required, must be a non-empty string","email":"required, must be a string containing '@'","age":"required, must be an integer between 1 and 150"}}
+```
+
+Notes:
+- `get_json(silent=True)` returns `None` on missing/malformed JSON rather than raising, so a junk body becomes a clean 400.
+- `isinstance(age, bool)` is excluded because `True`/`False` are `int` instances in Python and would otherwise sneak through.
+- For a stdlib-only version (no Flask), say the word and I'll show it with `http.server`.

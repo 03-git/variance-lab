@@ -1,0 +1,32 @@
+```python
+import sys
+import urllib.request
+
+def fetch(url):
+    try:
+        with urllib.request.urlopen(url) as r:
+            print(f"Status: {r.status}")
+            print("\nHeaders:")
+            for k, v in r.headers.items():
+                print(f"  {k}: {v}")
+            body = r.read(500).decode("utf-8", errors="replace")
+            print(f"\nBody (first 500 chars):\n{body}")
+    except urllib.error.HTTPError as e:
+        print(f"HTTP error: {e.code} {e.reason}")
+    except urllib.error.URLError as e:
+        print(f"URL error: {e.reason}")
+
+if len(sys.argv) != 2:
+    print(f"Usage: {sys.argv[0]} <url>")
+    sys.exit(1)
+
+fetch(sys.argv[1])
+```
+
+Run it with:
+
+```bash
+python3 fetch.py https://example.com
+```
+
+Uses only stdlib — no dependencies. `urllib.request.urlopen` follows redirects automatically.

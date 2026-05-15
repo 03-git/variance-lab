@@ -1,0 +1,52 @@
+```python
+# test_temperature.py
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+@pytest.mark.parametrize("celsius, expected", [
+    (0, 32.0),
+    (100, 212.0),
+    (-40, -40.0),
+])
+def test_known_conversions(celsius, expected):
+    assert celsius_to_fahrenheit(celsius) == expected
+
+
+def test_non_numeric_input():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+Run it:
+
+```bash
+pip install pytest
+pytest test_temperature.py -v
+```
+
+Notes:
+- `"hot" * 9` doesn't raise — Python happily repeats the string. The `TypeError` comes from the `/ 5` step, so the `pytest.raises(TypeError)` still holds. If you'd rather fail fast, add an explicit `isinstance(c, (int, float))` check at the top of the function and assert on that.
+- Floats are exact here (32.0, 212.0, -40.0 are representable), so `==` is fine. If you generalize the cases, switch to `pytest.approx`.
+
+Pure-stdlib variant (no pytest), runnable with `python test_temperature.py`:
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_zero(self):        self.assertEqual(celsius_to_fahrenheit(0), 32.0)
+    def test_boiling(self):     self.assertEqual(celsius_to_fahrenheit(100), 212.0)
+    def test_minus_40(self):    self.assertEqual(celsius_to_fahrenheit(-40), -40.0)
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```

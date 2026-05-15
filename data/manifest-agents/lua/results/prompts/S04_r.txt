@@ -1,0 +1,507 @@
+You are answering questions about the Lua 5.4 source code. Use ONLY the provided context to answer. Be specific — cite file names, function names, and quote relevant code.
+
+
+## lprefix.h (lines 1-40)
+/*
+** $Id: lprefix.h $
+** Definitions for Lua code that must come before any other header file
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lprefix_h
+#define lprefix_h
+
+
+/*
+** Allows POSIX/XSI stuff
+*/
+#if !defined(LUA_USE_C89)	/* { */
+
+#if !defined(_XOPEN_SOURCE)
+#define _XOPEN_SOURCE           600
+#elif _XOPEN_SOURCE == 0
+#undef _XOPEN_SOURCE  /* use -D_XOPEN_SOURCE=0 to undefine it */
+#endif
+
+/*
+** Allows manipulation of large files in gcc and some other compilers
+*/
+#if !defined(LUA_32BITS) && !defined(_FILE_OFFSET_BITS)
+#define _LARGEFILE_SOURCE       1
+#define _FILE_OFFSET_BITS       64
+#endif
+
+#endif				/* } */
+
+
+/*
+** Windows stuff
+*/
+#if defined(_WIN32)	/* { */
+
+#if !defined(_CRT_SECURE_NO_WARNINGS)
+#define _CRT_SECURE_NO_WARNINGS  /* avoid warnings about ISO C functions */
+#endif
+
+## lcode.c (lines 1641-1680)
+    /* use immediate operand */
+    r1 = luaK_exp2anyreg(fs, e1);
+    r2 = im;
+    op = binopr2op(opr, OPR_LT, OP_LTI);
+  }
+  else if (isSCnumber(e1, &im, &isfloat)) {
+    /* transform (A < B) to (B > A) and (A <= B) to (B >= A) */
+    r1 = luaK_exp2anyreg(fs, e2);
+    r2 = im;
+    op = binopr2op(opr, OPR_LT, OP_GTI);
+  }
+  else {  /* regular case, compare two registers */
+    r1 = luaK_exp2anyreg(fs, e1);
+    r2 = luaK_exp2anyreg(fs, e2);
+    op = binopr2op(opr, OPR_LT, OP_LT);
+  }
+  freeexps(fs, e1, e2);
+  e1->u.info = condjump(fs, op, r1, r2, isfloat, 1);
+  e1->k = VJMP;
+}
+
+
+/*
+** Emit code for equality comparisons ('==', '~=').
+** 'e1' was already put as RK by 'luaK_infix'.
+*/
+static void codeeq (FuncState *fs, BinOpr opr, expdesc *e1, expdesc *e2) {
+  int r1, r2;
+  int im;
+  int isfloat = 0;  /* not needed here, but kept for symmetry */
+  OpCode op;
+  if (e1->k != VNONRELOC) {
+    lua_assert(e1->k == VK || e1->k == VKINT || e1->k == VKFLT);
+    swapexps(e1, e2);
+  }
+  r1 = luaK_exp2anyreg(fs, e1);  /* 1st expression must be in register */
+  if (isSCnumber(e2, &im, &isfloat)) {
+    op = OP_EQI;
+    r2 = im;  /* immediate operand */
+  }
+
+## lobject.h (lines 601-640)
+** Function Prototypes
+*/
+typedef struct Proto {
+  CommonHeader;
+  lu_byte numparams;  /* number of fixed (named) parameters */
+  lu_byte flag;
+  lu_byte maxstacksize;  /* number of registers needed by this function */
+  int sizeupvalues;  /* size of 'upvalues' */
+  int sizek;  /* size of 'k' */
+  int sizecode;
+  int sizelineinfo;
+  int sizep;  /* size of 'p' */
+  int sizelocvars;
+  int sizeabslineinfo;  /* size of 'abslineinfo' */
+  int linedefined;  /* debug information  */
+  int lastlinedefined;  /* debug information  */
+  TValue *k;  /* constants used by the function */
+  Instruction *code;  /* opcodes */
+  struct Proto **p;  /* functions defined inside the function */
+  Upvaldesc *upvalues;  /* upvalue information */
+  ls_byte *lineinfo;  /* information about source lines (debug information) */
+  AbsLineInfo *abslineinfo;  /* idem */
+  LocVar *locvars;  /* information about local variables (debug information) */
+  TString  *source;  /* used for debug information */
+  GCObject *gclist;
+} Proto;
+
+/* }================================================================== */
+
+
+/*
+** {==================================================================
+** Functions
+** ===================================================================
+*/
+
+#define LUA_VUPVAL	makevariant(LUA_TUPVAL, 0)
+
+
+/* Variant tags for functions */
+
+## lparser.c (lines 801-840)
+  Proto *f = fs->f;
+  fs->prev = ls->fs;  /* linked list of funcstates */
+  fs->ls = ls;
+  ls->fs = fs;
+  fs->pc = 0;
+  fs->previousline = f->linedefined;
+  fs->iwthabs = 0;
+  fs->lasttarget = 0;
+  fs->freereg = 0;
+  fs->nk = 0;
+  fs->nabslineinfo = 0;
+  fs->np = 0;
+  fs->nups = 0;
+  fs->ndebugvars = 0;
+  fs->nactvar = 0;
+  fs->needclose = 0;
+  fs->firstlocal = ls->dyd->actvar.n;
+  fs->firstlabel = ls->dyd->label.n;
+  fs->bl = NULL;
+  f->source = ls->source;
+  luaC_objbarrier(L, f, f->source);
+  f->maxstacksize = 2;  /* registers 0/1 are always valid */
+  fs->kcache = luaH_new(L);  /* create table for function */
+  luaD_anchorobj(L, ls->h, obj2gco(fs->kcache));  /* anchor it */
+  enterblock(fs, bl, 0);
+}
+
+
+static void close_func (LexState *ls) {
+  lua_State *L = ls->L;
+  FuncState *fs = ls->fs;
+  Proto *f = fs->f;
+  TValue temp;
+  luaK_ret(fs, luaY_nvarstack(fs), 0);  /* final return */
+  leaveblock(fs);
+  lua_assert(fs->bl == NULL);
+  luaK_finish(fs);
+  luaM_shrinkvector(L, f->code, f->sizecode, fs->pc, Instruction);
+  luaM_shrinkvector(L, f->lineinfo, f->sizelineinfo, fs->pc, ls_byte);
+  luaM_shrinkvector(L, f->abslineinfo, f->sizeabslineinfo,
+
+## lobject.c (lines 681-718)
+
+void luaO_chunkid (char *out, const char *source, size_t srclen) {
+  size_t bufflen = LUA_IDSIZE;  /* free space in buffer */
+  if (*source == '=') {  /* 'literal' source */
+    if (srclen <= bufflen)  /* small enough? */
+      memcpy(out, source + 1, srclen * sizeof(char));
+    else {  /* truncate it */
+      addstr(out, source + 1, bufflen - 1);
+      *out = '\0';
+    }
+  }
+  else if (*source == '@') {  /* file name */
+    if (srclen <= bufflen)  /* small enough? */
+      memcpy(out, source + 1, srclen * sizeof(char));
+    else {  /* add '...' before rest of name */
+      addstr(out, RETS, LL(RETS));
+      bufflen -= LL(RETS);
+      memcpy(out, source + 1 + srclen - bufflen, bufflen * sizeof(char));
+    }
+  }
+  else {  /* string; format as [string "source"] */
+    const char *nl = strchr(source, '\n');  /* find first new line (if any) */
+    addstr(out, PRE, LL(PRE));  /* add prefix */
+    bufflen -= LL(PRE RETS POS) + 1;  /* save space for prefix+suffix+'\0' */
+    if (srclen < bufflen && nl == NULL) {  /* small one-line source? */
+      addstr(out, source, srclen);  /* keep it */
+    }
+    else {
+      if (nl != NULL)
+        srclen = ct_diff2sz(nl - source);  /* stop at first newline */
+      if (srclen > bufflen) srclen = bufflen;
+      addstr(out, source, srclen);
+      addstr(out, RETS, LL(RETS));
+    }
+    memcpy(out, POS, (LL(POS) + 1) * sizeof(char));
+  }
+}
+
+
+## luaconf.h (lines 81-120)
+#define LUA_USE_DLOPEN		/* macOS does not need -ldl */
+#if !defined(LUA_READLINELIB)
+#define LUA_READLINELIB		"libedit.dylib"
+#endif
+#endif
+
+
+#if defined(LUA_USE_IOS)
+#define LUA_USE_POSIX
+#define LUA_USE_DLOPEN
+#endif
+
+
+#if defined(LUA_USE_C89) && defined(LUA_USE_POSIX)
+#error "POSIX is not compatible with C89"
+#endif
+
+
+/*
+@@ LUAI_IS32INT is true iff 'int' has (at least) 32 bits.
+*/
+#define LUAI_IS32INT	((UINT_MAX >> 30) >= 3)
+
+/* }================================================================== */
+
+
+
+/*
+** {==================================================================
+** Configuration for Number types. These options should not be
+** set externally, because any other code connected to Lua must
+** use the same configuration.
+** ===================================================================
+*/
+
+/*
+@@ LUA_INT_TYPE defines the type for Lua integers.
+@@ LUA_FLOAT_TYPE defines the type for Lua floats.
+** Lua should work fine with any mix of these options supported
+** by your C compiler. The usual configurations are 64-bit integers
+
+## lmathlib.c (lines 361-400)
+
+/*
+** Convert bits from a random integer into a float in the
+** interval [0,1), getting the higher FIG bits from the
+** random unsigned integer and converting that to a float.
+** Some old Microsoft compilers cannot cast an unsigned long
+** to a floating-point number, so we use a signed long as an
+** intermediary. When lua_Number is float or double, the shift ensures
+** that 'sx' is non negative; in that case, a good compiler will remove
+** the correction.
+*/
+
+/* must throw out the extra (64 - FIGS) bits */
+#define shift64_FIG	(64 - FIGS)
+
+/* 2^(-FIGS) == 2^-1 / 2^(FIGS-1) */
+#define scaleFIG	(l_mathop(0.5) / ((Rand64)1 << (FIGS - 1)))
+
+static lua_Number I2d (Rand64 x) {
+  SRand64 sx = (SRand64)(trim64(x) >> shift64_FIG);
+  lua_Number res = (lua_Number)(sx) * scaleFIG;
+  if (sx < 0)
+    res += l_mathop(1.0);  /* correct the two's complement if negative */
+  lua_assert(0 <= res && res < 1);
+  return res;
+}
+
+/* convert a 'Rand64' to a 'lua_Unsigned' */
+#define I2UInt(x)	((lua_Unsigned)trim64(x))
+
+/* convert a 'lua_Unsigned' to a 'Rand64' */
+#define Int2I(x)	((Rand64)(x))
+
+
+#else	/* no 'Rand64'   }{ */
+
+/*
+** Use two 32-bit integers to represent a 64-bit quantity.
+*/
+typedef struct Rand64 {
+
+## ldebug.c (lines 241-280)
+}
+
+
+LUA_API const char *lua_setlocal (lua_State *L, const lua_Debug *ar, int n) {
+  StkId pos = NULL;  /* to avoid warnings */
+  const char *name;
+  lua_lock(L);
+  name = luaG_findlocal(L, ar->i_ci, n, &pos);
+  if (name) {
+    api_checkpop(L, 1);
+    setobjs2s(L, pos, L->top.p - 1);
+    L->top.p--;  /* pop value */
+  }
+  lua_unlock(L);
+  return name;
+}
+
+
+static void funcinfo (lua_Debug *ar, Closure *cl) {
+  if (!LuaClosure(cl)) {
+    ar->source = "=[C]";
+    ar->srclen = LL("=[C]");
+    ar->linedefined = -1;
+    ar->lastlinedefined = -1;
+    ar->what = "C";
+  }
+  else {
+    const Proto *p = cl->l.p;
+    if (p->source) {
+      ar->source = getlstr(p->source, ar->srclen);
+    }
+    else {
+      ar->source = "=?";
+      ar->srclen = LL("=?");
+    }
+    ar->linedefined = p->linedefined;
+    ar->lastlinedefined = p->lastlinedefined;
+    ar->what = (ar->linedefined == 0) ? "main" : "Lua";
+  }
+  luaO_chunkid(ar->short_src, ar->source, ar->srclen);
+
+## lundump.c (lines 201-240)
+
+static void loadFunction(LoadState *S, Proto *f);
+
+
+static void loadConstants (LoadState *S, Proto *f) {
+  int i;
+  int n = loadInt(S);
+  f->k = luaM_newvectorchecked(S->L, n, TValue);
+  f->sizek = n;
+  for (i = 0; i < n; i++)
+    setnilvalue(&f->k[i]);
+  for (i = 0; i < n; i++) {
+    TValue *o = &f->k[i];
+    int t = loadByte(S);
+    switch (t) {
+      case LUA_VNIL:
+        setnilvalue(o);
+        break;
+      case LUA_VFALSE:
+        setbfvalue(o);
+        break;
+      case LUA_VTRUE:
+        setbtvalue(o);
+        break;
+      case LUA_VNUMFLT:
+        setfltvalue(o, loadNumber(S));
+        break;
+      case LUA_VNUMINT:
+        setivalue(o, loadInteger(S));
+        break;
+      case LUA_VSHRSTR:
+      case LUA_VLNGSTR: {
+        lua_assert(f->source == NULL);
+        loadString(S, f, &f->source);  /* use 'source' to anchor string */
+        if (f->source == NULL)
+          error(S, "bad format for constant string");
+        setsvalue2n(S->L, o, f->source);  /* save it in the right place */
+        f->source = NULL;
+        break;
+      }
+
+## ltests.c (lines 601-640)
+  }
+  return total;
+}
+
+
+/*
+** Check objects in gray lists.
+*/
+static l_mem checkgrays (global_State *g) {
+  l_mem total = 0;  /* count number of elements in all lists */
+  if (!keepinvariant(g)) return total;
+  total += checkgraylist(g, g->gray);
+  total += checkgraylist(g, g->grayagain);
+  total += checkgraylist(g, g->weak);
+  total += checkgraylist(g, g->allweak);
+  total += checkgraylist(g, g->ephemeron);
+  return total;
+}
+
+
+/*
+** Check whether 'o' should be in a gray list. If so, increment
+** 'count' and check its TESTBIT. (It must have been previously set by
+** 'checkgraylist'.)
+*/
+static void incifingray (global_State *g, GCObject *o, l_mem *count) {
+  if (!keepinvariant(g))
+    return;  /* gray lists not being kept in these phases */
+  if (o->tt == LUA_VUPVAL) {
+    /* only open upvalues can be gray */
+    assert(!isgray(o) || upisopen(gco2upv(o)));
+    return;  /* upvalues are never in gray lists */
+  }
+  /* these are the ones that must be in gray lists */
+  if (isgray(o) || getage(o) == G_TOUCHED2) {
+    (*count)++;
+    assert(testbit(o->marked, TESTBIT));
+    resetbit(o->marked, TESTBIT);  /* prepare for next cycle */
+  }
+}
+
+## lparser.c (lines 201-240)
+  var = &dyd->actvar.arr[dyd->actvar.n++];
+  var->vd.kind = kind;  /* default */
+  var->vd.name = name;
+  return dyd->actvar.n - 1 - fs->firstlocal;
+}
+
+
+/*
+** Create a new local variable with the given 'name' and regular kind.
+*/
+static int new_localvar (LexState *ls, TString *name) {
+  return new_varkind(ls, name, VDKREG);
+}
+
+#define new_localvarliteral(ls,v) \
+    new_localvar(ls,  \
+      luaX_newstring(ls, "" v, (sizeof(v)/sizeof(char)) - 1));
+
+
+
+/*
+** Return the "variable description" (Vardesc) of a given variable.
+** (Unless noted otherwise, all variables are referred to by their
+** compiler indices.)
+*/
+static Vardesc *getlocalvardesc (FuncState *fs, int vidx) {
+  return &fs->ls->dyd->actvar.arr[fs->firstlocal + vidx];
+}
+
+
+/*
+** Convert 'nvar', a compiler index level, to its corresponding
+** register. For that, search for the highest variable below that level
+** that is in a register and uses its register index ('ridx') plus one.
+*/
+static lu_byte reglevel (FuncState *fs, int nvar) {
+  while (nvar-- > 0) {
+    Vardesc *vd = getlocalvardesc(fs, nvar);  /* get previous variable */
+    if (varinreg(vd))  /* is in a register? */
+      return cast_byte(vd->vd.ridx + 1);
+
+## lmem.h (lines 1-40)
+/*
+** $Id: lmem.h $
+** Interface to Memory Manager
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lmem_h
+#define lmem_h
+
+
+#include <stddef.h>
+
+#include "llimits.h"
+#include "lua.h"
+
+
+#define luaM_error(L)	luaD_throw(L, LUA_ERRMEM)
+
+
+/*
+** This macro tests whether it is safe to multiply 'n' by the size of
+** type 't' without overflows. Because 'e' is always constant, it avoids
+** the runtime division MAX_SIZET/(e).
+** (The macro is somewhat complex to avoid warnings:  The 'sizeof'
+** comparison avoids a runtime comparison when overflow cannot occur.
+** The compiler should be able to optimize the real test by itself, but
+** when it does it, it may give a warning about "comparison is always
+** false due to limited range of data type"; the +1 tricks the compiler,
+** avoiding this warning but also this optimization.)
+*/
+#define luaM_testsize(n,e)  \
+	(sizeof(n) >= sizeof(size_t) && cast_sizet((n)) + 1 > MAX_SIZET/(e))
+
+#define luaM_checksize(L,n,e)  \
+	(luaM_testsize(n,e) ? luaM_toobig(L) : cast_void(0))
+
+
+/*
+** Computes the minimum between 'n' and 'MAX_SIZET/sizeof(t)', so that
+** the result is not larger than 'n' and cannot overflow a 'size_t'
+
+## Question
+How does the Lua compiler transform source code into bytecodes? What are the compilation phases?

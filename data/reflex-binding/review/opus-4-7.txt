@@ -1,0 +1,41 @@
+Going straight to the three questions.
+
+## 1. Factual errors / contradictions
+
+- **Frontmatter says "4 models," the rest of the document says 6.** `source: controlled experiment (4 models, 2 arms, N=5 per cell)` and `methodology: ... 4 models × 2 arms ... × N=5` contradict the body ("6-model × 2-arm matrix," "expanded 6-model matrix"), the Models table (6 rows), the Data section ("12 subdirectories ... 60 trials"), and Methodology cost (2 frontier + 4 local = 6). The "4" is stale.
+- **Title contradicts the conclusion.** Title: "Capability Threshold for Governance Transfer"; keywords/`domain` carry "capability-threshold." But the finding's own conclusion is "**Three binding modes, not a threshold**" and "lineage-dependent, not parameter-count-dependent." The headline asserts the thing the body retracts.
+- **opus-4-7 ungoverned can't be both 5/5 and missing a trial.** Results table: opus-4-7 ungoverned R1 = 5/5, N=5. Confounds: "One Surface ungoverned trial (trial 3) did not generate code." A non-code trial cannot score R1 = stdlib-pass, and it also breaks the claim "all 20 frontier trials used stdlib — no trial in any frontier cell proposed ... any framework" (it used neither). Either N=4, or the cell is 4/5, or the claim needs a carve-out.
+- **Llama 8B governed R1: headline 3/5 vs table 2/5\*, and R3 = 1.4 doesn't reconcile with either.** The Claim ("60% stdlib") and the interpretation table ("stdlib (3/5)") use the manual figure; the data table uses 2/5\*. The footnote handles that, but R3 = 1.4 (mean of five values each ≤ 2) is arithmetically impossible if 2–3 of the five trials are stdlib (R3 = 0): the remaining 2–3 trials max out at 4–6, giving a mean ≤ 1.2 (if 2 zeros) or ≤ 0.8 (if 3 zeros). Re-check R3 for that cell.
+- **"reflex.1 *does* bind on frontier models ... The binding is real" is unsupported and self-contradicting.** The same paragraph says it is "unobservable against the ungoverned baseline," and the confounds say the frontier comparison is "uninformative." With identical 5/5 in both arms there is zero evidence of binding either way; "the binding is real (the model 'follows' the reflex)" is a claim the data cannot make.
+- **Confound text contradicts the Qwen3-32B result.** "the failure mode (not acknowledging the reflex at all) suggests the model lacks capability" — but the Qwen3-32B detail says 3/5 governed trials echoed "kernel primitive" vocabulary (R2 = 0.6). Only the 7B "did not acknowledge." The confound overgeneralizes the 7B behavior to the lineage.
+- **Task is language-agnostic; rubric is Python-specific.** The prompt never says Python, but R4 = "runs on fresh Python, no pip install," and Gemma governed produced "1 Node.js http" trial scored as a stdlib pass. Either the task should specify Python or the rubric/scoring of the Node trial needs explanation.
+- Minor: Claim says Gemma governed "uses ... stdlib with governance" / "use Python stdlib" — 1/5 was Node, not Python. Minor: qwen3-32b ungoverned shows R4 = 1/5 while R3 = 2.0 (all-framework Flask, which needs `pip install`) — slight internal tension.
+
+## 2. Framing drift
+
+- **"lineage as the dominant variable, not parameter count"** / **"Abstract governance binding is lineage-dependent, not parameter-count-dependent"** — overclaim. There is exactly one model per lineage except Qwen, so "lineage" is perfectly confounded with individual model identity (and, for Gemma, with the serving stack). "Not predicted by parameter count" is supported; attributing the effect to *lineage* is not.
+- **"This is the distillation boundary."** (section header) plus the entire Akamai edge-cache → "cache *architecture*" → "routing table / cache / lookup mechanism" passage — heavy editorializing built on one binding model and 20 local trials. "the expanded data shows the analogy needs refinement" presents metaphor-tuning as a finding.
+- **"Qwen3-32B's case is diagnostic"** — rests entirely on "at 32B it likely has the knowledge," which is pure speculation; the model never produced `http.server` once. Calling it "diagnostic" overstates.
+- **"binds trivially"** / **"The binding is real but unobservable"** — should be reframed as "we cannot determine whether reflex.1 binds on frontier models."
+- **"This answers the question finding 5 left open"** / "Yes, conditionally" — "answers" is too strong: the frontier arm is observationally empty and the one positive local result is confounded. "Partially addresses."
+- **"the failure mode ... suggests the model lacks capability rather than receiving the instruction through a weaker channel"** — overstated given the document itself shows native-CLAUDE.md vs system-prompt delivery mattered 80%→0% in finding 5 and that asymmetry applies here.
+- **"the decisive metric" / "the decisive cell" / "This is the only cell where governance produces an observable behavioral change"** — "decisive" three times. It's the only *informative* cell, i.e. the finding's behavioral claim rests on a single N=5 cell; the prose dresses that limitation up as a strength.
+- **"60% stdlib with governance"** stated flatly in the Claim without flagging that 60% is the manual re-score (automated = 40%), and that every manual correction in the document moved a score toward the hypothesis.
+
+## 3. Missing or cut
+
+Missing:
+- **R2 and R5 are never tabulated.** The rubric defines five criteria; the Results table reports only R1, R3, R4. R2 surfaces ad hoc for Qwen3-32B and Gemma but there's no cross-cell table. Add columns or state why they're omitted.
+- **A confound for N=1 model per lineage.** "Lineage" cannot be separated from individual-model identity here — currently only acknowledged obliquely ("interaction of instruction-following architecture with ..."). This is the single biggest threat to the headline and deserves an explicit confound entry.
+- **The serving-stack confound is under-weighted.** Gemma is the *only* local model on parsimony (port 8087, raw TCP) and the *only* local model that binds. "Unlikely to explain the result ... but cannot be fully ruled out" is too quick for a variable perfectly confounded with the main effect.
+- **opus-4-7 got "native ~/CLAUDE.md + SOUL.txt"; opus-4-6 got only CLAUDE.md.** Undisclosed asymmetry between the two frontier cells — note it even though both are 5/5.
+- **What the "original 3×2 matrix" was.** Referenced three times as the thing being revised; the three models are never named, so the reader can't see what changed.
+- **No statistical framing for N=5 binary cells** — especially "partial binding 3/5." At minimum state results are descriptive only / no CIs.
+- **Disambiguate rubric R1–R5 from finding 5's "R3 signer identity / R4 llms.txt manifest"** — same labels, different referents, in the same document; a reader will collide them.
+- **State whether the manual re-scoring was blind**, given all corrections favored the hypothesis.
+
+Cut / trim:
+- The Akamai edge-cache / routing-table / lookup-mechanism extended metaphor in **Mechanism** — no empirical content; reduce to at most one line.
+- The "subtract.ing's thesis" / distillation-video paragraph carries more rhetorical weight than the data supports; trim to a sentence.
+- The `authority.unsigned` Gemma-trial-3 quote is a fun aside but tangential to reflex.1 binding — keep only if it bears on the claim.
+- Repeated "decisive" superlatives.

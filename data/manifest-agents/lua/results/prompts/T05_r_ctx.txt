@@ -1,0 +1,487 @@
+
+## loadlib.c (lines 41-80)
+
+
+/* prefix for open functions in C libraries */
+#define LUA_POF		"luaopen_"
+
+/* separator for open functions in C libraries */
+#define LUA_OFSEP	"_"
+
+
+/*
+** key for table in the registry that keeps handles
+** for all loaded C libraries
+*/
+static const char *const CLIBS = "_CLIBS";
+
+#define LIB_FAIL	"open"
+
+
+#define setprogdir(L)           ((void)0)
+
+
+/* cast void* to a Lua function */
+#define cast_Lfunc(p)	cast(lua_CFunction, cast_func(p))
+
+
+/*
+** system-dependent functions
+*/
+
+/*
+** unload library 'lib'
+*/
+static void lsys_unloadlib (void *lib);
+
+/*
+** load C library in file 'path'. If 'seeglb', load with all names in
+** the library global.
+** Returns the library; in case of error, returns NULL plus an
+** error string in the stack.
+*/
+
+## luaconf.h (lines 281-320)
+/*
+** LUA_IGMARK is a mark to ignore all after it when building the
+** module name (e.g., used to build the luaopen_ function name).
+** Typically, the suffix after the mark is the module version,
+** as in "mod-v1.2.so".
+*/
+#define LUA_IGMARK		"-"
+
+/* }================================================================== */
+
+
+/*
+** {==================================================================
+** Marks for exported symbols in the C code
+** ===================================================================
+*/
+
+/*
+@@ LUA_API is a mark for all core API functions.
+@@ LUALIB_API is a mark for all auxiliary library functions.
+@@ LUAMOD_API is a mark for all standard library opening functions.
+** CHANGE them if you need to define those functions in some special way.
+** For instance, if you want to create one Windows DLL with the core and
+** the libraries, you may want to use the following definition (define
+** LUA_BUILD_AS_DLL to get it).
+*/
+#if defined(LUA_BUILD_AS_DLL)	/* { */
+
+#if defined(LUA_CORE) || defined(LUA_LIB)	/* { */
+#define LUA_API __declspec(dllexport)
+#else						/* }{ */
+#define LUA_API __declspec(dllimport)
+#endif						/* } */
+
+#else				/* }{ */
+
+#define LUA_API		extern
+
+#endif				/* } */
+
+
+## lstrlib.c (lines 1-40)
+/*
+** $Id: lstrlib.c $
+** Standard library for string operations and pattern-matching
+** See Copyright Notice in lua.h
+*/
+
+#define lstrlib_c
+#define LUA_LIB
+
+#include "lprefix.h"
+
+
+#include <ctype.h>
+#include <float.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "lua.h"
+
+#include "lauxlib.h"
+#include "lualib.h"
+#include "llimits.h"
+
+
+/*
+** maximum number of captures that a pattern can do during
+** pattern-matching. This limit is arbitrary, but must fit in
+** an unsigned char.
+*/
+#if !defined(LUA_MAXCAPTURES)
+#define LUA_MAXCAPTURES		32
+#endif
+
+
+static int str_len (lua_State *L) {
+
+## luaconf.h (lines 601-640)
+*/
+#define lua_pointer2str(buff,sz,p)	l_sprintf(buff,sz,"%p",p)
+
+
+/*
+@@ lua_number2strx converts a float to a hexadecimal numeral.
+** In C99, 'sprintf' (with format specifiers '%a'/'%A') does that.
+** Otherwise, you can leave 'lua_number2strx' undefined and Lua will
+** provide its own implementation.
+*/
+#if !defined(LUA_USE_C89)
+#define lua_number2strx(L,b,sz,f,n)  \
+	((void)L, l_sprintf(b,sz,f,(LUAI_UACNUMBER)(n)))
+#endif
+
+
+/*
+** 'strtof' and 'opf' variants for math functions are not valid in
+** C89. Otherwise, the macro 'HUGE_VALF' is a good proxy for testing the
+** availability of these variants. ('math.h' is already included in
+** all files that use these macros.)
+*/
+#if defined(LUA_USE_C89) || (defined(HUGE_VAL) && !defined(HUGE_VALF))
+#undef l_mathop  /* variants not available */
+#undef lua_str2number
+#define l_mathop(op)		(lua_Number)op  /* no variant */
+#define lua_str2number(s,p)	((lua_Number)strtod((s), (p)))
+#endif
+
+
+/*
+@@ LUA_KCONTEXT is the type of the context ('ctx') for continuation
+** functions.  It must be a numerical type; Lua will use 'intptr_t' if
+** available, otherwise it will use 'ptrdiff_t' (the nearest thing to
+** 'intptr_t' in C89)
+*/
+#define LUA_KCONTEXT	ptrdiff_t
+
+#if !defined(LUA_USE_C89) && defined(__STDC_VERSION__) && \
+    __STDC_VERSION__ >= 199901L
+
+## lmathlib.c (lines 1-40)
+/*
+** $Id: lmathlib.c $
+** Standard mathematical library
+** See Copyright Notice in lua.h
+*/
+
+#define lmathlib_c
+#define LUA_LIB
+
+#include "lprefix.h"
+
+
+#include <float.h>
+#include <limits.h>
+#include <math.h>
+#include <stdlib.h>
+#include <time.h>
+
+#include "lua.h"
+
+#include "lauxlib.h"
+#include "lualib.h"
+#include "llimits.h"
+
+
+#undef PI
+#define PI	(l_mathop(3.141592653589793238462643383279502884))
+
+
+static int math_abs (lua_State *L) {
+  if (lua_isinteger(L, 1)) {
+    lua_Integer n = lua_tointeger(L, 1);
+    if (n < 0) n = (lua_Integer)(0u - (lua_Unsigned)n);
+    lua_pushinteger(L, n);
+  }
+  else
+    lua_pushnumber(L, l_mathop(fabs)(luaL_checknumber(L, 1)));
+  return 1;
+}
+
+
+## liolib.c (lines 801-840)
+  luaL_setfuncs(L, meth, 0);  /* add file methods to method table */
+  lua_setfield(L, -2, "__index");  /* metatable.__index = method table */
+  lua_pop(L, 1);  /* pop metatable */
+}
+
+
+/*
+** function to (not) close the standard files stdin, stdout, and stderr
+*/
+static int io_noclose (lua_State *L) {
+  LStream *p = tolstream(L);
+  p->closef = &io_noclose;  /* keep file opened */
+  luaL_pushfail(L);
+  lua_pushliteral(L, "cannot close standard file");
+  return 2;
+}
+
+
+static void createstdfile (lua_State *L, FILE *f, const char *k,
+                           const char *fname) {
+  LStream *p = newprefile(L);
+  p->f = f;
+  p->closef = &io_noclose;
+  if (k != NULL) {
+    lua_pushvalue(L, -1);
+    lua_setfield(L, LUA_REGISTRYINDEX, k);  /* add file to registry */
+  }
+  lua_setfield(L, -2, fname);  /* add file to module */
+}
+
+
+LUAMOD_API int luaopen_io (lua_State *L) {
+  luaL_newlib(L, iolib);  /* new module */
+  createmeta(L);
+  /* create (and set) default files */
+  createstdfile(L, stdin, IO_INPUT, "stdin");
+  createstdfile(L, stdout, IO_OUTPUT, "stdout");
+  createstdfile(L, stderr, NULL, "stderr");
+  return 1;
+}
+
+## linit.c (lines 1-40)
+/*
+** $Id: linit.c $
+** Initialization of libraries for lua.c and other clients
+** See Copyright Notice in lua.h
+*/
+
+
+#define linit_c
+#define LUA_LIB
+
+
+#include "lprefix.h"
+
+
+#include <stddef.h>
+
+#include "lua.h"
+
+#include "lualib.h"
+#include "lauxlib.h"
+#include "llimits.h"
+
+
+/*
+** Standard Libraries. (Must be listed in the same ORDER of their
+** respective constants LUA_<libname>K.)
+*/
+static const luaL_Reg stdlibs[] = {
+  {LUA_GNAME, luaopen_base},
+  {LUA_LOADLIBNAME, luaopen_package},
+  {LUA_COLIBNAME, luaopen_coroutine},
+  {LUA_DBLIBNAME, luaopen_debug},
+  {LUA_IOLIBNAME, luaopen_io},
+  {LUA_MATHLIBNAME, luaopen_math},
+  {LUA_OSLIBNAME, luaopen_os},
+  {LUA_STRLIBNAME, luaopen_string},
+  {LUA_TABLIBNAME, luaopen_table},
+  {LUA_UTF8LIBNAME, luaopen_utf8},
+  {NULL, NULL}
+};
+
+## linit.c (lines 41-63)
+
+
+/*
+** require and preload selected standard libraries
+*/
+LUALIB_API void luaL_openselectedlibs (lua_State *L, int load, int preload) {
+  int mask;
+  const luaL_Reg *lib;
+  luaL_getsubtable(L, LUA_REGISTRYINDEX, LUA_PRELOAD_TABLE);
+  for (lib = stdlibs, mask = 1; lib->name != NULL; lib++, mask <<= 1) {
+    if (load & mask) {  /* selected? */
+      luaL_requiref(L, lib->name, lib->func, 1);  /* require library */
+      lua_pop(L, 1);  /* remove result from the stack */
+    }
+    else if (preload & mask) {  /* selected? */
+      lua_pushcfunction(L, lib->func);
+      lua_setfield(L, -2, lib->name);  /* add library to PRELOAD table */
+    }
+  }
+  lua_assert((mask >> 1) == LUA_UTF8LIBK);
+  lua_pop(L, 1);  /* remove PRELOAD table */
+}
+
+
+## lmathlib.c (lines 721-760)
+  {"log",   math_log},
+  {"max",   math_max},
+  {"min",   math_min},
+  {"modf",   math_modf},
+  {"rad",   math_rad},
+  {"sin",   math_sin},
+  {"sqrt",  math_sqrt},
+  {"tan",   math_tan},
+  {"type", math_type},
+#if defined(LUA_COMPAT_MATHLIB)
+  {"atan2", math_atan},
+  {"cosh",   math_cosh},
+  {"sinh",   math_sinh},
+  {"tanh",   math_tanh},
+  {"pow",   math_pow},
+  {"log10", math_log10},
+#endif
+  /* placeholders */
+  {"random", NULL},
+  {"randomseed", NULL},
+  {"pi", NULL},
+  {"huge", NULL},
+  {"maxinteger", NULL},
+  {"mininteger", NULL},
+  {NULL, NULL}
+};
+
+
+/*
+** Open math library
+*/
+LUAMOD_API int luaopen_math (lua_State *L) {
+  luaL_newlib(L, mathlib);
+  lua_pushnumber(L, PI);
+  lua_setfield(L, -2, "pi");
+  lua_pushnumber(L, (lua_Number)HUGE_VAL);
+  lua_setfield(L, -2, "huge");
+  lua_pushinteger(L, LUA_MAXINTEGER);
+  lua_setfield(L, -2, "maxinteger");
+  lua_pushinteger(L, LUA_MININTEGER);
+
+## loslib.c (lines 1-40)
+/*
+** $Id: loslib.c $
+** Standard Operating System library
+** See Copyright Notice in lua.h
+*/
+
+#define loslib_c
+#define LUA_LIB
+
+#include "lprefix.h"
+
+
+#include <errno.h>
+#include <locale.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#include "lua.h"
+
+#include "lauxlib.h"
+#include "lualib.h"
+#include "llimits.h"
+
+
+/*
+** {==================================================================
+** List of valid conversion specifiers for the 'strftime' function;
+** options are grouped by length; group of length 2 start with '||'.
+** ===================================================================
+*/
+#if !defined(LUA_STRFTIMEOPTIONS)	/* { */
+
+#if defined(LUA_USE_WINDOWS)
+#define LUA_STRFTIMEOPTIONS  "aAbBcdHIjmMpSUwWxXyYzZ%" \
+    "||" "#c#x#d#H#I#j#m#M#S#U#w#W#y#Y"  /* two-char options */
+#elif defined(LUA_USE_C89)  /* C89 (only 1-char options) */
+#define LUA_STRFTIMEOPTIONS  "aAbBcdHIjmMpSUwWxXyYZ%"
+#else  /* C99 specification */
+#define LUA_STRFTIMEOPTIONS  "aAbBcCdDeFgGhHIjmMnprRStTuUVwWxXyYzZ%" \
+
+## loadlib.c (lines 321-360)
+*/
+static void *checkclib (lua_State *L, const char *path) {
+  void *plib;
+  lua_getfield(L, LUA_REGISTRYINDEX, CLIBS);
+  lua_getfield(L, -1, path);
+  plib = lua_touserdata(L, -1);  /* plib = CLIBS[path] */
+  lua_pop(L, 2);  /* pop CLIBS table and 'plib' */
+  return plib;
+}
+
+
+/*
+** Deallocate function for library strings.
+** Unload the DLL associated with the string being deallocated.
+*/
+static void *freelib (void *ud, void *ptr, size_t osize, size_t nsize) {
+  /* string itself is irrelevant and static */
+  (void)ptr; (void)osize; (void)nsize;
+  lsys_unloadlib(ud);  /* unload library represented by the string */
+  return NULL;
+}
+
+
+/*
+** Create a library string that, when deallocated, will unload 'plib'
+*/
+static void createlibstr (lua_State *L, void *plib) {
+  /* common content for all library strings */
+  static const char dummy[] = "01234567890";
+  lua_pushexternalstring(L, dummy, sizeof(dummy) - 1, freelib, plib);
+}
+
+
+/*
+** registry.CLIBS[path] = plib          -- for queries.
+** Also create a reference to strlib, so that the library string will
+** only be collected when registry.CLIBS is collected.
+*/
+static void addtoclib (lua_State *L, const char *path, void *plib) {
+  lua_getfield(L, LUA_REGISTRYINDEX, CLIBS);
+
+## onelua.c (lines 81-120)
+#define LUAI_DDEF	static
+
+/* core -- used by all */
+#include "lzio.c"
+#include "lctype.c"
+#include "lopcodes.c"
+#include "lmem.c"
+#include "lundump.c"
+#include "ldump.c"
+#include "lstate.c"
+#include "lgc.c"
+#include "llex.c"
+#include "lcode.c"
+#include "lparser.c"
+#include "ldebug.c"
+#include "lfunc.c"
+#include "lobject.c"
+#include "ltm.c"
+#include "lstring.c"
+#include "ltable.c"
+#include "ldo.c"
+#include "lvm.c"
+#include "lapi.c"
+
+/* auxiliary library -- used by all */
+#include "lauxlib.c"
+
+/* standard library  -- not used by luac */
+#ifndef MAKE_LUAC
+#include "lbaselib.c"
+#include "lcorolib.c"
+#include "ldblib.c"
+#include "liolib.c"
+#include "lmathlib.c"
+#include "loadlib.c"
+#include "loslib.c"
+#include "lstrlib.c"
+#include "ltablib.c"
+#include "lutf8lib.c"
+#include "linit.c"

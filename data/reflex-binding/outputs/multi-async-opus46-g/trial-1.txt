@@ -1,0 +1,70 @@
+Kernel primitive first (reflex.1): on macOS this is `kqueue` (Linux: `epoll`) — readiness notification over non-blocking sockets. `asyncio` is the stdlib event loop wrapping that; `asyncio.start_server` is the right primitive-level entry point, no third-party library needed.
+
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    peer = writer.get_extra_info("peername")
+    try:
+        while True:
+            line = await reader.readline()      # b"" on EOF
+            if not line:
+                break
+            writer.write(line)                  # echo it back, newline included
+            await writer.drain()                # respect backpressure
+    except ConnectionResetError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"closed {peer}")
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"listening on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+```
+
+How it works: `start_server` accepts connections on the event loop; each accepted socket spawns a `handle_client` task, so N clients run concurrently on one thread. `readline()` yields control while waiting for data; `drain()` yields if the client is slow to read.
+
+Run it:
+
+```
+python3 echo_server.py
+```
+
+Test with multiple concurrent clients:
+
+```
+# terminal 2
+nc 127.0.0.1 8888
+hello        -> hello
+
+# terminal 3 (simultaneously)
+nc 127.0.0.1 8888
+world        -> world
+```
+
+Or a quick concurrent client check in Python:
+
+```python
+import asyncio
+
+async def client(n):
+    r, w = await asyncio.open_connection("127.0.0.1", 8888)
+    w.write(f"client {n}\n".encode()); await w.drain()
+    print(await r.readline())
+    w.close(); await w.wait_closed()
+
+asyncio.run(asyncio.wait([asyncio.create_task(client(i)) for i in range(20)]))
+```
+
+Stop the server with Ctrl-C.

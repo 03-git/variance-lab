@@ -1,0 +1,64 @@
+Here's a complete Python script that creates and manages a SQLite notes database:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create database connection (creates notes.db if it doesn't exist)
+conn = sqlite3.connect('notes.db')
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Project Planning', 'Review requirements for Q2 project', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discussed timeline and deliverables with team', datetime.now().isoformat()),
+    ('Bug Fix', 'Fixed database connection pooling issue', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+notes = cursor.fetchall()
+
+# Print results
+print("All Notes:")
+print("-" * 60)
+for note_id, title, body, created_at in notes:
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 60)
+
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python script.py
+```
+
+The script will:
+1. Create a `notes.db` SQLite database file in your current directory
+2. Create the `notes` table if it doesn't exist
+3. Insert 3 sample notes with timestamps
+4. Query and display all notes in a formatted output
+5. Close the database connection
+
+Run it again and it will append 3 more notes (the `CREATE TABLE IF NOT EXISTS` prevents errors on subsequent runs). If you want to start fresh each time, add `os.remove('notes.db')` at the beginning.

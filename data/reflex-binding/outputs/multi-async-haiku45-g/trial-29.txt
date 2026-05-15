@@ -1,0 +1,86 @@
+I'll show you an async TCP echo server using Python's `asyncio` module. Here's the complete implementation:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If client closes connection, data will be empty
+            if not data:
+                print(f"Client disconnected: {addr}")
+                break
+            
+            # Echo the data back to the client
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo to {addr}: {data.decode().strip()}")
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(handle_client, '127.0.0.1', 8888)
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server running on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+   ```bash
+   python echo_server.py
+   ```
+   You'll see: `Echo server running on 127.0.0.1:8888`
+
+2. **Connect with a client** (in another terminal):
+   ```bash
+   nc localhost 8888
+   ```
+   Or using Python's telnetlib:
+   ```bash
+   python -c "
+   import socket
+   s = socket.socket()
+   s.connect(('localhost', 8888))
+   s.send(b'Hello World\n')
+   print(s.recv(1024).decode())
+   s.close()
+   "
+   ```
+
+3. **Connect multiple clients simultaneously** to test concurrency:
+   ```bash
+   # Terminal 2
+   nc localhost 8888
+   
+   # Terminal 3
+   nc localhost 8888
+   ```
+   Each terminal can send lines independently and they'll be echoed back.
+
+**How it works:**
+- `asyncio.start_server()` creates a TCP server listening on localhost:8888
+- `handle_client()` is called for each new connection
+- It reads lines with `readline()` and echoes them back with `write()` + `drain()`
+- `drain()` waits for the write buffer to be flushed
+- Multiple clients are handled concurrently because each connection is an async task
+- The server continues accepting new connections while existing ones are active

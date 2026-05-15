@@ -1,0 +1,27 @@
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212
+
+def test_negative_forty_equivalence():
+    assert celsius_to_fahrenheit(-40) == -40
+
+def test_non_numeric_input_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+To run:
+
+1. Save as `test_temperature.py`
+2. Install pytest: `pip install pytest`
+3. Run: `pytest test_temperature.py -v`
+
+The `-40` test is a nice property check — it's the one temperature where Celsius and Fahrenheit coincide. The non-numeric test relies on the fact that `"hot" * 9` produces a string but `/5` then raises `TypeError`.

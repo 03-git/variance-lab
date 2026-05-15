@@ -1,0 +1,70 @@
+Here's a Python script that fetches a URL and extracts hyperlinks:
+
+```python
+import requests
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self.current_text = []
+    
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            attrs_dict = dict(attrs)
+            href = attrs_dict.get('href', '')
+            self.current_text = []
+    
+    def handle_data(self, data):
+        self.current_text.append(data.strip())
+    
+    def handle_endtag(self, tag):
+        if tag == 'a':
+            text = ' '.join(self.current_text).strip()
+            if self.links and not self.links[-1][1]:  # Update last link's text
+                self.links[-1] = (self.links[-1][0], text)
+    
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            attrs_dict = dict(attrs)
+            href = attrs_dict.get('href', '')
+            self.links.append((href, ''))
+    
+    def feed_with_text(self, html):
+        self.links = []
+        self.feed(html)
+        return self.links
+
+# Simpler approach
+import requests
+from bs4 import BeautifulSoup
+
+response = requests.get('https://example.com')
+soup = BeautifulSoup(response.content, 'html.parser')
+
+for link in soup.find_all('a'):
+    href = link.get('href', '')
+    text = link.get_text(strip=True)
+    print(f"URL: {href}")
+    print(f"Text: {text}")
+    print()
+```
+
+**How to run it:**
+
+1. Install dependencies:
+```bash
+pip install requests beautifulsoup4
+```
+
+2. Run the script:
+```bash
+python script.py
+```
+
+The BeautifulSoup approach (second version) is cleaner. It:
+- Fetches the page with `requests`
+- Parses HTML with BeautifulSoup
+- Finds all `<a>` tags
+- Extracts `href` and link text for each

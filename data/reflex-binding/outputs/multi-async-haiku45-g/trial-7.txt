@@ -1,0 +1,92 @@
+Here's an async TCP echo server in Python using `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # Connection closed if no data
+            if not data:
+                break
+            
+            # Echo it back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo [{addr}]: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error with {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Server running on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**To run it:**
+
+```bash
+# Terminal 1: Start the server
+python3 echo_server.py
+# Output: Server running on 127.0.0.1:8888
+```
+
+**To test with multiple clients:**
+
+```bash
+# Terminal 2, 3, 4, etc (open new terminals)
+nc localhost 8888
+# Type messages and they echo back:
+# > hello
+# hello
+# > world
+# world
+```
+
+Or use Python to connect:
+
+```python
+import socket
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect(('127.0.0.1', 8888))
+
+sock.sendall(b'Hello from Python\n')
+response = sock.recv(1024)
+print(response.decode())
+
+sock.close()
+```
+
+**Key points:**
+
+- `asyncio.start_server()` creates a server that calls `handle_client` for each connection
+- `reader.readline()` reads until newline (blocks without blocking the event loop)
+- `writer.drain()` waits for the write buffer to flush
+- Multiple clients run concurrently—the `async` event loop handles them all in a single thread
+- `try/finally` ensures the connection closes cleanly
+
+Press Ctrl+C to stop the server.

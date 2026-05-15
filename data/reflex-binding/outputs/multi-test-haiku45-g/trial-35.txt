@@ -1,0 +1,69 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using the `unittest` framework.
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    
+    def test_freezing_point(self):
+        """Test conversion at freezing point (0°C = 32°F)."""
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+    
+    def test_boiling_point(self):
+        """Test conversion at boiling point (100°C = 212°F)."""
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+    
+    def test_forty_below(self):
+        """Test conversion at -40°C = -40°F (same in both scales)."""
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+    
+    def test_non_numeric_input(self):
+        """Test that non-numeric input raises TypeError."""
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("32")
+    
+    def test_float_input(self):
+        """Test conversion with decimal values."""
+        self.assertAlmostEqual(celsius_to_fahrenheit(25), 77, places=1)
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+**To run the tests:**
+
+```bash
+# Run all tests with verbose output
+python test_conversion.py -v
+
+# Run a specific test
+python test_conversion.py TestCelsiusToFahrenheit.test_freezing_point
+
+# Run with quiet output
+python test_conversion.py
+```
+
+**Expected output:**
+```
+test_boiling_point (__main__.TestCelsiusToFahrenheit) ... ok
+test_forty_below (__main__.TestCelsiusToFahrenheit) ... ok
+test_freezing_point (__main__.TestCelsiusToFahrenheit) ... ok
+test_float_input (__main__.TestCelsiusToFahrenheit) ... ok
+test_non_numeric_input (__main__.TestCelsiusToFahrenheit) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.05s
+
+OK
+```
+
+The test suite covers:
+- **0°C**: Should return 32°F (water freezing)
+- **100°C**: Should return 212°F (water boiling)
+- **-40°C**: Should return -40°F (unique equivalence point)
+- **Non-numeric input**: Should raise `TypeError`
+- **Float values**: Bonus test with decimal input and `assertAlmostEqual` for floating-point comparison

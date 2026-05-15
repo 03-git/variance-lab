@@ -1,0 +1,65 @@
+Here's a Python test suite using pytest:
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212
+
+def test_identical_point():
+    assert celsius_to_fahrenheit(-40) == -40
+
+def test_non_numeric_input():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("0")
+```
+
+**To run it:**
+
+```bash
+# Install pytest if needed
+pip install pytest
+
+# Run the tests
+pytest test_file.py -v
+```
+
+Or if you want a simpler version without pytest (using unittest):
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+    
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+    
+    def test_identical_point(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+    
+    def test_non_numeric_input(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("0")
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+**To run unittest version:**
+
+```bash
+python test_file.py -v
+```
+
+The pytest version is cleaner and more popular. Both will pass the first three numeric tests and catch the TypeError when a string is passed.

@@ -1,0 +1,16 @@
+id	type	question
+T01	traversal	What are the main source files that implement the Lua parser and what does each one do?
+T02	traversal	What functions does lapi.c export and what is its role in the Lua architecture?
+T03	traversal	What does the Makefile build and what targets does it define?
+T04	traversal	What header files define the Lua public API vs internal API?
+T05	traversal	List all files that implement standard library functions (string, table, math, etc).
+S01	synthesis	How does Lua's garbage collector work? Trace the implementation across files.
+S02	synthesis	How does Lua implement coroutines? Which files and functions are involved?
+S03	synthesis	Trace a Lua function call from the C API through to bytecode execution.
+S04	synthesis	How does the Lua compiler transform source code into bytecodes? What are the compilation phases?
+S05	synthesis	How does Lua implement tables (hash + array part)? Which files handle table operations?
+C01	similarity	Which files handle memory allocation and what patterns do they share?
+C02	similarity	Compare how string and table types are represented internally.
+C03	similarity	What error handling mechanisms exist across the codebase and how do they relate?
+C04	similarity	Which files reference the lua_State structure and what aspects of it do they access?
+C05	similarity	Compare the implementation of the debug library with the core debug infrastructure.

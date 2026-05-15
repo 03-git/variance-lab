@@ -1,0 +1,96 @@
+Here's a Python CLI tool that meets your requirements:
+
+```python
+import argparse
+import json
+import sys
+
+
+def validate_port(value):
+    """Validate that port is an integer between 1-65535."""
+    try:
+        port = int(value)
+        if not (1 <= port <= 65535):
+            raise argparse.ArgumentTypeError(f"port must be between 1-65535, got {port}")
+        return port
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got '{value}'")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="CLI tool to parse and display configuration as JSON"
+    )
+    
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="localhost",
+        help="hostname to connect to (default: localhost)"
+    )
+    
+    parser.add_argument(
+        "--port",
+        type=validate_port,
+        default=8080,
+        help="port number (1-65535, default: 8080)"
+    )
+    
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Save as cli_tool.py, then:
+
+# Basic usage (uses defaults)
+python cli_tool.py
+# Output: {"host": "localhost", "port": 8080, "verbose": false}
+
+# With custom host and port
+python cli_tool.py --host example.com --port 3000
+# Output: {"host": "example.com", "port": 3000, "verbose": false}
+
+# With verbose flag
+python cli_tool.py --host 192.168.1.1 --port 9000 --verbose
+# Output: {"host": "192.168.1.1", "port": 9000, "verbose": true}
+
+# Port validation (invalid port)
+python cli_tool.py --port 99999
+# Error: usage: cli_tool.py [-h] [--host HOST] [--port PORT] [--verbose]
+# cli_tool.py: error: argument --port: port must be between 1-65535, got 99999
+
+# Port validation (non-integer)
+python cli_tool.py --port abc
+# Error: usage: cli_tool.py [-h] [--host HOST] [--port PORT] [--verbose]
+# cli_tool.py: error: argument --port: port must be an integer, got 'abc'
+
+# Help
+python cli_tool.py --help
+```
+
+The key features:
+- **`validate_port()`** function handles port validation with clear error messages
+- **`argparse`** handles argument parsing and type checking
+- **`action="store_true"`** for the `--verbose` flag (boolean without a value)
+- **Default values** for host (localhost) and port (8080)
+- **JSON output** with indentation for readability

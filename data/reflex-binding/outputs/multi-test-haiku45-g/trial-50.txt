@@ -1,0 +1,56 @@
+Here's a complete Python test suite for the `celsius_to_fahrenheit` function:
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing_point(self):
+        """0°C should be 32°F"""
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+    
+    def test_boiling_point(self):
+        """100°C should be 212°F"""
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+    
+    def test_negative_forty(self):
+        """-40°C should be -40°F"""
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError"""
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("30")
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+**To run the tests:**
+
+```bash
+python -m unittest test_celsius.py -v
+```
+
+Or if you save it as `test_celsius.py` and run it directly:
+
+```bash
+python test_celsius.py
+```
+
+**Expected output:**
+```
+test_boiling_point (__main__.TestCelsiusToFahrenheit) ... ok
+test_freezing_point (__main__.TestCelsiusToFahrenheit) ... ok
+test_negative_forty (__main__.TestCelsiusToFahrenheit) ... ok
+test_non_numeric_input (__main__.TestCelsiusToFahrenheit) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.0s
+
+OK
+```
+
+All four test cases pass: freezing point (0→32), boiling point (100→212), the special case where Celsius equals Fahrenheit (-40), and the TypeError for non-numeric input.

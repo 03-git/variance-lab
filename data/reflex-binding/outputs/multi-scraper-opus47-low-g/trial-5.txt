@@ -1,0 +1,55 @@
+Kernel primitive first (reflex.1): fetching a URL is a TLS socket + HTTP request — `urllib.request` wraps that in stdlib. Parsing HTML anchors is `html.parser.HTMLParser` in stdlib. No `requests`/`bs4` needed.
+
+```python
+#!/usr/bin/env python3
+import sys
+from urllib.request import urlopen, Request
+from urllib.parse import urljoin
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base):
+        super().__init__()
+        self.base = base
+        self.links = []          # list of [href, text]
+        self._in_a = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href is not None:
+                self.links.append([urljoin(self.base, href), ""])
+                self._in_a = True
+
+    def handle_endtag(self, tag):
+        if tag == "a":
+            self._in_a = False
+
+    def handle_data(self, data):
+        if self._in_a and self.links:
+            self.links[-1][1] += data.strip()
+
+def main(url):
+    req = Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urlopen(req, timeout=10) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+    p = LinkExtractor(url)
+    p.feed(html)
+    for href, text in p.links:
+        print(f"{href}\t{text or '(no text)'}")
+
+if __name__ == "__main__":
+    main(sys.argv[1] if len(sys.argv) > 1 else "https://example.com")
+```
+
+Run it:
+
+```bash
+python3 link_extractor.py                 # defaults to https://example.com
+python3 link_extractor.py https://news.ycombinator.com
+```
+
+For `https://example.com` you'll get one line — it has a single link to `https://www.iana.org/domains/example` with text "More information...". `urljoin` resolves relative hrefs against the page URL so output is always absolute.
+
+Note: this parses anchors found in the raw HTML; JS-rendered links won't appear (that'd need a browser engine — different primitive).

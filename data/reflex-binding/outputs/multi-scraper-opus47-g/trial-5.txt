@@ -1,0 +1,50 @@
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.in_a = False
+        self.href = None
+        self.text = []
+        self.links = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            self.in_a = True
+            self.href = dict(attrs).get("href")
+            self.text = []
+
+    def handle_data(self, data):
+        if self.in_a:
+            self.text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self.in_a:
+            self.links.append((self.href, "".join(self.text).strip()))
+            self.in_a = False
+            self.href = None
+            self.text = []
+
+req = urllib.request.Request("https://example.com", headers={"User-Agent": "Mozilla/5.0"})
+with urllib.request.urlopen(req) as resp:
+    html = resp.read().decode(resp.headers.get_content_charset() or "utf-8")
+
+parser = LinkExtractor()
+parser.feed(html)
+for href, text in parser.links:
+    print(f"{href}\t{text}")
+```
+
+Run:
+```
+python3 script.py
+```
+
+Or pipe inline without a file:
+```
+python3 -c '<paste code>'
+```
+
+Stdlib only — no `pip install` needed.

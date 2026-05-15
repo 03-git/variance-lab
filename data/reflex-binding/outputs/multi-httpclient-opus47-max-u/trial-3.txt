@@ -1,0 +1,47 @@
+```python
+import sys
+import requests
+
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: python fetch.py <url>", file=sys.stderr)
+        sys.exit(1)
+
+    url = sys.argv[1]
+    response = requests.get(url, allow_redirects=True, timeout=10)
+
+    print(f"Status: {response.status_code}")
+    print("\nHeaders:")
+    for name, value in response.headers.items():
+        print(f"  {name}: {value}")
+    print("\nBody (first 500 chars):")
+    print(response.text[:500])
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run:
+
+```bash
+pip install requests
+python fetch.py https://example.com
+```
+
+If `requests` isn't available and you want a stdlib-only version, swap the body for:
+
+```python
+import sys
+from urllib.request import urlopen, Request
+
+req = Request(sys.argv[1], headers={"User-Agent": "fetch.py"})
+with urlopen(req, timeout=10) as r:
+    print(f"Status: {r.status}")
+    print("\nHeaders:")
+    for name, value in r.headers.items():
+        print(f"  {name}: {value}")
+    print("\nBody (first 500 chars):")
+    print(r.read(500).decode("utf-8", errors="replace"))
+```
+
+`urlopen` follows HTTP redirects by default.

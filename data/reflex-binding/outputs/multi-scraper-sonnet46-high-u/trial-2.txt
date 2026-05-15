@@ -1,0 +1,52 @@
+Here's the script:
+
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._capture = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            attrs_dict = dict(attrs)
+            self._current_href = attrs_dict.get("href")
+            self._capture = True
+            self._current_text = []
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            self.links.append((self._current_href, "".join(self._current_text).strip()))
+            self._current_href = None
+            self._capture = False
+
+    def handle_data(self, data):
+        if self._capture:
+            self._current_text.append(data)
+
+with urllib.request.urlopen("https://example.com") as response:
+    html = response.read().decode("utf-8")
+
+parser = LinkParser()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"{text!r:30} -> {href}")
+```
+
+**How to run it** — no dependencies needed, just the standard library:
+
+```bash
+python3 script.py
+```
+
+**What it does:**
+- Uses `urllib.request` (stdlib) to fetch the page — no `requests` needed.
+- Subclasses `HTMLParser` (stdlib) to walk the tag stream, capturing each `<a href="...">link text</a>` pair.
+- Prints each link as `text -> href`, with the text left-padded for readability.
+
+For `https://example.com` specifically, you'll likely see one link — the IANA "More information" anchor. For pages with many links, consider filtering by `href.startswith("http")` to skip fragment/relative URLs.

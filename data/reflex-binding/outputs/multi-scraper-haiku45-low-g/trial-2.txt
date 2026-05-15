@@ -1,0 +1,67 @@
+I'll show you a Python script that fetches a URL and extracts hyperlinks:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+
+def extract_links(url):
+    """Fetch a URL and extract all hyperlinks."""
+    try:
+        # Fetch the webpage
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        # Parse the HTML
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Find all anchor tags
+        links = soup.find_all('a')
+        
+        if not links:
+            print("No links found on the page.")
+            return
+        
+        print(f"Found {len(links)} links:\n")
+        for link in links:
+            href = link.get('href')
+            text = link.get_text(strip=True)
+            
+            # Make relative URLs absolute (optional)
+            if href:
+                href = urljoin(url, href)
+            
+            print(f"Text: {text}")
+            print(f"URL:  {href}")
+            print("-" * 50)
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching the URL: {e}")
+
+if __name__ == "__main__":
+    # Change this to any URL you want to scrape
+    url = "https://example.com"
+    extract_links(url)
+```
+
+**How to run it:**
+
+1. **Install dependencies:**
+   ```bash
+   pip install requests beautifulsoup4
+   ```
+
+2. **Run the script:**
+   ```bash
+   python script.py
+   ```
+
+**What it does:**
+- Fetches the HTML from the URL
+- Parses it with BeautifulSoup
+- Extracts all `<a>` tags
+- Prints the link text and href for each link
+- Converts relative URLs to absolute URLs automatically
+- Handles errors gracefully
+
+You can modify the `url` variable at the bottom to scrape any website you want.

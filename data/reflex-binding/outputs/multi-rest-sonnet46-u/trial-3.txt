@@ -1,0 +1,93 @@
+Here's a clean implementation using **Python + FastAPI** (Pydantic handles validation automatically):
+
+```python
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, field_validator, EmailStr
+import uvicorn
+
+app = FastAPI()
+
+class UserIn(BaseModel):
+    name: str
+    email: str
+    age: int
+
+    @field_validator("name")
+    @classmethod
+    def name_required(cls, v):
+        if not v or not v.strip():
+            raise ValueError("name cannot be empty")
+        return v.strip()
+
+    @field_validator("email")
+    @classmethod
+    def email_must_contain_at(cls, v):
+        if "@" not in v:
+            raise ValueError("email must contain @")
+        return v
+
+    @field_validator("age")
+    @classmethod
+    def age_in_range(cls, v):
+        if not (1 <= v <= 150):
+            raise ValueError("age must be between 1 and 150")
+        return v
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    errors = [
+        {"field": e["loc"][-1], "message": e["msg"]}
+        for e in exc.errors()
+    ]
+    return JSONResponse(status_code=400, content={"errors": errors})
+
+@app.post("/users", status_code=201)
+async def create_user(user: UserIn):
+    return user.model_dump()
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
+**How to run:**
+
+```bash
+pip install fastapi uvicorn pydantic
+python main.py
+```
+
+**Test it:**
+
+```bash
+# Success → 201
+curl -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+
+# → {"name": "Alice", "email": "alice@example.com", "age": 30}
+
+# Missing name → 400
+curl -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "alice@example.com", "age": 30}'
+
+# → {"errors": [{"field": "name", "message": "Field required"}]}
+
+# Bad email → 400
+curl -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "notanemail", "age": 30}'
+
+# → {"errors": [{"field": "email", "message": "Value error, email must contain @"}]}
+
+# Age out of range → 400
+curl -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 200}'
+
+# → {"errors": [{"field": "age", "message": "Value error, age must be between 1 and 150"}]}
+```
+
+If you prefer **Node.js/Express** instead, let me know and I'll show that variant.

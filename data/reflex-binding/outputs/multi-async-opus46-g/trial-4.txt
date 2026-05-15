@@ -1,0 +1,59 @@
+**Kernel primitive first** (reflex.1): this is non-blocking sockets + the kqueue event-notification syscall on Darwin (`kqueue`/`kevent`), reached through `socket(2)`/`bind`/`listen`/`accept`/`recv`/`send`. `asyncio` is just the stdlib event loop over `selectors`, which picks `kqueue` here. No third-party library needed — stdlib `asyncio` is the wrapper for the primitive.
+
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    peer = writer.get_extra_info("peername")
+    try:
+        while True:
+            line = await reader.readline()      # b"" on EOF
+            if not line:
+                break
+            writer.write(line)                   # echo verbatim, including the newline
+            await writer.drain()                 # respect backpressure
+    except ConnectionResetError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"closed {peer}")
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"listening on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+```
+
+Concurrency model: `start_server` calls `accept` on the listening socket inside the loop; each accepted connection spawns a `handle_client` task. All sockets are non-blocking and the single-threaded loop multiplexes them via kqueue — N clients, one thread, no GIL contention.
+
+**Run it:**
+
+```sh
+python3 echo_server.py        # paste the code into echo_server.py, or: python3 - <<'EOF' ... EOF
+```
+
+**Test with multiple concurrent clients:**
+
+```sh
+# terminal A
+nc 127.0.0.1 8888
+# type a line, see it echoed
+
+# terminal B (simultaneously)
+nc 127.0.0.1 8888
+# independent line, independently echoed
+
+# or scripted:
+printf 'hello\n' | nc 127.0.0.1 8888
+```
+
+Needs Python 3.7+ (for `asyncio.run`). `Ctrl+C` stops the server; `Ctrl+D` (EOF) on an `nc` session closes that one client cleanly.

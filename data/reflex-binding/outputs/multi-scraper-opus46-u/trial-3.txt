@@ -1,0 +1,79 @@
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print all hyperlinks (href + link text)."""
+
+import sys
+import urllib.request
+from html.parser import HTMLParser
+
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []          # list of [href, text]
+        self._current_href = None
+        self._text_parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href is not None:
+                self._current_href = href
+                self._text_parts = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._text_parts.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            text = " ".join("".join(self._text_parts).split())
+            self.links.append([self._current_href, text])
+            self._current_href = None
+            self._text_parts = []
+
+
+def main():
+    url = sys.argv[1] if len(sys.argv) > 1 else "https://example.com"
+
+    req = urllib.request.Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urllib.request.urlopen(req) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkParser()
+    parser.feed(html)
+
+    if not parser.links:
+        print("No links found.")
+        return
+
+    for href, text in parser.links:
+        print(f"{href}\t{text or '(no text)'}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it**
+
+It uses only the Python standard library — no `pip install` needed.
+
+```bash
+# Save the code as links.py, then:
+python3 links.py
+
+# Or pass any other URL:
+python3 links.py https://news.ycombinator.com
+```
+
+For `https://example.com` you'll get a single link — something like:
+
+```
+https://www.iana.org/domains/example	More information...
+```
+
+Notes:
+- If you'd rather use `requests` + `beautifulsoup4` (more robust for messy real-world HTML), say the word and I'll show that version — it'd need `pip install requests beautifulsoup4`.
+- `href` values are printed as-is (may be relative); wrap with `urllib.parse.urljoin(url, href)` if you want absolute URLs.

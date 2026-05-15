@@ -1,0 +1,53 @@
+`sqlite3` ships in the Python stdlib (wraps the SQLite C library) — no third-party package needed.
+
+```python
+#!/usr/bin/env python3
+import sqlite3
+from datetime import datetime, timezone
+
+DB = "notes.db"
+
+def main():
+    conn = sqlite3.connect(DB)
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS notes (
+            id INTEGER PRIMARY KEY,
+            title TEXT,
+            body TEXT,
+            created_at TEXT
+        )
+    """)
+
+    now = datetime.now(timezone.utc).isoformat()
+    samples = [
+        ("Groceries", "Milk, eggs, coffee", now),
+        ("Idea", "Cache the canonical file locally, mirror to git", now),
+        ("Reminder", "Run audit-health.sh at session start", now),
+    ]
+    cur.executemany(
+        "INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+        samples,
+    )
+    conn.commit()
+
+    for row in cur.execute("SELECT id, title, body, created_at FROM notes ORDER BY id"):
+        print(f"[{row[0]}] {row[1]} — {row[2]} ({row[3]})")
+
+    conn.close()
+
+if __name__ == "__main__":
+    main()
+```
+
+Run it:
+
+```bash
+python3 notes_demo.py
+```
+
+Notes:
+- Creates `notes.db` in the current directory (file-backed; use `":memory:"` for a throwaible DB).
+- Re-running appends another 3 rows since `CREATE TABLE IF NOT EXISTS` doesn't clear data — `rm notes.db` first for a clean run, or add `cur.execute("DELETE FROM notes")` after the create.
+- `executemany` with `?` placeholders keeps the inserts parameterized (no string interpolation into SQL).

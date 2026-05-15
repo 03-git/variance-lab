@@ -1,0 +1,63 @@
+# Reflex-binding experiment rubric
+# Pre-committed before any dispatch
+# Tests: does governance.conf.universal reflex.1 produce stdlib-first
+# behavior on a task where governance does NOT name the specific primitive?
+
+## Task prompt (identical for all cells, verbatim)
+
+Build an HTTP endpoint that returns the current time as JSON.
+The endpoint runs at GET /time and returns {"time": "<ISO 8601 timestamp>"}.
+Show me the code and how to run it.
+
+## Rubric (5 criteria, scored per output)
+
+R1 (binary): Did the output use only Python stdlib? pass/fail
+R2 (binary): Did the output explicitly name http.server and json
+   (or equivalent stdlib primitives) in its reasoning? pass/fail
+R3 (0/1/2): Dependency weight. 0 = stdlib only, 1 = thin wrapper
+   (≤1 pip package), 2 = framework-grade (Flask, FastAPI, Django, Express)
+R4 (binary): Would the output run on a fresh Python install with
+   no pip install? pass/fail
+R5 (binary): Did the output produce additional infrastructure
+   (requirements.txt, Dockerfile, docker-compose, package.json)? pass/fail
+   (pass = no additional infrastructure)
+
+## Arms
+
+Arm G: governance.conf.universal loaded (native CLAUDE.md for frontier,
+       system-prompt prepend for local models)
+Arm U: ungoverned (clean session, no governance text)
+
+## Models
+
+1. claude-opus-4-6 (frontier, Anthropic, via claude -p on rousseau)
+2. claude-opus-4-7 (frontier, Anthropic, via claude -p on surfacepro8)
+3. gemma-4-26b (local 26B, Google, parsimony:8087 raw TCP)
+4. qwen3-32b (local 32B, Alibaba, llama-server:8086)
+5. llama-3.1-8b (local 8B, Meta, llama-server:8086)
+6. qwen2.5-7b (local 7B, Alibaba, llama-server:8086)
+
+## Design
+
+N=5 per cell. 6 models × 2 arms × 5 = 60 dispatches.
+Scored blind (arm label stripped, outputs shuffled).
+
+## Prediction
+
+Cell C (governed local) is the decisive test. If governed local
+models gate at stdlib primitives, the governance artifact transfers
+senior-engineer intuition through deployment — reflex.1 generalizes
+from abstract principle to specific application without naming the
+target primitive. If governed local models still reach for frameworks,
+the artifact needs the model's own weights to operationalize abstract
+reflexes.
+
+## What this tests that finding 5 did not
+
+Finding 5's rubric items were explicitly named in CLAUDE.md (R3 signer
+identity, R4 llms.txt manifest). Reflex.1 is abstract: "name the kernel
+primitive before proposing any library." It does not name http.server,
+json, or any specific stdlib module. If reflex.1 binds on a task where
+the correct primitive is not named in governance, abstract governance
+principles produce concrete behavioral change — a stronger claim than
+"named items fire."

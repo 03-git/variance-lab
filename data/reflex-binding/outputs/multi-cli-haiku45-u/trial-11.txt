@@ -1,0 +1,84 @@
+Here's a Python CLI tool that meets your requirements:
+
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="CLI tool that validates host and port configuration"
+    )
+    
+    parser.add_argument(
+        "--host",
+        type=str,
+        required=True,
+        help="Host address"
+    )
+    
+    parser.add_argument(
+        "--port",
+        type=int,
+        required=True,
+        help="Port number (1-65535)"
+    )
+    
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        print(f"Error: Port must be between 1 and 65535, got {args.port}", file=sys.stderr)
+        sys.exit(1)
+    
+    # Build configuration
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    # Print as JSON
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+Save this as `cli_tool.py`, then:
+
+```bash
+# Valid example
+python cli_tool.py --host localhost --port 8080
+
+# Output:
+# {
+#   "host": "localhost",
+#   "port": 8080,
+#   "verbose": false
+# }
+
+# With verbose flag
+python cli_tool.py --host 0.0.0.0 --port 3000 --verbose
+
+# Output:
+# {
+#   "host": "0.0.0.0",
+#   "port": 3000,
+#   "verbose": true
+# }
+
+# Invalid port (will error)
+python cli_tool.py --host localhost --port 99999
+# Error: Port must be between 1 and 65535, got 99999
+```
+
+The tool uses `argparse` for clean argument parsing, validates the port range with a conditional check, and outputs everything as formatted JSON.

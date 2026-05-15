@@ -1,0 +1,70 @@
+I'll show you a Python async TCP echo server using `asyncio`. Here's the complete code:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    client_addr = writer.get_extra_info('peername')
+    print(f"Client connected: {client_addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            if not data:
+                # Client closed connection
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"[{client_addr}] Echo: {data.decode().strip()}")
+    
+    except asyncio.CancelledError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {client_addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**To run it:**
+
+1. **Start the server** in one terminal:
+```bash
+python3 echo_server.py
+```
+
+2. **Connect clients** in other terminals using `netcat`:
+```bash
+nc localhost 8888
+```
+
+Then type lines and they'll be echoed back. You can open multiple `nc` connections simultaneously—each will be handled concurrently.
+
+**How it works:**
+- `asyncio.start_server()` creates a TCP server listening on 127.0.0.1:8888
+- `handle_client()` is called for each new connection with a `StreamReader` and `StreamWriter`
+- `reader.readline()` awaits input (non-blocking), allowing other clients to be served meanwhile
+- `writer.write()` + `writer.drain()` sends data back to the client
+- The server handles multiple clients concurrently thanks to async/await

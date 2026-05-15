@@ -1,0 +1,35 @@
+```python
+# test_temp.py
+import unittest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run it:
+
+```
+python -m unittest test_temp.py -v
+```
+
+Or just `python test_temp.py`. No dependencies — stdlib only.

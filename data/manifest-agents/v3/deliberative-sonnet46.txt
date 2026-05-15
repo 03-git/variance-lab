@@ -1,0 +1,87 @@
+Health check passed. Proceeding with deliberative review.
+
+---
+
+## Deliberative Review: Manifest-Routed Retrieval vs BM25
+
+Five issues found, one of which is a factual error. Ordered by severity.
+
+---
+
+### 1. Factual/Framing: Scoring scale inconsistency across tables
+
+**Problem:** The V2 main table uses per-dimension averages (scale 1–5); the V3 table and the "Sonnet-4-6 as 4th scorer on V2 outputs" table use composite scores (sum of 3 dimensions, scale 3–15). The V3 comparison column "Delta (V2)" silently reports composite values:
+
+> `| claude | 8.97 | 9.53 | −0.57 | −0.53 |`
+
+That V2 claude delta of `−0.53` corresponds to the 4th-scorer table (`7.13 vs 7.67`), not the main V2 table (`2.38 vs 2.56`, delta `−0.18`). A reader cross-referencing V3 deltas against the V2 measurement section will find numbers that are exactly 3× off and no explanation.
+
+The relationship: `7.13 = 3 × 2.38`, `14.10 = 3 × 4.70`, `10.03 = 3 × 3.34` — all within rounding error. V3 and 4th-scorer tables use sum-of-dimensions; V2 main table uses mean-of-dimensions. Neither is labeled.
+
+**Correction:** Label the V3 and 4th-scorer tables as "composite score (A1+A2+A3, scale 3–15)" and the V2 main table as "per-dimension mean (scale 1–5)." Alternatively, unify to one scale throughout. The scoring rubric scale should also be stated once, explicitly, in the Measurement section — it is currently inferrable only from the per-dimension breakdown table.
+
+---
+
+### 2. Framing drift: "Prediction confirmed" overstates V3 result
+
+**Problem:**
+
+> `Average absolute gap: V2=0.57 → V3=0.43. **Prediction confirmed:** the gap narrows with a larger inference model, driven primarily by qwen scorer (which drops from 0.50 to 0.07).`
+
+Scorer-level data:
+- Claude: `−0.53 → −0.57` — gap **widens**
+- Gemma: `+0.67 → +0.67` — **unchanged**
+- Qwen: `−0.50 → −0.07` — gap narrows
+
+Two of three scorers do not support the prediction. The average narrowing (`0.57 → 0.43`) is entirely driven by qwen. The document acknowledges this in the parenthetical but states "Prediction confirmed" as the headline conclusion. That phrasing is unsupported by scorer-level evidence.
+
+**Correction:** Replace "Prediction confirmed" with a more precise summary, e.g.: "Mixed evidence: qwen supports the prediction (gap nearly disappears), claude contradicts it (gap widens slightly), gemma is flat. Average absolute gap narrows from 0.57 to 0.43, driven by qwen." The prediction is not confirmed; it has partial support from one scorer.
+
+---
+
+### 3. Factual error: V1→V2 improvement attributed entirely to curation; granularity is an uncontrolled confound
+
+**Problem:**
+
+> `The 0.71-point improvement comes entirely from the manifest curation (routing descriptions, chunk-level retrieval) — the 7B model, prompt template, and chunk budget are identical.`
+
+Two variables changed between V1 Arm M and V2 Arm M:
+
+1. Manifest curation quality (mechanical → frontier-curated)
+2. Retrieval granularity: V1 uses full-file context (~11K tokens, up to 500 lines per file); V2 uses 40-line chunk extraction (~4.2K tokens, up to 2 chunks per file)
+
+No ablation tests curation in isolation (curated manifest + full files) or granularity in isolation (mechanical manifest + chunks). Attributing the improvement "entirely from the manifest curation" is not supportable — the granularity change is independently capable of producing the observed effect (a 7B model with focused 40-line chunks vs diluted full-file context is itself a significant change, which is precisely what V1 Arm R demonstrates). "Chunk budget" in the quoted sentence is also ambiguous — the chunk budget is not identical between V1 Arm M (no chunks, full files) and V2 Arm M (40-line chunks).
+
+**Correction:** Replace "comes entirely from the manifest curation" with an acknowledgment that two variables changed concurrently. Name the confound. The finding should be stated as: "Curated manifest + chunk-level retrieval together close the gap; curation and granularity are not independently tested."
+
+---
+
+### 4. Missing: Gemma V3 ceiling effect
+
+**Problem:**
+
+> `| gemma | 15.00 | 14.33 | +0.67 | +0.67 | unchanged |`
+
+Gemma's V3 Arm M score is exactly 15.00. On a 3-dimension × 1–5 scale, 15 is the maximum possible score. Gemma is at ceiling on Arm M in V3. The document reports the gap as "unchanged" without noting that no further separation is possible — Arm M cannot score above 15. The ceiling constrains the delta regardless of true quality difference.
+
+**Correction:** Add a note to the V3 gemma row: "Arm M at ceiling (15/15); delta bounded by ceiling, not quality." This is also relevant to the "gap unchanged" interpretation in the V3 prediction assessment.
+
+---
+
+### 5. Missing: Gemma V3 data provenance after protocol fix
+
+**Problem:**
+
+> `**Gemma scorer on V3 required protocol fix.** Initial V3 gemma scoring used HTTP against parsimony (raw TCP). All 60 items defaulted to 3/3/3. Re-run with correct raw-TCP protocol after fixing.`
+
+The protocol error is disclosed in confounds, but the V3 table contains no indication that the gemma values shown (15.00, 14.33) are from the re-run. A reader seeing the gemma row has no way to confirm the data is not the degenerate 3/3/3 run. The confound note says a re-run was done but doesn't confirm the table reflects it.
+
+**Correction:** Add "(re-run, protocol-fixed)" to the gemma row label in the V3 table, or add a footnote. The confounds section should also explicitly state: "The V3 gemma values in the table are from the corrected run."
+
+---
+
+### Minor: "Statistically indistinguishable" framing in lead claim
+
+> `produces statistically indistinguishable answer quality`
+
+Failing to reject H₀ (t=−0.22) is not the same as demonstrating statistical equivalence. The document corrects this later ("we cannot distinguish the arms on quality"), but the lead claim uses the stronger formulation. Not a serious error given the document's own correction, but a precise reading of the lead claim overstates what a null Welch t can demonstrate. If equivalence testing (e.g., TOST with a pre-specified equivalence margin) was not performed, the claim should be "quality difference not detectable at this sample size" rather than "indistinguishable."

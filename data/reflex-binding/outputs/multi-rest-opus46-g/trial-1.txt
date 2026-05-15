@@ -1,0 +1,88 @@
+Here's a self-contained implementation in **Node.js + Express**:
+
+```javascript
+// server.js
+const express = require('express');
+const app = express();
+app.use(express.json());
+
+function validateUser(body) {
+  const errors = [];
+  const { name, email, age } = body ?? {};
+
+  if (typeof name !== 'string' || name.trim() === '') {
+    errors.push({ field: 'name', message: 'name is required and must be a non-empty string' });
+  }
+  if (typeof email !== 'string' || !email.includes('@')) {
+    errors.push({ field: 'email', message: 'email is required and must contain "@"' });
+  }
+  if (!Number.isInteger(age) || age < 1 || age > 150) {
+    errors.push({ field: 'age', message: 'age is required and must be an integer between 1 and 150' });
+  }
+  return errors;
+}
+
+app.post('/users', (req, res) => {
+  const errors = validateUser(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({ error: 'Invalid input', details: errors });
+  }
+  const user = { name: req.body.name.trim(), email: req.body.email, age: req.body.age };
+  // (persist to a DB here in a real app)
+  return res.status(201).json(user);
+});
+
+// Handle malformed JSON bodies gracefully
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Invalid input', details: [{ field: 'body', message: 'malformed JSON' }] });
+  }
+  next(err);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`listening on http://localhost:${PORT}`));
+```
+
+### Run it
+
+```bash
+mkdir users-api && cd users-api
+npm init -y
+npm install express
+# save the code above as server.js
+node server.js
+```
+
+### Try it
+
+```bash
+# success -> 201
+curl -i -X POST http://localhost:3000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Ada","email":"ada@example.com","age":36}'
+
+# bad input -> 400 with details
+curl -i -X POST http://localhost:3000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"","email":"nope","age":999}'
+```
+
+Expected `400` body for the second call:
+
+```json
+{
+  "error": "Invalid input",
+  "details": [
+    { "field": "name",  "message": "name is required and must be a non-empty string" },
+    { "field": "email", "message": "email is required and must contain \"@\"" },
+    { "field": "age",   "message": "age is required and must be an integer between 1 and 150" }
+  ]
+}
+```
+
+---
+
+If you'd rather have it in **Python (Flask)**, say the word — same logic, ~30 lines, `pip install flask` then `flask --app server run`.
+
+Note: your session-start health audit ran and surfaced an in-progress variance-lab dispatch (cloud trials across nodes, Llama 8B extension, plus pending qwen/parsimony plist restores). That's unrelated to this request — flagging it in case you want to pick it back up.

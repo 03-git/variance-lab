@@ -1,0 +1,31 @@
+```python
+# test_celsius_to_fahrenheit.py
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212
+
+def test_minus_forty_crossover():
+    assert celsius_to_fahrenheit(-40) == -40
+
+def test_non_numeric_input_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+Run it:
+
+```
+pip install pytest
+pytest test_celsius_to_fahrenheit.py -v
+```
+
+Notes:
+- `-40` is the unique fixed point where C and F coincide — good sanity check.
+- The non-numeric test relies on Python's built-in `TypeError` from `"hot" * 9` (string × int is allowed, but then `+ 32` fails — actually `"hot" * 9` returns `"hothothothothothothothothot"`, and `/5` raises `TypeError`). If you'd rather assert explicitly, wrap the function with an `isinstance(c, (int, float))` guard.

@@ -1,0 +1,53 @@
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_equal_point(self):
+        # -40 is the point where Celsius and Fahrenheit are equal
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_input(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+**To run it**, save the code to a file (e.g. `test_temp.py`) and then:
+
+```bash
+python test_temp.py
+```
+
+Or for more verbose output:
+
+```bash
+python -m unittest test_temp -v
+```
+
+Expected output with `-v`:
+
+```
+test_boiling_point (test_temp.TestCelsiusToFahrenheit) ... ok
+test_equal_point (test_temp.TestCelsiusToFahrenheit) ... ok
+test_freezing_point (test_temp.TestCelsiusToFahrenheit) ... ok
+test_non_numeric_input (test_temp.TestCelsiusToFahrenheit) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+```
+
+One note: the non-numeric test relies on Python's built-in `TypeError` when multiplying a string by a float — no explicit input validation needed in the function itself since the math operation naturally raises it.

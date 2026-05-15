@@ -1,0 +1,66 @@
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing(self):
+        self.assertAlmostEqual(celsius_to_fahrenheit(0), 32.0)
+
+    def test_boiling(self):
+        self.assertAlmostEqual(celsius_to_fahrenheit(100), 212.0)
+
+    def test_negative_forty(self):
+        # -40 is where Celsius and Fahrenheit converge
+        self.assertAlmostEqual(celsius_to_fahrenheit(-40), -40.0)
+
+    def test_non_numeric_raises(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+**To run it**, save as e.g. `test_temp.py` and:
+
+```bash
+python test_temp.py -v
+```
+
+Or without a file, pipe it directly:
+
+```bash
+python -c "
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):       self.assertAlmostEqual(celsius_to_fahrenheit(0), 32.0)
+    def test_boiling(self):        self.assertAlmostEqual(celsius_to_fahrenheit(100), 212.0)
+    def test_negative_forty(self): self.assertAlmostEqual(celsius_to_fahrenheit(-40), -40.0)
+    def test_non_numeric_raises(self):
+        with self.assertRaises(TypeError): celsius_to_fahrenheit('hot')
+
+unittest.main(argv=[''], verbosity=2, exit=False)
+"
+```
+
+Expected output:
+```
+test_boiling (__main__.TestCelsiusToFahrenheit) ... ok
+test_freezing (__main__.TestCelsiusToFahrenheit) ... ok
+test_negative_forty (__main__.TestCelsiusToFahrenheit) ... ok
+test_non_numeric_raises (__main__.TestCelsiusToFahrenheit) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.000s
+
+OK
+```
+
+The non-numeric test passes because Python raises `TypeError` naturally when multiplying a string by a float — no explicit guard needed in the function.

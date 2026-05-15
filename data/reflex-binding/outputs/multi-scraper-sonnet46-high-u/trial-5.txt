@@ -1,0 +1,28 @@
+Here's a Python script using `requests` and `BeautifulSoup`:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+response = requests.get("https://example.com")
+soup = BeautifulSoup(response.text, "html.parser")
+
+for tag in soup.find_all("a"):
+    href = tag.get("href", "")
+    text = tag.get_text(strip=True)
+    print(f"{text!r:30} -> {href}")
+```
+
+**How to run:**
+
+1. Install dependencies:
+   ```bash
+   pip install requests beautifulsoup4
+   ```
+
+2. Save the script (e.g., `links.py`) and run:
+   ```bash
+   python links.py
+   ```
+
+For `https://example.com` specifically, you'll see one link — the IANA "More information..." anchor pointing to `https://www.iana.org/domains/reserved`.

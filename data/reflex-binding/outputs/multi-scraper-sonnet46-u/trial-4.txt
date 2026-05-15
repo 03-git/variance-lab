@@ -1,0 +1,74 @@
+Here's the script using the standard library only (no third-party dependencies):
+
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._capture = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            attrs = dict(attrs)
+            self._current_href = attrs.get("href")
+            self._capture = True
+
+    def handle_endtag(self, tag):
+        if tag == "a":
+            self._capture = False
+            self._current_href = None
+
+    def handle_data(self, data):
+        if self._capture and self._current_href is not None:
+            self.links.append((self._current_href, data.strip()))
+
+url = "https://example.com"
+with urllib.request.urlopen(url) as response:
+    html = response.read().decode("utf-8")
+
+parser = LinkParser()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"href: {href}")
+    print(f"text: {text}")
+    print()
+```
+
+**How to run:**
+
+```bash
+python3 script.py
+```
+
+No packages to install — `urllib` and `html.parser` are both in the standard library.
+
+---
+
+If you'd prefer to use **third-party libraries** (more robust for complex HTML), here's the `requests` + `beautifulsoup4` version:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+response = requests.get("https://example.com")
+soup = BeautifulSoup(response.text, "html.parser")
+
+for tag in soup.find_all("a", href=True):
+    print(f"href: {tag['href']}")
+    print(f"text: {tag.get_text(strip=True)}")
+    print()
+```
+
+**Install and run:**
+
+```bash
+pip install requests beautifulsoup4
+python3 script.py
+```
+
+For `https://example.com` specifically, you'll get one link — `More information...` pointing to `https://www.iana.org/domains/reserved`.

@@ -1,0 +1,53 @@
+```python
+import sys
+import urllib.request
+
+def fetch(url):
+    with urllib.request.urlopen(url) as resp:
+        print(f"Status: {resp.status}")
+        print("\nHeaders:")
+        for key, val in resp.headers.items():
+            print(f"  {key}: {val}")
+        body = resp.read(500).decode("utf-8", errors="replace")
+        print(f"\nBody (first 500 chars):\n{body}")
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python fetch.py <url>")
+        sys.exit(1)
+    fetch(sys.argv[1])
+```
+
+`urllib.request.urlopen` follows redirects by default. No third-party dependencies needed.
+
+**Run it:**
+
+```bash
+python fetch.py https://httpbin.org/get
+```
+
+If you'd rather use `requests` (third-party, more ergonomic):
+
+```python
+import sys
+import requests
+
+def fetch(url):
+    resp = requests.get(url)          # follows redirects by default
+    print(f"Status: {resp.status_code}")
+    print("\nHeaders:")
+    for key, val in resp.headers.items():
+        print(f"  {key}: {val}")
+    print(f"\nBody (first 500 chars):\n{resp.text[:500]}")
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python fetch.py <url>")
+        sys.exit(1)
+    fetch(sys.argv[1])
+```
+
+```bash
+pip install requests
+python fetch.py https://httpbin.org/get
+```

@@ -1,0 +1,67 @@
+Here are a couple of simple options:
+
+## Python (no dependencies)
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            response = {"time": datetime.utcnow().isoformat() + "Z"}
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+    
+    def log_message(self, format, *args):
+        pass  # Suppress logs
+
+if __name__ == '__main__':
+    server = HTTPServer(('localhost', 8000), TimeHandler)
+    print("Server running at http://localhost:8000/time")
+    server.serve_forever()
+```
+
+Run it:
+```bash
+python3 time_server.py
+```
+
+Test it:
+```bash
+curl http://localhost:8000/time
+```
+
+## Node.js alternative
+
+```javascript
+const http = require('http');
+
+const server = http.createServer((req, res) => {
+  if (req.method === 'GET' && req.url === '/time') {
+    const response = { time: new Date().toISOString() };
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(response));
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+
+server.listen(8000, 'localhost', () => {
+  console.log('Server running at http://localhost:8000/time');
+});
+```
+
+Run it:
+```bash
+node time_server.js
+```
+
+Both return timestamps like `{"time": "2026-05-10T14:23:45.123456Z"}`. Pick whichever you have available.

@@ -1,0 +1,112 @@
+Here's a FastAPI implementation (clean validation, automatic error formatting):
+
+```python
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, field_validator, EmailStr
+from typing import Annotated
+from pydantic import Field
+
+app = FastAPI()
+
+class UserIn(BaseModel):
+    name: str
+    email: str
+    age: Annotated[int, Field(ge=1, le=150)]
+
+    @field_validator("name")
+    @classmethod
+    def name_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("name must not be blank")
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def email_contains_at(cls, v: str) -> str:
+        if "@" not in v:
+            raise ValueError("email must contain @")
+        return v
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    errors = [
+        {"field": ".".join(str(loc) for loc in e["loc"][1:]), "message": e["msg"]}
+        for e in exc.errors()
+    ]
+    return JSONResponse(status_code=400, content={"errors": errors})
+
+@app.post("/users", status_code=201)
+async def create_user(user: UserIn):
+    return user.model_dump()
+```
+
+**How to run:**
+
+```bash
+pip install fastapi uvicorn pydantic
+
+# save as main.py, then:
+uvicorn main:app --reload
+```
+
+**Example requests:**
+
+```bash
+# Success → 201
+curl -s -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}' | jq
+# {"name":"Alice","email":"alice@example.com","age":30}
+
+# Missing name, bad email, age out of range → 400
+curl -s -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "notanemail", "age": 200}' | jq
+# {
+#   "errors": [
+#     {"field": "name", "message": "Field required"},
+#     {"field": "email", "message": "Value error, email must contain @"},
+#     {"field": "age", "message": "Input should be less than or equal to 150"}
+#   ]
+# }
+```
+
+---
+
+If you prefer **plain Flask** with no Pydantic dependency:
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+def validate_user(data):
+    errors = []
+    if not isinstance(data.get("name"), str) or not data["name"].strip():
+        errors.append({"field": "name", "message": "required non-empty string"})
+    email = data.get("email")
+    if not isinstance(email, str) or "@" not in email:
+        errors.append({"field": "email", "message": "must be a string containing @"})
+    age = data.get("age")
+    if not isinstance(age, int) or isinstance(age, bool) or not (1 <= age <= 150):
+        errors.append({"field": "age", "message": "must be an integer between 1 and 150"})
+    return errors
+
+@app.post("/users")
+def create_user():
+    data = request.get_json(silent=True) or {}
+    errors = validate_user(data)
+    if errors:
+        return jsonify({"errors": errors}), 400
+    user = {"name": data["name"], "email": data["email"], "age": data["age"]}
+    return jsonify(user), 201
+```
+
+```bash
+pip install flask
+flask --app main run
+```
+
+The FastAPI version is generally preferable — Pydantic handles type coercion edge cases (e.g. `true` being a valid `int` in Python) and gives you a free `/docs` UI at `http://localhost:8000/docs`.

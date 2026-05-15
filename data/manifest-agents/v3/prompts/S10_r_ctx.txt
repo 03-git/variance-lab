@@ -1,0 +1,428 @@
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from variance-lab/data/manifest-agents/questions.tsv)
+id	type	question
+T01	traversal	What files are in the runtime/hosuni/ directory and what does each one do?
+T02	traversal	What is parsimony.c and what role does it play in the subtract.ing runtime?
+T03	traversal	List all .tsv files in the repository and describe the format of each.
+T04	traversal	What does the install.sh script do?
+T05	traversal	What is in runtime/llms.txt and how does it differ from the root llms.txt?
+T06	traversal	What shell hooks exist in runtime/hooks/ and what do they intercept?
+T07	traversal	What is kiosk.sh and what does it configure?
+T08	traversal	What files define the lookdown system and how are they organized?
+T09	traversal	What is squared.c and what does it compute?
+T10	traversal	List every file that contains a sha256 hash or references sha256 verification.
+S01	synthesis	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?
+S02	synthesis	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?
+S03	synthesis	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?
+S04	synthesis	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.
+S05	synthesis	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?
+S06	synthesis	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?
+S07	synthesis	Which files mention the concept of a "formation" and what does the term mean across them?
+S08	synthesis	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?
+S09	synthesis	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?
+S10	synthesis	What does lineage.txt credit and how do those credits connect to specific components in the codebase?
+C01	change	What changed in hosuni.c between commit d4e860d and HEAD?
+C02	change	What was the most recent change to variance-lab.txt and what confound did it resolve?
+C03	change	Which files were modified in the commit that added CJK font fallback support?
+C04	change	Has SOUL.txt been rewritten recently? What was the nature of the change?
+C05	change	What is the most recent addition to the llms.txt index?
+M01	similarity	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?
+M02	similarity	Find files related to the concept of signing and verification. Group them by function.
+M03	similarity	Which components share the pattern of reading a manifest or index file to decide what to do next?
+M04	similarity	What files discuss the boundary between human authority and agent execution? How do they differ in framing?
+M05	similarity	Find all components that use llama.cpp or local inference. How are they related?
+
+
+### Chunk 2 (from LICENSE.txt)
+tells the user that there is no warranty for the work (except to the
+extent that warranties are provided), that licensees may convey the
+work under this License, and how to view a copy of this License.  If
+the interface presents a list of user commands or options, such as a
+menu, a prominent item in the list meets this criterion.
+
+  1. Source Code.
+
+  The "source code" for a work means the preferred form of the work
+for making modifications to it.  "Object code" means any non-source
+form of a work.
+
+  A "Standard Interface" means an interface that either is an official
+standard defined by a recognized standards body, or, in the case of
+interfaces specified for a particular programming language, one that
+is widely used among developers working in that language.
+
+  The "System Libraries" of an executable work include anything, other
+than the work as a whole, that (a) is included in the normal form of
+packaging a Major Component, but which is not part of that Major
+Component, and (b) serves only to enable use of the work with that
+Major Component, or to implement a Standard Interface for which an
+implementation is available to the public in source code form.  A
+"Major Component", in this context, means a major essential component
+(kernel, window system, and so on) of the specific operating system
+(if any) on which the executable work runs, or a compiler used to
+produce the work, or an object code interpreter used to run it.
+
+  The "Corresponding Source" for a work in object code form means all
+the source code needed to generate, install, and (for an executable
+work) run the object code and to modify the work, including scripts to
+control those activities.  However, it does not include the work's
+System Libraries, or general-purpose tools or generally available free
+programs which are used unmodified in performing those activities but
+which are not part of the work.  For example, Corresponding Source
+includes interface definition files associated with source files for
+the work, and the source code for shared libraries and dynamically
+linked subprograms that the work is specifically designed to require,
+such as by intimate data communication or control flow between those
+subprograms and other parts of the work.
+
+
+### Chunk 3 (from subtracting.html)
+<a href="/governance.conf.universal.txt">governance.conf.universal.txt</a>           <span class="dim">reflexes, authority, loop</span>
+<a href="/software-as-a-besides.txt">software-as-a-besides.txt</a>              <span class="dim">why?</span>
+<a href="/lineage.txt">lineage.txt</a>                            <span class="dim">credits and bibliography</span>
+<a href="/signoff.txt">signoff.txt</a>                            <span class="dim">session close</span>
+<a href="/variance-lab.txt">variance-lab.txt</a>                       <span class="dim">empirical findings</span>
+<a href="/variance-lab-handler-methodology.txt">variance-lab-handler-methodology.txt</a>   <span class="dim">three-gate methodology</span>
+<a href="/emile.txt">emile.txt</a>                              <span class="dim">deployment pattern</span>
+<a href="/SOUL.txt">SOUL.txt</a>                               <span class="dim">dispositional layer</span>
+</pre>
+
+    <hr>
+
+    <p>Repo: <a href="https://github.com/03-git/subtract.ing">github.com/03-git/subtract.ing</a></p>
+    <p>License: <a href="/LICENSE.txt">GPLv3</a></p>
+    <p class="dim">Authors: Josh (<a href="https://x.com/hodorigami">@hodorigami</a>) & LLMs (@qwen @claude @gemini @grok)</p>
+</body>
+</html>
+
+
+### Chunk 4 (from emile.txt)
+records, provision their own hardware, follow this document, and
+have an instance running in an afternoon. The relationship becomes
+two sovereign substrates exchanging signed artifacts.
+
+## Lineage
+
+Porat (1977) imagined information as personal infrastructure.
+Fox (1989) built the shell. Ramey (1993-present) maintained the
+hook. Rousseau (1762) argued the environment teaches, not the
+instructor. This deployment pattern inherits all four.
+
+  Full lineage: https://subtract.ing/lineage.txt
+
+## Verify
+
+  https://subtract.ing/llms.txt          manifest and signature chain
+  https://subtract.ing/variance-lab.txt  bench methodology and findings
+
+
+### Chunk 5 (from software-as-a-besides.txt)
+  +-- browser (already on every computer)
+  |
+  |   -- everything below this line moves control and visibility beyond your computer --
+  |
+  +-- npm/pip/cargo
+  +-- language runtime
+  +-- framework
+  +-- ORM, database server
+  +-- API gateway, auth service
+  +-- container runtime, orchestrator
+  +-- cloud provider, CI/CD, CDN
+  +-- monitoring SaaS, billing SaaS
+```
+
+Full frame: https://subtract.ing/subtract.7.txt
+
+Full lineage: https://subtract.ing/lineage.txt
+
+
+### Chunk 6 (from lookdown.example.tsv)
+# lookdown.<hostname>.tsv — host-specific overrides
+# copy to ~/.subtract/lookdown.<hostname>.tsv
+# these entries are checked BEFORE lookdown.universal.tsv
+# first match wins. use this for:
+#   - machine-specific commands (services, hardware, paths)
+#   - personal shortcuts
+#   - child-specific or user-specific content
+#
+# format: glob_pattern<TAB>command
+#   or:   glob_pattern<TAB>[tag]<TAB>command
+
+# --- host-specific services ---
+start*jellyfin	sudo systemctl start jellyfin
+stop*jellyfin	sudo systemctl stop jellyfin
+restart*jellyfin	sudo systemctl restart jellyfin
+*jellyfin*status*	systemctl is-active jellyfin && echo "running" || echo "stopped"
+
+# --- hardware this machine has ---
+*gpu*status*	nvidia-smi 2>/dev/null || echo "no nvidia gpu found"
+*temperature*	sensors 2>/dev/null || echo "install lm-sensors: sudo apt install lm-sensors"
+
+# --- personal shortcuts ---
+*my*projects*	ls ~/repos/
+*work*notes*	cat ~/human/via-negativa/notes.txt 2>/dev/null || echo "no notes yet"
+
+# --- note on children's entries ---
+# children's entries go in lookdown.universal.tsv, not here.
+# every node should answer a child's question. the village helps.
+
+
+### Chunk 7 (from subtracting.html)
+
+    <hr>
+
+    <h2>Evidence</h2>
+
+    <p>Empirical findings from variance-lab, run on the subtract substrate:</p>
+
+    <p><a href="/variance-lab.txt">variance-lab.txt</a> <span class="dim">— six findings (claim layer)</span></p>
+    <p><a href="/variance-lab-handler-methodology.txt">variance-lab-handler-methodology.txt</a> <span class="dim">— three-gate methodology report</span></p>
+    <p><a href="/emile.txt">emile.txt</a> <span class="dim">— local-first deployment pattern for sole proprietors</span></p>
+
+    <hr>
+
+    <h2>Reflexes</h2>
+
+    <p>Four gates. An agent that cannot answer the question
+    does not proceed.</p>
+
+<pre>
+1. Before proposing any library or tool, name the kernel primitive it wraps
+2. Before proposing any new format, ask if ssh-keygen -Y sign works
+3. Before acting on memory, check if signed; if not, live read
+4. Before treating a source as authoritative, confirm it's under the signing domain
+</pre>
+
+    <p>Full specification: <a href="/governance.conf.universal.txt">governance.conf.universal.txt</a></p>
+
+    <hr>
+
+    <h2>Documents</h2>
+
+<pre>
+<a href="/README.txt">README.txt</a>                             <span class="dim">entry gradient</span>
+<a href="/subtract.7.txt">subtract.7.txt</a>                         <span class="dim">man(7) frame</span>
+<a href="https://raw.githubusercontent.com/03-git/subtract.ing/refs/heads/main/lookdown.universal.tsv">lookdown.universal.tsv</a>                 <span class="dim">routing table</span>
+<a href="/governance.conf.universal.txt">governance.conf.universal.txt</a>           <span class="dim">reflexes, authority, loop</span>
+<a href="/software-as-a-besides.txt">software-as-a-besides.txt</a>              <span class="dim">why?</span>
+<a href="/lineage.txt">lineage.txt</a>                            <span class="dim">credits and bibliography</span>
+<a href="/signoff.txt">signoff.txt</a>                            <span class="dim">session close</span>
+<a href="/variance-lab.txt">variance-lab.txt</a>                       <span class="dim">empirical findings</span>
+
+
+### Chunk 8 (from variance-lab/data/manifest-agents/rubric.txt)
+method differs.
+
+## Metrics
+
+A: Answer quality
+   Blind-scored 1-5 by evaluator who does not see arm label.
+   Multi-lineage review: minimum 3 models from 2+ training lineages.
+   Score dimensions:
+     A1: Factual correctness (verifiable against corpus)
+     A2: Completeness (relevant files/sections cited)
+     A3: Coherence (answer addresses the question asked)
+
+B: Cost per query
+   Measured mechanically. Logged per query.
+     B1: Wall-clock time (seconds, end-to-end including retrieval/traversal)
+     B2: Tokens consumed (prompt + completion)
+     B3: Infrastructure cost (compute time for embedding/traversal, amortized)
+
+C: Update cost
+   After initial run: modify 5 files in corpus (content changes, not just mtime).
+   Measure:
+     C1: Time to re-index (Arm R: re-chunk + re-embed) vs re-traverse (Arm M: mtime-filtered walk)
+     C2: Token/compute cost of update
+     C3: Correctness of answers to change-detection questions after update
+
+D: Audit completeness
+   Per query, binary:
+     D1: Can an independent verifier trace the answer back to specific source files?
+     D2: Is the trace cryptographically verifiable (signature chain)?
+   Arm M has signed manifests. Arm R has chunk IDs if retained.
+
+## Scoring
+
+1. A scores evaluated blind (arm label stripped, answers interleaved)
+2. B and C measured mechanically from logs (not scored by evaluator)
+3. D evaluated by independent verifier attempting the trace without
+   knowledge of which arm produced which answer
+4. Multi-lineage review on A: minimum 3 models, 2+ lineages
+   (e.g., Claude + Gemma + Qwen, or Claude + Gemini + Llama)
+
+
+
+### Chunk 9 (from variance-lab.txt)
+Total wall time is dominated by inference.
+
+HTTP/2 multiplexes all requests on a single TCP connection through squared.
+squared opens one backend connection per stream to llama-server. The
+requests arrive at llama-server the same way — as separate HTTP/1.1
+connections from squared's forked children. Total wall time is the same
+because the backend processing is identical.
+
+The browser is the exception. Browsers enforce a 6-connection-per-origin
+limit (Chromium, Firefox). At c>6, h1.1 requests queue behind that limit.
+h2 multiplexes all requests on one connection, bypassing the limit. This
+is the specific context where squared provides value.
+
+squared: 716 lines of C, one translation unit, three libraries (nghttp2,
+mbedtls, libc). h2c mode for curl/agents, TLS+ALPN mode for browsers.
+
+## Confounds
+
+**h2 uses same prompt for all concurrent requests.** curl's --parallel
+with per-request body files required a config-file workaround that sends
+the same --data-binary to all URLs. h1.1 sends different prompts per
+request. The h2 path may benefit from llama-server prompt caching. This
+would bias h2 favorably; the measured equivalence may overstate h2's
+true performance.
+
+**Backend parallel slots = 4.** llama-server -np 4. At c=6, requests
+queue on the backend regardless of protocol. Both protocols are equally
+affected.
+
+**High h2 variance.** h2 standard deviation at c=6 is 1,366ms vs h1.1's
+396ms. Pass 5 shows h2 at 5,128ms (2× h1.1). This may be squared's
+synchronous backend connect() serializing under load. Five passes is
+insufficient to characterize this tail behavior.
+
+**N=1 browser measurement.** The browser finding (2.5× at c=3) is a
+single pass with a mock backend. It is directional evidence, not a
+tight measurement.
+
+**Single operator, single backend, single model.** No cross-hardware
+replication. The equivalence finding is likely general (inference
+
+
+### Chunk 10 (from LICENSE.txt)
+in the business of distributing software, under which you make payment
+to the third party based on the extent of your activity of conveying
+the work, and under which the third party grants, to any of the
+parties who would receive the covered work from you, a discriminatory
+patent license (a) in connection with copies of the covered work
+conveyed by you (or copies made from those copies), or (b) primarily
+for and in connection with specific products or compilations that
+contain the covered work, unless you entered into that arrangement,
+or that patent license was granted, prior to 28 March 2007.
+
+  Nothing in this License shall be construed as excluding or limiting
+any implied license or other defenses to infringement that may
+otherwise be available to you under applicable patent law.
+
+  12. No Surrender of Others' Freedom.
+
+  If conditions are imposed on you (whether by court order, agreement or
+otherwise) that contradict the conditions of this License, they do not
+excuse you from the conditions of this License.  If you cannot convey a
+covered work so as to satisfy simultaneously your obligations under this
+License and any other pertinent obligations, then as a consequence you may
+not convey it at all.  For example, if you agree to terms that obligate you
+to collect a royalty for further conveying from those to whom you convey
+the Program, the only way you could satisfy both those terms and this
+License would be to refrain entirely from conveying the Program.
+
+  13. Use with the GNU Affero General Public License.
+
+  Notwithstanding any other provision of this License, you have
+permission to link or combine any covered work with a work licensed
+under version 3 of the GNU Affero General Public License into a single
+combined work, and to convey the resulting work.  The terms of this
+License will continue to apply to the part which is the covered work,
+but the special requirements of the GNU Affero General Public License,
+section 13, concerning interaction through a network will apply to the
+combination as such.
+
+  14. Revised Versions of this License.
+
+  The Free Software Foundation may publish revised and/or new versions of
+
+
+### Chunk 11 (from subtracting.html)
+
+    <p>Three layers subtract in sequence:</p>
+
+<pre>
+1. subtract subtracts from the environment (no frameworks, no SaaS)
+2. the human subtracts from the agent's context (pre-flight, pushback)
+3. the agent subtracts from its own defaults (no verbosity, no confabulation)
+</pre>
+
+
+    <hr>
+
+    <h2>Populations</h2>
+
+    <p>subtract serves two populations:</p>
+
+    <p><strong>Humans</strong> who want to stop depending on AI intermediaries
+    to reach their own machines.</p>
+
+    <p><strong>Agents</strong> that reach for libraries and SaaS before
+    checking what the filesystem and built-in commands already do.</p>
+
+    <hr>
+
+    <h2>Lineage</h2>
+
+    <p><strong>Brian Fox</strong> wrote bash in 1989 — the shell, readline,
+    the history library. <code>command_not_found_handle</code> is a bash
+    construct. subtract runs on what Fox wrote.</p>
+
+    <p><strong>Chet Ramey</strong> has maintained bash since 1993. Authored
+    <code>help</code> as a builtin. Kept <code>command_not_found_handle</code>
+    a stable public hook for fifteen+ years.</p>
+
+    <p>Full lineage with works cited: <a href="/lineage.txt">lineage.txt</a></p>
+
+    <hr>
+
+    <h2>Evidence</h2>
+
+
+
+### Chunk 12 (from variance-lab.txt)
+### End-to-end: curl, real inference, validated responses (15 rows)
+
+Both protocols measured from request start to complete response body
+received. All responses validated to contain model output (not errors).
+80 max_tokens, loopback.
+
+  concurrent  n   h1.1 mean±sd       h2 mean±sd       ratio
+  c=1         5     634±161ms          731±568ms        0.87× (h2 slightly worse)
+  c=3         5   1,553±332ms        1,415±781ms        1.10× (within noise)
+  c=6         5   2,774±396ms        2,886±1366ms       0.96× (within noise)
+
+No significant difference. Both protocols deliver identical end-to-end
+latency because inference time (300-700ms per request) dominates and is
+protocol-independent. h2 variance is higher, likely because squared
+serializes backend connect() calls while parallel curl processes connect
+independently.
+
+### Browser: Brave, mock 200ms backend (single pass, not in JSONL)
+
+Tests the browser's 6-connection-per-origin limit — the constraint that
+motivated squared.
+
+  concurrent   h1.1    h2     ratio
+  c=1           774ms   890ms   0.9×
+  c=3           533ms   215ms   2.5×
+  c=6           535ms   340ms   1.6×
+  c=12        1,068ms 1,569ms   0.7×
+
+At c=3, h2 is 2.5× faster from the browser. The browser's connection
+limit serializes h1.1 requests in a way that curl (unlimited parallel
+connections) does not. This is the one context where h2 provides a
+measurable end-to-end advantage. N=1; the ratio is directional, not
+precise.
+
+### Control: mock backend, curl, loopback (40 rows)
+
+Fixed 200ms backend latency, curl (no browser connection limit). Isolates
+protocol overhead.
+
+  concurrent  n   h1.1 mean   h2 mean   ratio
+
+

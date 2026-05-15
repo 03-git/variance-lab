@@ -1,0 +1,43 @@
+Kernel primitive: Python's stdlib `unittest` — no third-party library needed. The non-numeric case should raise `TypeError` (from `str * int` / `str + int`), so it's an `assertRaises`, not a value check.
+
+```python
+# test_temp.py
+import unittest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("warm")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run it:
+
+```
+python -m unittest test_temp.py -v
+```
+
+or, since it has the `__main__` guard:
+
+```
+python test_temp.py -v
+```
+
+Expected: 4 tests, all pass. Drop the inline `def celsius_to_fahrenheit` and `import` it from your module once this lives alongside real code.

@@ -1,0 +1,68 @@
+```python
+#!/usr/bin/env python3
+"""A small CLI that parses --host, --port, and --verbose, then prints the config as JSON."""
+
+import argparse
+import json
+import sys
+
+
+def port_type(value):
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value!r}")
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError(f"port must be between 1 and 65535, got {port}")
+    return port
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description="Print a host/port configuration as JSON.")
+    parser.add_argument("--host", default="localhost", help="hostname (default: localhost)")
+    parser.add_argument("--port", type=port_type, default=8080, help="port number, 1-65535 (default: 8080)")
+    parser.add_argument("--verbose", action="store_true", help="enable verbose mode")
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    json.dump(config, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it (assuming you save it as `config_cli.py`):
+
+```
+$ python3 config_cli.py --host example.com --port 443 --verbose
+{
+  "host": "example.com",
+  "port": 443,
+  "verbose": true
+}
+
+$ python3 config_cli.py
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": false
+}
+
+$ python3 config_cli.py --port 99999
+usage: config_cli.py [-h] [--host HOST] [--port PORT] [--verbose]
+config_cli.py: error: argument --port: port must be between 1 and 65535, got 99999
+
+$ python3 config_cli.py --port abc
+usage: config_cli.py [-h] [--host HOST] [--port PORT] [--verbose]
+config_cli.py: error: argument --port: port must be an integer, got 'abc'
+```
+
+Notes:
+- `argparse` calls `port_type` for validation and automatically emits a usage error (exit code 2) on failure, so invalid input never reaches `main`.
+- `--verbose` is a boolean flag (`action="store_true"`) — present means `true`, absent means `false`.
+- Defaults are `localhost` / `8080` / `false`; drop the `default=` arguments and add `required=True` if you'd rather force the caller to supply them.

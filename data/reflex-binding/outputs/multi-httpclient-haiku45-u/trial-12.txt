@@ -1,0 +1,73 @@
+Here's a Python script that does what you need:
+
+```python
+import sys
+import requests
+
+if len(sys.argv) != 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    response = requests.get(url, allow_redirects=True)
+    
+    print(f"Status Code: {response.status_code}")
+    print(f"\nHeaders:")
+    for header, value in response.headers.items():
+        print(f"  {header}: {value}")
+    
+    print(f"\nBody (first 500 characters):")
+    print(response.text[:500])
+    
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+```
+
+**How to run it:**
+
+```bash
+# First, install requests if you don't have it
+pip install requests
+
+# Then run the script with a URL
+python script.py https://example.com
+```
+
+**If you prefer using only the standard library** (no external dependencies):
+
+```python
+import sys
+import urllib.request
+import urllib.error
+
+if len(sys.argv) != 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    with urllib.request.urlopen(url) as response:
+        print(f"Status Code: {response.status}")
+        print(f"\nHeaders:")
+        for header, value in response.headers.items():
+            print(f"  {header}: {value}")
+        
+        body = response.read().decode('utf-8', errors='ignore')
+        print(f"\nBody (first 500 characters):")
+        print(body[:500])
+        
+except urllib.error.URLError as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+```
+
+Run it the same way:
+```bash
+python script.py https://example.com
+```
+
+The first version (using `requests`) is simpler and handles edge cases better. The second version uses only Python's standard library if you want no dependencies.

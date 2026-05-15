@@ -1,0 +1,48 @@
+I'll write a Python script that does exactly that:
+
+```python
+import sys
+import requests
+
+def fetch_url(url):
+    try:
+        response = requests.get(url, allow_redirects=True, timeout=10)
+        
+        print(f"Status Code: {response.status_code}")
+        print("\nResponse Headers:")
+        for header, value in response.headers.items():
+            print(f"  {header}: {value}")
+        
+        print(f"\nFirst 500 characters of body:")
+        body_preview = response.text[:500]
+        print(body_preview)
+        
+        if len(response.text) > 500:
+            print(f"\n... (body is {len(response.text)} characters total)")
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching URL: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python script.py <URL>", file=sys.stderr)
+        sys.exit(1)
+    
+    url = sys.argv[1]
+    fetch_url(url)
+```
+
+**To run it:**
+
+```bash
+python script.py https://example.com
+```
+
+The script uses the `requests` library which handles redirects automatically with `allow_redirects=True`. It will:
+- Follow all redirects and report the final status code
+- Print all response headers
+- Show the first 500 characters of the response body
+- Handle errors gracefully with a timeout of 10 seconds
+
+Make sure you have `requests` installed (`pip install requests`).

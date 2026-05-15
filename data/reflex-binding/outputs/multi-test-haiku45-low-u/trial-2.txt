@@ -1,0 +1,61 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using pytest.
+
+Here's the complete code:
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    """Test suite for celsius_to_fahrenheit function."""
+    
+    def test_freezing_point(self):
+        """Test conversion of 0°C (freezing point of water)."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """Test conversion of 100°C (boiling point of water)."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_same_temperature(self):
+        """Test conversion of -40°C (same in both scales)."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Test that non-numeric input raises TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("32")
+```
+
+**How to run it:**
+
+1. **Install pytest** (if you don't have it):
+   ```bash
+   pip install pytest
+   ```
+
+2. **Run the tests**:
+   ```bash
+   pytest test_celsius.py -v
+   ```
+
+   The `-v` flag gives verbose output showing each test result.
+
+**Expected output:**
+```
+test_celsius.py::TestCelsiusToFahrenheit::test_freezing_point PASSED
+test_celsius.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+test_celsius.py::TestCelsiusToFahrenheit::test_same_temperature PASSED
+test_celsius.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+
+======================== 4 passed in 0.01s ========================
+```
+
+The test suite covers:
+- **Freezing point**: 0°C → 32°F
+- **Boiling point**: 100°C → 212°F
+- **Same temperature**: -40°C → -40°F (the point where both scales intersect)
+- **Error handling**: Non-numeric input (string) raises `TypeError`

@@ -1,0 +1,95 @@
+I'll show you code for an HTTP endpoint that returns the current time as JSON in a few different languages:
+
+## Python (Flask)
+
+```python
+from flask import Flask
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    return {
+        'time': datetime.utcnow().isoformat() + 'Z'
+    }
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**Run it:**
+```bash
+pip install flask
+python app.py
+```
+
+Visit `http://localhost:5000/time` and you'll get:
+```json
+{"time": "2026-05-10T14:32:45.123456Z"}
+```
+
+---
+
+## Node.js (Express)
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.get('/time', (req, res) => {
+  res.json({
+    time: new Date().toISOString()
+  });
+});
+
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
+});
+```
+
+**Run it:**
+```bash
+npm init -y
+npm install express
+node app.js
+```
+
+Visit `http://localhost:3000/time`.
+
+---
+
+## Go
+
+```go
+package main
+
+import (
+	"encoding/json"
+	"net/http"
+	"time"
+)
+
+func timeHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"time": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+func main() {
+	http.HandleFunc("/time", timeHandler)
+	http.ListenAndServe(":8080", nil)
+}
+```
+
+**Run it:**
+```bash
+go run main.go
+```
+
+Visit `http://localhost:8080/time`.
+
+---
+
+All three return the current UTC time in ISO 8601 format. Pick whichever language matches your setup.

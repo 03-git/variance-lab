@@ -1,0 +1,363 @@
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./install.sh (lines 81-117 of 117)
+fi
+
+fetch "runtime/bin/shell-web" "$SUBTRACT_DIR/bin/shell-web"
+fetch "runtime/bin/subtract-shell" "$SUBTRACT_DIR/bin/subtract-shell"
+chmod +x "$SUBTRACT_DIR/bin/shell-web" "$SUBTRACT_DIR/bin/subtract-shell"
+
+
+# browse command + launchers
+fetch "runtime/browse" "$SUBTRACT_DIR/browse"
+chmod +x "$SUBTRACT_DIR/browse"
+
+
+# Shell integration
+BASH_LINE='[ -f ~/.subtract/hooks/bash.sh ] && source ~/.subtract/hooks/bash.sh'
+ZSH_LINE='[ -f ~/.subtract/hooks/zsh.sh ] && source ~/.subtract/hooks/zsh.sh'
+PATH_LINE='export PATH="$HOME/.subtract:$PATH"'
+
+if [ -f ~/.bashrc ] && ! grep -qF 'subtract/hooks' ~/.bashrc; then
+    echo -e "\n# subtract\n$PATH_LINE\n$BASH_LINE" >> ~/.bashrc
+fi
+
+command -v zsh >/dev/null 2>&1 && [ ! -f ~/.zshrc ] && touch ~/.zshrc
+if [ -f ~/.zshrc ] && ! grep -qF 'subtract/hooks' ~/.zshrc; then
+    echo -e "\n# subtract\n$PATH_LINE\n$ZSH_LINE" >> ~/.zshrc
+fi
+
+echo ""
+echo "subtract installed."
+echo ""
+echo "Open a new terminal, then try:"
+echo "  show my files"
+echo "  what compresses files?"
+echo ""
+echo "Browser shell: shell-web start"
+echo "  then open http://localhost:7681"
+echo ""
+echo "More: https://subtract.ing"
+
+## ./install.sh (lines 1-40 of 117)
+#!/bin/bash
+# subtract installer - T0 core only
+# no sudo, no package managers, no system modifications
+set -e
+
+SUBTRACT_DIR="$HOME/.subtract"
+BASE_URL="https://raw.githubusercontent.com/03-git/subtract.ing/main"
+
+# Detect: are we in the repo or piped from web?
+SCRIPT_DIR="$(cd "$(dirname "$0" 2>/dev/null)" && pwd 2>/dev/null)" || SCRIPT_DIR=""
+
+if [ -d "$SCRIPT_DIR/runtime" ]; then
+    MODE="local"
+else
+    MODE="web"
+fi
+
+mkdir -p "$SUBTRACT_DIR" "$SUBTRACT_DIR/hooks" "$SUBTRACT_DIR/bin" "$SUBTRACT_DIR/log/clinical"
+
+fetch() {
+    if [ "$MODE" = "local" ]; then
+        cp "$SCRIPT_DIR/$1" "$2"
+    else
+        curl -sL "$BASE_URL/$1" > "$2"
+    fi
+}
+
+# verify manifest signature before installing anything
+if [ "$MODE" = "web" ]; then
+    fetch "llms.txt" "$SUBTRACT_DIR/llms.txt"
+    fetch "llms.txt.sig" "$SUBTRACT_DIR/llms.txt.sig"
+    fetch "authorized_signers" "$SUBTRACT_DIR/authorized_signers"
+    if ! ssh-keygen -Y verify -f "$SUBTRACT_DIR/authorized_signers" \
+        -I hodori@subtract.ing -n subtract.ing \
+        -s "$SUBTRACT_DIR/llms.txt.sig" < "$SUBTRACT_DIR/llms.txt" >/dev/null 2>&1; then
+        echo "ABORT: manifest signature verification failed."
+        echo "The files at $BASE_URL may be compromised or the signing key rotated."
+        echo "Verify manually: https://subtract.ing/authorized_signers"
+        rm -f "$SUBTRACT_DIR/llms.txt" "$SUBTRACT_DIR/llms.txt.sig" "$SUBTRACT_DIR/authorized_signers"
+        exit 1
+
+## ./runtime/subtract.sh (lines 1161-1200 of 1405)
+    local session context result
+    session=$(__subtract_session_file)
+
+    [ -f "${session}.log" ] && context=$(tail -n 30 "${session}.log")
+    # Fallback to Claude session context if no handler context
+    [ -z "$context" ] && context=$(__subtract_claude_context)
+    local prompt
+    if [ -n "$context" ]; then
+        prompt="Previous conversation:
+${context}
+
+Question: ${input}
+
+Answer concisely, using context if relevant."
+    else
+        prompt="Answer concisely: ${input}"
+    fi
+
+    # YouTube pre-fetch
+    local url transcript_file transcript_text
+    if [[ "$input" =~ (https?://[^ ]*(youtube\.com|youtu\.be)[^ ]*) ]]; then
+        url="${BASH_REMATCH[1]}"
+        transcript_file=$("$HOME/scripts/yt-transcript.sh" "$url" 2>/dev/null)
+        if [ -f "$transcript_file" ]; then
+            transcript_text=$(cat "$transcript_file")
+            input="${input//$url/}"
+            prompt="${prompt}
+
+---
+TRANSCRIPT:
+${transcript_text}"
+        fi
+    fi
+
+    local escaped_prompt payload inference_host inference_port
+    escaped_prompt=$(printf '%s' "$prompt" | jq -Rs .)
+    payload="{\"messages\":[{\"role\":\"user\",\"content\":${escaped_prompt}}],\"max_tokens\":262144}"
+    inference_host=$(cat "$SUBTRACT_DIR/inference_host" 2>/dev/null)
+    inference_port=$(cat "$SUBTRACT_DIR/inference_port" 2>/dev/null)
+    [ -z "$inference_port" ] && inference_port="8083"
+
+## ./runtime/subtract.sh (lines 1-40 of 1405)
+# subtract -- translation layer
+# type what you mean. the computer figures out the command.
+#
+# T0: lookup table. instant, local, no dependencies.
+# T0.5: man page routing (direct command match) + apropos fallback (discovery queries).
+# T1: embedding similarity (optional).
+# T2: local generative model (optional). requires ollama + a pulled model.
+# T4: cloud escalation (optional). requires claude CLI.
+# kiwix: questions (input ending in ?) route to local kiwix corpus.
+#
+# everything lives in ~/.subtract/. read it, edit it, delete it.
+
+SUBTRACT_DIR="${SUBTRACT_DIR:-$HOME/.subtract}"
+
+# bash hangs on unclosed quotes (what's, don't, can't) with a bare "> " prompt.
+# user doesn't know what happened. replace PS2 with an explanation.
+PS2="(unclosed quote -- press ctrl-c and rephrase without apostrophes) "
+SUBTRACT_LOOKUP_HOST="$SUBTRACT_DIR/lookdown.$(hostname -s).tsv"
+SUBTRACT_LOOKUP_UNIVERSAL="$SUBTRACT_DIR/lookdown.universal.tsv"
+SUBTRACT_SKILLS="$SUBTRACT_DIR/skills"
+SUBTRACT_KIWIX="${SUBTRACT_KIWIX:-http://localhost:8888}"
+SUBTRACT_LAST_OUTPUT=""
+SUBTRACT_MAX_CONTEXT=20
+
+# skills prefix patterns: procedural queries ("how do I X", "teach me X")
+# matched after T0, before kiwix. triggers grep against skills index.
+SUBTRACT_SKILLS_PREFIXES="how do i |how to |teach me |steps to |guide to |tutorial |tutorial for "
+
+# destructive verbs that always gate behind explicit confirmation
+# array, not string: zsh doesn't word-split unquoted $var
+SUBTRACT_DESTRUCTIVE=(rm rmdir dd mkfs chmod chown shred truncate)
+
+# upgrade injection state file
+SUBTRACT_STATE="$SUBTRACT_DIR/.state"
+
+# --- state helpers (upgrade injection) ---
+
+__subtract_state_read() {
+    # read key from state file, default to $2 if missing
+    local key="$1" default="${2:-}"
+
+## ./runtime/hosuni.sh (lines 241-280 of 516)
+        if lookdown_result=$(check_lookdown "$input"); then
+            log_daemon "[${channel}] lookdown hit: $lookdown_result"
+            local output
+            output=$(eval "$lookdown_result" 2>&1) || true
+            [ -z "$output" ] && output="ok"
+            log_session "$channel" "A" "$output"
+            if [ "$stream" = "true" ]; then
+                local sse_esc
+                sse_esc=$(printf '%s' "$output" | jq -Rsc '.')
+                printf 'data: {"choices":[{"delta":{"content":%s},"finish_reason":null}]}\n' "$sse_esc"
+                printf 'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n'
+                printf 'data: [DONE]\n'
+            else
+                jq -n --arg r "$output" --arg s "lookdown" \
+                    '{response: $r, source: $s}'
+            fi
+            return
+        fi
+    fi
+
+    # --- pre-inference context enrichment (no model decision) ---
+
+    # YouTube URLs: fetch transcript before inference
+    local yt_ids=""
+    yt_ids=$(printf '%s' "$input" | grep -oE '(youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)([A-Za-z0-9_-]{11})' | grep -oE '[A-Za-z0-9_-]{11}$' || true)
+    if [ -n "$yt_ids" ]; then
+        local yt_context=""
+        for vid in $yt_ids; do
+            local url="https://www.youtube.com/watch?v=${vid}"
+            log_daemon "[${channel}] fetching transcript for $vid"
+            local transcript
+            transcript=$(bash "$HOSUNI_DIR/yt-transcript.sh" "$url" 2>/dev/null | head -c 16384) || true
+            if [ -n "$transcript" ]; then
+                local title
+                title=$(yt-dlp --quiet --print title "$url" 2>/dev/null | head -1) || true
+                yt_context="${yt_context}
+
+--- YouTube: ${title:-$vid} ---
+${transcript}"
+                log_daemon "[${channel}] transcript fetched for $vid (${#transcript} chars)"
+
+## ./runtime/hosuni.sh (lines 1-40 of 516)
+#!/usr/bin/env bash
+# hosuni — tool-use daemon for local inference
+# listens on a port via nc. receives JSON, checks lookdown,
+# routes inference through parsimony (coproc via named pipes),
+# parses tool calls, executes, loops, logs. pure bash + jq.
+# falls back to curl if parsimony pipes not present.
+#
+# run:   hosuni.sh [port]
+# call:  echo '{"input":"list files","channel":"terminal"}' | nc localhost 8091
+
+set -euo pipefail
+
+export PATH="$HOME/.subtract/bin:$HOME/.subtract:$PATH"
+
+SUBTRACT_DIR="${SUBTRACT_DIR:-$HOME/.subtract}"
+HOSUNI_DIR="${HOSUNI_DIR:-$HOME/.hosuni}"
+INFERENCE_HOST=$(cat "$SUBTRACT_DIR/inference_host" 2>/dev/null || echo "localhost")
+INFERENCE_PORT=$(cat "$SUBTRACT_DIR/inference_port" 2>/dev/null || echo "8085")
+RESEARCH_PORT=$(cat "$SUBTRACT_DIR/research_port" 2>/dev/null || echo "")
+RESEARCH_HOST=$(cat "$SUBTRACT_DIR/research_host" 2>/dev/null || echo "")
+PARSIMONY_IN="$SUBTRACT_DIR/.parsimony.in"
+PARSIMONY_OUT="$SUBTRACT_DIR/.parsimony.out"
+PARSIMONY_LOCK="$SUBTRACT_DIR/.parsimony.lock"
+LOOKDOWN_NODE="$SUBTRACT_DIR/lookdown.$(hostname).tsv"
+LOOKDOWN_UNIVERSAL="$SUBTRACT_DIR/lookdown.universal.tsv"
+TOOLS_FILE="$HOSUNI_DIR/tools.tsv"
+LOG_DIR="$SUBTRACT_DIR/log"
+DAEMON_LOG="$HOME/human/sessions/hosuni.log"
+MAX_TURNS=20
+TOOL_TIMEOUT=300
+
+SOUL_FILE="$HOME/subtract.ing/SOUL.txt"
+SYSTEM_MSG=$(cat "$SOUL_FILE" 2>/dev/null || echo "")
+
+mkdir -p "$LOG_DIR" "$HOSUNI_DIR"
+
+ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+log_daemon() { printf "[%s] %s\n" "$(ts)" "$1" >> "$DAEMON_LOG"; }
+
+
+## ./runtime/hosuni-discord.sh (lines 1-40 of 126)
+#!/bin/bash
+# hosuni-discord — poll Discord channels, pipe to hosuni.sh
+set -uo pipefail
+
+PIDFILE="$HOME/.hosuni/discord-poller.pid"
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    echo "already running (pid $(cat "$PIDFILE"))" >&2
+    exit 0
+fi
+echo $$ > "$PIDFILE"
+trap 'rm -f "$PIDFILE"' EXIT
+
+TOKEN=$(cat "$HOME/.keymaster/jean-discord-token.txt")
+WHITELIST="$HOME/.hosuni-discord-whitelist"
+HOSUNI="$HOME/.subtract/hosuni.sh"
+LOG="$HOME/human/sessions/hosuni-discord.log"
+STATE="$HOME/.hosuni/discord-state"
+API="https://discord.com/api/v10"
+POLL_INTERVAL=5
+CHANNELS="1489355263361286204 1483978150852559030"
+
+mkdir -p "$STATE"
+
+log() { printf "[%s] %s\n" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" >> "$LOG"; }
+
+is_whitelisted() { grep -qx "$1" "$WHITELIST" 2>/dev/null; }
+
+get_last_id() { cat "$STATE/$1" 2>/dev/null || echo "0"; }
+set_last_id() { printf '%s' "$2" > "$STATE/$1"; }
+
+send_reply() {
+    local channel="$1" content="$2"
+    while [ -n "$content" ]; do
+        local chunk
+        chunk=$(printf '%s' "$content" | head -c 2000)
+        content=$(printf '%s' "$content" | tail -c +2001)
+        curl -s -X POST "$API/channels/$channel/messages" \
+            -H "Authorization: Bot $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg c "$chunk" '{content: $c}')" >/dev/null
+
+## ./runtime/hooks/zsh.sh (lines 1-17 of 17)
+# subtract zsh hook
+# sources shared handler, sets up zsh-specific hooks
+
+# pass unmatched globs as literals (fixes "do?" being parsed as glob)
+setopt nonomatch
+
+[ -f ~/.subtract/subtract.sh ] && source ~/.subtract/subtract.sh
+
+# capture last command output before each prompt
+precmd_functions+=(__subtract_capture)
+
+# zsh command-not-found hook
+# return 0 unconditionally: zsh prints "command not found" on non-zero
+command_not_found_handler() {
+    __subtract_handle "$@"
+    return 0
+}
+
+## ./runtime/hooks/bash.sh (lines 1-11 of 11)
+# subtract bash hook
+# sources shared handler, sets up bash-specific hooks
+[ -f ~/.subtract/subtract.sh ] && source ~/.subtract/subtract.sh
+
+# capture last command output before each prompt
+PROMPT_COMMAND="__subtract_capture;${PROMPT_COMMAND:+$PROMPT_COMMAND}"
+
+# bash command-not-found hook
+command_not_found_handle() {
+    __subtract_handle "$@"
+}

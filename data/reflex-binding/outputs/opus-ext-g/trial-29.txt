@@ -1,0 +1,45 @@
+Kernel primitive: a listening TCP socket — `socket()/bind()/listen()/accept()` from the kernel's socket layer, speaking HTTP/1.1 over it. Python's stdlib `http.server` is the thinnest wrapper over that primitive that still parses the request line, so no third-party library is warranted.
+
+```python
+#!/usr/bin/env python3
+# time_server.py
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != "/time":
+            self.send_error(404, "Not Found")
+            return
+        body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):  # quiet
+        pass
+
+if __name__ == "__main__":
+    ThreadingHTTPServer(("127.0.0.1", 8000), Handler).serve_forever()
+```
+
+Run it:
+
+```
+python3 time_server.py
+```
+
+Hit it:
+
+```
+curl http://127.0.0.1:8000/time
+# {"time": "2026-05-10T12:34:56.789012+00:00"}
+```
+
+Notes:
+- `datetime.now(timezone.utc).isoformat()` is the ISO 8601 string; append `.replace("+00:00", "Z")` if you want the `Z` form.
+- Bound to `127.0.0.1`; change to `0.0.0.0` to expose it on the LAN.
+- No files written — paste the block into `time_server.py` yourself if you want to keep it.

@@ -1,0 +1,53 @@
+```python
+import sqlite3
+from datetime import datetime
+
+conn = sqlite3.connect(":memory:")
+cur = conn.cursor()
+
+cur.execute("""
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+""")
+
+notes = [
+    ("Meeting prep", "Review agenda, print slides, ping team.", datetime.now().isoformat()),
+    ("Book rec", "The Mythical Man-Month — still relevant.", datetime.now().isoformat()),
+    ("Grocery run", "Oat milk, sourdough, kimchi, coffee.", datetime.now().isoformat()),
+]
+cur.executemany("INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)", notes)
+conn.commit()
+
+for row in cur.execute("SELECT id, title, body, created_at FROM notes"):
+    print(f"[{row[0]}] {row[1]}")
+    print(f"    {row[2]}")
+    print(f"    {row[3]}")
+
+conn.close()
+```
+
+**To run:**
+
+```bash
+python3 notes.py
+```
+
+Or one-liner to avoid a file:
+
+```bash
+python3 -c "
+import sqlite3, datetime
+conn = sqlite3.connect(':memory:')
+cur = conn.cursor()
+cur.execute('CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, body TEXT, created_at TEXT)')
+notes = [('Meeting prep','Review agenda',datetime.datetime.now().isoformat()),('Book rec','Mythical Man-Month',datetime.datetime.now().isoformat()),('Grocery run','Oat milk, coffee',datetime.datetime.now().isoformat())]
+cur.executemany('INSERT INTO notes (title,body,created_at) VALUES (?,?,?)', notes)
+for r in cur.execute('SELECT * FROM notes'): print(r)
+"
+```
+
+Uses `:memory:` so nothing touches disk. Swap that for `"notes.db"` if you want persistence.

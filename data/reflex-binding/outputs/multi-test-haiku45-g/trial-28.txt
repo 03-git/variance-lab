@@ -1,0 +1,71 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using pytest.
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    def test_freezing_point(self):
+        """0°C should equal 32°F."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """100°C should equal 212°F."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_absolute_equivalence(self):
+        """-40°C should equal -40°F (same in both scales)."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("32")
+
+# Alternative: using unittest (no external dependencies)
+import unittest
+
+class TestCelsiusToFahrenheitUnittest(unittest.TestCase):
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+    
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+    
+    def test_absolute_equivalence(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+    
+    def test_non_numeric_input(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("32")
+
+if __name__ == "__main__":
+    # Run with unittest
+    unittest.main(argv=[''], exit=False, verbosity=2)
+```
+
+**To run the pytest version:**
+```bash
+# Install pytest if needed
+pip install pytest
+
+# Run the tests
+pytest test_celsius.py -v
+```
+
+**To run the unittest version:**
+```bash
+# No installation needed
+python test_celsius.py
+```
+
+The test suite covers:
+- **Freezing point**: 0°C → 32°F
+- **Boiling point**: 100°C → 212°F
+- **Equivalence point**: -40°C → -40°F (the one temperature equal in both scales)
+- **Error handling**: Passing a string raises `TypeError` when the function tries to multiply
+
+Both versions work identically; pytest is lighter and more modern, unittest is built-in.

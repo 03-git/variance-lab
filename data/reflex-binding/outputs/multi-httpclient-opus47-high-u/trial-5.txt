@@ -1,0 +1,40 @@
+```python
+import sys
+import urllib.request
+import urllib.error
+
+def fetch(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "fetch-script/1.0"})
+    try:
+        with urllib.request.urlopen(req) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+            print(f"Status: {resp.status}")
+            print("Headers:")
+            for k, v in resp.headers.items():
+                print(f"  {k}: {v}")
+            print("Body (first 500 chars):")
+            print(body[:500])
+    except urllib.error.HTTPError as e:
+        print(f"Status: {e.code}")
+        print("Headers:")
+        for k, v in e.headers.items():
+            print(f"  {k}: {v}")
+        print("Body (first 500 chars):")
+        print(e.read().decode("utf-8", errors="replace")[:500])
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python fetch.py <url>", file=sys.stderr)
+        sys.exit(1)
+    fetch(sys.argv[1])
+```
+
+`urllib.request.urlopen` follows HTTP 30x redirects by default via `HTTPRedirectHandler`, so no extra config is needed.
+
+Run it:
+
+```bash
+python fetch.py https://example.com
+```
+
+If you'd prefer the `requests` library version (cleaner, but requires `pip install requests`), let me know.

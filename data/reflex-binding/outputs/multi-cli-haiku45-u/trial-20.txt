@@ -1,0 +1,97 @@
+Here's a Python CLI tool that meets your requirements:
+
+```python
+import argparse
+import json
+
+
+def port_type(value):
+    """Validate port is an integer between 1-65535."""
+    try:
+        port = int(value)
+        if not (1 <= port <= 65535):
+            raise ValueError(f"Port must be between 1 and 65535, got {port}")
+        return port
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e))
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Parse and display host/port configuration"
+    )
+    parser.add_argument(
+        "--host",
+        default="localhost",
+        help="Host address (default: localhost)"
+    )
+    parser.add_argument(
+        "--port",
+        type=port_type,
+        default=8080,
+        help="Port number, 1-65535 (default: 8080)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage (uses defaults)
+python cli.py
+# Output:
+# {
+#   "host": "localhost",
+#   "port": 8080,
+#   "verbose": false
+# }
+
+# With custom host and port
+python cli.py --host 0.0.0.0 --port 3000
+# Output:
+# {
+#   "host": "0.0.0.0",
+#   "port": 3000,
+#   "verbose": false
+# }
+
+# With verbose flag
+python cli.py --host example.com --port 443 --verbose
+# Output:
+# {
+#   "host": "example.com",
+#   "port": 443,
+#   "verbose": true
+# }
+
+# Invalid port (fails with error)
+python cli.py --port 70000
+# Error: argument --port: Port must be between 1 and 65535, got 70000
+
+python cli.py --port abc
+# Error: argument --port: Port must be between 1 and 65535
+```
+
+The key features:
+- **Custom validator** (`port_type`) handles integer parsing and range validation
+- **Defaults** provided for host (localhost) and port (8080)
+- **JSON output** is pretty-printed with 2-space indentation
+- **Error handling** uses argparse's built-in validation system with clear messages

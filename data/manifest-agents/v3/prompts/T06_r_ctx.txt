@@ -1,0 +1,382 @@
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from runtime/llms.txt)
+# subtract runtime
+
+Deployed scripts for ~/.subtract/. These are what install.sh copies.
+
+## Files
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/subtract
+  Entry point. Boots tmux with shell + claude + docs side by side.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/subtract.sh
+  Translation layer. Sources into your shell, intercepts unknown commands,
+  routes through T0 (lookup) -> T0.5 (man pages) -> T2 (local model) -> T4 (cloud).
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/ask
+  Query local model directly. Claude without the browser.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/lookdown.tsv
+  Personal fork lookup table. Seed copy; yours lives at ~/.subtract/lookdown.tsv.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/kiwix
+  Query local Kiwix corpus (Wikipedia, Stack Exchange, etc).
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/kiwix-search
+  Kiwix search helper.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/cheatsheet.txt
+  Quick reference.
+
+## Shell hooks
+
+Source ONE of these in your shell rc file. They load subtract.sh and wire up
+the command_not_found hook for your shell.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/hooks/bash.sh
+  For ~/.bashrc: source ~/.subtract/hooks/bash.sh
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/hooks/zsh.sh
+  For ~/.zshrc: source ~/.subtract/hooks/zsh.sh
+
+## Install
+
+
+### Chunk 2 (from runtime/hooks/bash.sh)
+# subtract bash hook
+# sources shared handler, sets up bash-specific hooks
+[ -f ~/.subtract/subtract.sh ] && source ~/.subtract/subtract.sh
+
+# capture last command output before each prompt
+PROMPT_COMMAND="__subtract_capture;${PROMPT_COMMAND:+$PROMPT_COMMAND}"
+
+# bash command-not-found hook
+command_not_found_handle() {
+    __subtract_handle "$@"
+}
+
+
+### Chunk 3 (from install.sh)
+    Linux-aarch64) TTYD_BIN="ttyd.aarch64" ;;
+    Darwin-arm64)  TTYD_BIN="ttyd.darwin-arm64" ;;
+    Darwin-x86_64) TTYD_BIN="ttyd.darwin-x86_64" ;;
+    *) TTYD_BIN="" ;;
+esac
+
+if [ -n "$TTYD_BIN" ] && [ ! -f "$SUBTRACT_DIR/bin/ttyd" ]; then
+    echo "Installing browser shell (ttyd)..."
+    curl -sL "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/${TTYD_BIN}" \
+        -o "$SUBTRACT_DIR/bin/ttyd" && chmod +x "$SUBTRACT_DIR/bin/ttyd"
+fi
+
+fetch "runtime/bin/shell-web" "$SUBTRACT_DIR/bin/shell-web"
+fetch "runtime/bin/subtract-shell" "$SUBTRACT_DIR/bin/subtract-shell"
+chmod +x "$SUBTRACT_DIR/bin/shell-web" "$SUBTRACT_DIR/bin/subtract-shell"
+
+
+# browse command + launchers
+fetch "runtime/browse" "$SUBTRACT_DIR/browse"
+chmod +x "$SUBTRACT_DIR/browse"
+
+
+# Shell integration
+BASH_LINE='[ -f ~/.subtract/hooks/bash.sh ] && source ~/.subtract/hooks/bash.sh'
+ZSH_LINE='[ -f ~/.subtract/hooks/zsh.sh ] && source ~/.subtract/hooks/zsh.sh'
+PATH_LINE='export PATH="$HOME/.subtract:$PATH"'
+
+if [ -f ~/.bashrc ] && ! grep -qF 'subtract/hooks' ~/.bashrc; then
+    echo -e "\n# subtract\n$PATH_LINE\n$BASH_LINE" >> ~/.bashrc
+fi
+
+command -v zsh >/dev/null 2>&1 && [ ! -f ~/.zshrc ] && touch ~/.zshrc
+if [ -f ~/.zshrc ] && ! grep -qF 'subtract/hooks' ~/.zshrc; then
+    echo -e "\n# subtract\n$PATH_LINE\n$ZSH_LINE" >> ~/.zshrc
+fi
+
+echo ""
+echo "subtract installed."
+echo ""
+echo "Open a new terminal, then try:"
+
+
+### Chunk 4 (from runtime/hooks/zsh.sh)
+# subtract zsh hook
+# sources shared handler, sets up zsh-specific hooks
+
+# pass unmatched globs as literals (fixes "do?" being parsed as glob)
+setopt nonomatch
+
+[ -f ~/.subtract/subtract.sh ] && source ~/.subtract/subtract.sh
+
+# capture last command output before each prompt
+precmd_functions+=(__subtract_capture)
+
+# zsh command-not-found hook
+# return 0 unconditionally: zsh prints "command not found" on non-zero
+command_not_found_handler() {
+    __subtract_handle "$@"
+    return 0
+}
+
+
+### Chunk 5 (from runtime/llms.txt)
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/hooks/zsh.sh
+  For ~/.zshrc: source ~/.subtract/hooks/zsh.sh
+
+## Install
+
+These files are deployed by:
+  curl -sL subtract.ing/install.sh | bash
+
+Or manually:
+  mkdir -p ~/.subtract
+  curl -sL https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/subtract.sh > ~/.subtract/subtract.sh
+  # ... etc
+
+## Parent
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/llms.txt
+
+
+### Chunk 6 (from runtime/hosuni-discord.ts)
+    log(`gateway error: ${event}`);
+  };
+}
+
+// Ensure transcript dir exists
+try {
+  Deno.mkdirSync(TRANSCRIPT_DIR, { recursive: true });
+} catch { /* exists */ }
+
+log("DAEMON STARTED");
+connectGateway();
+
+
+### Chunk 7 (from install.sh)
+        echo "ABORT: manifest signature verification failed."
+        echo "The files at $BASE_URL may be compromised or the signing key rotated."
+        echo "Verify manually: https://subtract.ing/authorized_signers"
+        rm -f "$SUBTRACT_DIR/llms.txt" "$SUBTRACT_DIR/llms.txt.sig" "$SUBTRACT_DIR/authorized_signers"
+        exit 1
+    fi
+    echo "manifest signature verified: hodori@subtract.ing"
+elif [ "$MODE" = "local" ]; then
+    if [ -f "$SCRIPT_DIR/llms.txt" ] && [ -f "$SCRIPT_DIR/llms.txt.sig" ] && [ -f "$SCRIPT_DIR/authorized_signers" ]; then
+        if ! ssh-keygen -Y verify -f "$SCRIPT_DIR/authorized_signers" \
+            -I hodori@subtract.ing -n subtract.ing \
+            -s "$SCRIPT_DIR/llms.txt.sig" < "$SCRIPT_DIR/llms.txt" >/dev/null 2>&1; then
+            echo "WARNING: local manifest signature verification failed. Proceeding from trusted checkout."
+        else
+            echo "manifest signature verified: hodori@subtract.ing"
+        fi
+    fi
+fi
+
+# T0 core
+fetch "runtime/subtract.sh" "$SUBTRACT_DIR/subtract.sh"
+fetch "runtime/index.html" "$SUBTRACT_DIR/index.html"
+fetch "runtime/hooks/bash.sh" "$SUBTRACT_DIR/hooks/bash.sh"
+fetch "runtime/hooks/zsh.sh" "$SUBTRACT_DIR/hooks/zsh.sh"
+
+# mark as onboarded (fat lookdown.tsv makes interactive setup unnecessary)
+touch "$SUBTRACT_DIR/.onboarded"
+
+# Base lookdown (don't overwrite user's fork)
+[ ! -f "$SUBTRACT_DIR/lookdown.universal.tsv" ] && fetch "lookdown.universal.tsv" "$SUBTRACT_DIR/lookdown.universal.tsv"
+
+# Browser shell (ttyd) - for new users who know browser but not terminal
+TTYD_VERSION="1.7.7"
+case "$(uname -s)-$(uname -m)" in
+    Linux-x86_64)  TTYD_BIN="ttyd.x86_64" ;;
+    Linux-aarch64) TTYD_BIN="ttyd.aarch64" ;;
+    Darwin-arm64)  TTYD_BIN="ttyd.darwin-arm64" ;;
+    Darwin-x86_64) TTYD_BIN="ttyd.darwin-x86_64" ;;
+    *) TTYD_BIN="" ;;
+esac
+
+
+### Chunk 8 (from variance-lab-handler-methodology.txt)
+
+## Spec
+
+The following spec was dispatched verbatim to each implementation target. No per-target modification. No prior conversation context assumed.
+
+```
+# handler.sh modifications — dispatch spec
+
+You are being given a standalone implementation task. No prior conversation
+context is assumed. Respond with ONLY the bash code requested, no commentary,
+no markdown fences, no explanation before or after.
+
+## Context
+
+`handler.sh` is a subtract.ing runtime file sourced into bash/zsh startup
+(hooks/bash.sh, hooks/zsh.sh). It already defines:
+
+- `SUBTRACT_DIR="$HOME/.subtract"` exported
+- `SUBTRACT_LOOKUP="$SUBTRACT_DIR/lookdown.tsv"` exported
+- `__subtract_handle` — called from `command_not_found_handle` (bash) and
+  `command_not_found_handler` (zsh) to translate natural-language intents
+  via lookdown.tsv and execute the resolved command
+- `__subtract_capture` — runs before each prompt via `PROMPT_COMMAND` (bash)
+  or `precmd_functions` (zsh). Uses `fc -ln -1` to capture the last command
+  into `SUBTRACT_LAST_OUTPUT`
+
+Function naming convention: `__subtract_*` prefix for internal helpers.
+
+Canonical log format spec: https://subtract.ing/session-log.spec.txt
+
+## Task 1: log writer
+
+Add a function `__subtract_log` that appends one TSV row per user input to a
+per-session log file. Called from the existing hooks:
+- `__subtract_handle` at end-of-invocation (intent case, `behavior` prefix `i:`)
+- pre-prompt hook (direct command case, `behavior` prefix `c:`)
+
+Row format (tab-separated, no quoting):
+    timestamp<TAB>antecedent<TAB>behavior<TAB>consequence<TAB>next_behavior
+
+
+
+### Chunk 9 (from variance-lab/data/manifest-agents/questions.tsv)
+id	type	question
+T01	traversal	What files are in the runtime/hosuni/ directory and what does each one do?
+T02	traversal	What is parsimony.c and what role does it play in the subtract.ing runtime?
+T03	traversal	List all .tsv files in the repository and describe the format of each.
+T04	traversal	What does the install.sh script do?
+T05	traversal	What is in runtime/llms.txt and how does it differ from the root llms.txt?
+T06	traversal	What shell hooks exist in runtime/hooks/ and what do they intercept?
+T07	traversal	What is kiosk.sh and what does it configure?
+T08	traversal	What files define the lookdown system and how are they organized?
+T09	traversal	What is squared.c and what does it compute?
+T10	traversal	List every file that contains a sha256 hash or references sha256 verification.
+S01	synthesis	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?
+S02	synthesis	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?
+S03	synthesis	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?
+S04	synthesis	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.
+S05	synthesis	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?
+S06	synthesis	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?
+S07	synthesis	Which files mention the concept of a "formation" and what does the term mean across them?
+S08	synthesis	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?
+S09	synthesis	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?
+S10	synthesis	What does lineage.txt credit and how do those credits connect to specific components in the codebase?
+C01	change	What changed in hosuni.c between commit d4e860d and HEAD?
+C02	change	What was the most recent change to variance-lab.txt and what confound did it resolve?
+C03	change	Which files were modified in the commit that added CJK font fallback support?
+C04	change	Has SOUL.txt been rewritten recently? What was the nature of the change?
+C05	change	What is the most recent addition to the llms.txt index?
+M01	similarity	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?
+M02	similarity	Find files related to the concept of signing and verification. Group them by function.
+M03	similarity	Which components share the pattern of reading a manifest or index file to decide what to do next?
+M04	similarity	What files discuss the boundary between human authority and agent execution? How do they differ in framing?
+M05	similarity	Find all components that use llama.cpp or local inference. How are they related?
+
+
+### Chunk 10 (from runtime/subtract.sh)
+                ;;
+            *)
+                _SUBTRACT_AFTER_CLAUDE_P=""
+                ;;
+        esac
+    fi
+    _SUBTRACT_FROM_HANDLER=""
+}
+# PROMPT_COMMAND (bash) and precmd_functions (zsh) set in hooks/bash.sh and hooks/zsh.sh
+
+# --- skills: procedural knowledge lookup ---
+
+__subtract_skills_stale() {
+    # check if index needs rebuild: any .md file newer than index
+    local index="$SUBTRACT_SKILLS/.index"
+    [ ! -f "$index" ] && return 0
+    local newer
+    newer=$(find "$SUBTRACT_SKILLS" -name '*.md' -newer "$index" -print -quit 2>/dev/null)
+    [ -n "$newer" ] && return 0
+    return 1
+}
+
+__subtract_strip_prefix() {
+    local input
+    input=$(__subtract_lower "$1")
+    local prefix
+    local -a prefixes
+    # split pipe-delimited prefix string into array (bash: read -ra, zsh: parameter expansion)
+    if [ -n "$ZSH_VERSION" ]; then
+        prefixes=("${(s:|:)SUBTRACT_SKILLS_PREFIXES}")
+    else
+        IFS='|' read -ra prefixes <<< "$SUBTRACT_SKILLS_PREFIXES"
+    fi
+    for prefix in "${prefixes[@]}"; do
+        prefix="${prefix# }"
+        [ -z "$prefix" ] && continue
+        if [[ "$input" == ${prefix}* ]]; then
+            echo "${input#$prefix}"
+            return 0
+        fi
+
+
+### Chunk 11 (from emile.txt)
+records, provision their own hardware, follow this document, and
+have an instance running in an afternoon. The relationship becomes
+two sovereign substrates exchanging signed artifacts.
+
+## Lineage
+
+Porat (1977) imagined information as personal infrastructure.
+Fox (1989) built the shell. Ramey (1993-present) maintained the
+hook. Rousseau (1762) argued the environment teaches, not the
+instructor. This deployment pattern inherits all four.
+
+  Full lineage: https://subtract.ing/lineage.txt
+
+## Verify
+
+  https://subtract.ing/llms.txt          manifest and signature chain
+  https://subtract.ing/variance-lab.txt  bench methodology and findings
+
+
+### Chunk 12 (from variance-lab-handler-methodology.txt)
+## Robustness (weighted 0/1/2)
+- R1: Log directory auto-created if absent.
+- R2: Concurrent append safety.
+- R3: SIGINT mid-write does not corrupt.
+- R4: Tab-in-command escaping.
+- R5: HISTFILE / fc unavailability handled.
+
+## Hygiene (weighted 0/1/2)
+- H1: No leakage of helper variables into user shell.
+- H2: Function names follow __subtract_* prefix convention.
+- H3: No unnecessary subshells or command substitutions.
+- H4: Hook insertion preserves existing PROMPT_COMMAND / precmd chain.
+
+## Variance observations (not scored — recorded)
+- V1: ISO 8601 timestamp idiom.
+- V2: Tab escape idiom.
+- V3: Concurrency strategy.
+- V4: Hook insertion strategy.
+- V5: Overlay read implementation.
+- V6: Lines of code added.
+- V7: Comment density.
+
+## Selection rule
+1. Implementations failing any C or P test are eliminated.
+2. Among survivors, sum weighted scores across R and H.
+3. Ties within 2 points: favor lowest LoC that still satisfies all C/P.
+4. Further ties: governor picks on subjective feel.
+
+## Anti-gaming
+- Evaluator does not see model attribution until after scoring is complete.
+- Rubric is not revised after outputs are visible.
+```
+
+---
+
+## Static rubric results
+
+The rubric was applied mechanically to each of the five implementations. Attribution was not visible to the evaluator during scoring. LoC column is `wc -l` of the dispatched artifact as received.
+
+| Criterion | opus47 | sonnet45 | sonnet46 | sonnet46low | qwen3coder |
+
+

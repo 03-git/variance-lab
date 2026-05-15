@@ -1,0 +1,504 @@
+
+## lobject.h (lines 121-160)
+	  checkliveness(L,io1); lua_assert(!isnonstrictnil(io1)); }
+
+/*
+** Different types of assignments, according to source and destination.
+** (They are mostly equal now, but may be different in the future.)
+*/
+
+/* from stack to stack */
+#define setobjs2s(L,o1,o2)	setobj(L,s2v(o1),s2v(o2))
+/* to stack (not from same stack) */
+#define setobj2s(L,o1,o2)	setobj(L,s2v(o1),o2)
+/* from table to same table */
+#define setobjt2t	setobj
+/* to new object */
+#define setobj2n	setobj
+/* to table */
+#define setobj2t	setobj
+
+
+/*
+** Entries in a Lua stack. Field 'tbclist' forms a list of all
+** to-be-closed variables active in this stack. Dummy entries are
+** used when the distance between two tbc variables does not fit
+** in an unsigned short. They are represented by delta==0, and
+** their real delta is always the maximum value that fits in
+** that field.
+*/
+typedef union StackValue {
+  TValue val;
+  struct {
+    TValuefields;
+    unsigned short delta;
+  } tbclist;
+} StackValue;
+
+
+/* index to stack elements */
+typedef StackValue *StkId;
+
+
+
+## loadlib.c (lines 321-360)
+*/
+static void *checkclib (lua_State *L, const char *path) {
+  void *plib;
+  lua_getfield(L, LUA_REGISTRYINDEX, CLIBS);
+  lua_getfield(L, -1, path);
+  plib = lua_touserdata(L, -1);  /* plib = CLIBS[path] */
+  lua_pop(L, 2);  /* pop CLIBS table and 'plib' */
+  return plib;
+}
+
+
+/*
+** Deallocate function for library strings.
+** Unload the DLL associated with the string being deallocated.
+*/
+static void *freelib (void *ud, void *ptr, size_t osize, size_t nsize) {
+  /* string itself is irrelevant and static */
+  (void)ptr; (void)osize; (void)nsize;
+  lsys_unloadlib(ud);  /* unload library represented by the string */
+  return NULL;
+}
+
+
+/*
+** Create a library string that, when deallocated, will unload 'plib'
+*/
+static void createlibstr (lua_State *L, void *plib) {
+  /* common content for all library strings */
+  static const char dummy[] = "01234567890";
+  lua_pushexternalstring(L, dummy, sizeof(dummy) - 1, freelib, plib);
+}
+
+
+/*
+** registry.CLIBS[path] = plib          -- for queries.
+** Also create a reference to strlib, so that the library string will
+** only be collected when registry.CLIBS is collected.
+*/
+static void addtoclib (lua_State *L, const char *path, void *plib) {
+  lua_getfield(L, LUA_REGISTRYINDEX, CLIBS);
+
+## loslib.c (lines 201-240)
+*/
+
+/*
+** About the overflow check: an overflow cannot occur when time
+** is represented by a lua_Integer, because either lua_Integer is
+** large enough to represent all int fields or it is not large enough
+** to represent a time that cause a field to overflow.  However, if
+** times are represented as doubles and lua_Integer is int, then the
+** time 0x1.e1853b0d184f6p+55 would cause an overflow when adding 1900
+** to compute the year.
+*/
+static void setfield (lua_State *L, const char *key, int value, int delta) {
+  #if (defined(LUA_NUMTIME) && LUA_MAXINTEGER <= INT_MAX)
+    if (l_unlikely(value > LUA_MAXINTEGER - delta))
+      luaL_error(L, "field '%s' is out-of-bound", key);
+  #endif
+  lua_pushinteger(L, (lua_Integer)value + delta);
+  lua_setfield(L, -2, key);
+}
+
+
+static void setboolfield (lua_State *L, const char *key, int value) {
+  if (value < 0)  /* undefined? */
+    return;  /* does not set field */
+  lua_pushboolean(L, value);
+  lua_setfield(L, -2, key);
+}
+
+
+/*
+** Set all fields from structure 'tm' in the table on top of the stack
+*/
+static void setallfields (lua_State *L, struct tm *stm) {
+  setfield(L, "year", stm->tm_year, 1900);
+  setfield(L, "month", stm->tm_mon, 1);
+  setfield(L, "day", stm->tm_mday, 0);
+  setfield(L, "hour", stm->tm_hour, 0);
+  setfield(L, "min", stm->tm_min, 0);
+  setfield(L, "sec", stm->tm_sec, 0);
+  setfield(L, "yday", stm->tm_yday, 1);
+
+## lvm.c (lines 441-480)
+** See comments on previous function.
+*/
+l_sinline int LEintfloat (lua_Integer i, lua_Number f) {
+  if (l_intfitsf(i))
+    return luai_numle(cast_num(i), f);  /* compare them as floats */
+  else {  /* i <= f <=> i <= floor(f) */
+    lua_Integer fi;
+    if (luaV_flttointeger(f, &fi, F2Ifloor))  /* fi = floor(f) */
+      return i <= fi;   /* compare them as integers */
+    else  /* 'f' is either greater or less than all integers */
+      return f > 0;  /* greater? */
+  }
+}
+
+
+/*
+** Check whether float 'f' is less than integer 'i'.
+** See comments on previous function.
+*/
+l_sinline int LTfloatint (lua_Number f, lua_Integer i) {
+  if (l_intfitsf(i))
+    return luai_numlt(f, cast_num(i));  /* compare them as floats */
+  else {  /* f < i <=> floor(f) < i */
+    lua_Integer fi;
+    if (luaV_flttointeger(f, &fi, F2Ifloor))  /* fi = floor(f) */
+      return fi < i;   /* compare them as integers */
+    else  /* 'f' is either greater or less than all integers */
+      return f < 0;  /* less? */
+  }
+}
+
+
+/*
+** Check whether float 'f' is less than or equal to integer 'i'.
+** See comments on previous function.
+*/
+l_sinline int LEfloatint (lua_Number f, lua_Integer i) {
+  if (l_intfitsf(i))
+    return luai_numle(f, cast_num(i));  /* compare them as floats */
+  else {  /* f <= i <=> ceil(f) <= i */
+
+## lvm.c (lines 361-400)
+      return;
+    }
+    t = tm;  /* else repeat assignment over 'tm' */
+    luaV_fastset(t, key, val, hres, luaH_pset);
+    if (hres == HOK) {
+      luaV_finishfastset(L, t, val);
+      return;  /* done */
+    }
+    /* else 'return luaV_finishset(L, t, key, val, slot)' (loop) */
+  }
+  luaG_runerror(L, "'__newindex' chain too long; possible loop");
+}
+
+
+/*
+** Function to be used for 0-terminated string order comparison
+*/
+#if !defined(l_strcoll)
+#define l_strcoll	strcoll
+#endif
+
+
+/*
+** Compare two strings 'ts1' x 'ts2', returning an integer less-equal-
+** -greater than zero if 'ts1' is less-equal-greater than 'ts2'.
+** The code is a little tricky because it allows '\0' in the strings
+** and it uses 'strcoll' (to respect locales) for each segment
+** of the strings. Note that segments can compare equal but still
+** have different lengths.
+*/
+static int l_strcmp (const TString *ts1, const TString *ts2) {
+  size_t rl1;  /* real length */
+  const char *s1 = getlstr(ts1, rl1);
+  size_t rl2;
+  const char *s2 = getlstr(ts2, rl2);
+  for (;;) {  /* for each segment */
+    int temp = l_strcoll(s1, s2);
+    if (temp != 0)  /* not equal? */
+      return temp;  /* done */
+    else {  /* strings are equal up to a '\0' */
+
+## luaconf.h (lines 161-200)
+/*
+** 32-bit integers and 'float'
+*/
+#if LUAI_IS32INT  /* use 'int' if big enough */
+#define LUA_INT_TYPE	LUA_INT_INT
+#else  /* otherwise use 'long' */
+#define LUA_INT_TYPE	LUA_INT_LONG
+#endif
+#define LUA_FLOAT_TYPE	LUA_FLOAT_FLOAT
+
+#elif LUA_C89_NUMBERS	/* }{ */
+/*
+** largest types available for C89 ('long' and 'double')
+*/
+#define LUA_INT_TYPE	LUA_INT_LONG
+#define LUA_FLOAT_TYPE	LUA_FLOAT_DOUBLE
+
+#else		/* }{ */
+/* use defaults */
+
+#define LUA_INT_TYPE	LUA_INT_DEFAULT
+#define LUA_FLOAT_TYPE	LUA_FLOAT_DEFAULT
+
+#endif				/* } */
+
+
+/* }================================================================== */
+
+
+
+/*
+** {==================================================================
+** Configuration for Paths.
+** ===================================================================
+*/
+
+/*
+** LUA_PATH_SEP is the character that separates templates in a path.
+** LUA_PATH_MARK is the string that marks the substitution points in a
+** template.
+
+## lvm.c (lines 601-640)
+        /* compare two strings with different variants: they can be
+           equal when one string is a short string and the other is
+           an external string  */
+        return luaS_eqstr(tsvalue(t1), tsvalue(t2));
+      }
+      default:
+        /* only numbers (integer/float) and strings (long/short) can have
+           equal values with different variants */
+        return 0;
+    }
+  }
+  else {  /* equal variants */
+    switch (ttypetag(t1)) {
+      case LUA_VNIL: case LUA_VFALSE: case LUA_VTRUE:
+        return 1;
+      case LUA_VNUMINT:
+        return (ivalue(t1) == ivalue(t2));
+      case LUA_VNUMFLT:
+        return (fltvalue(t1) == fltvalue(t2));
+      case LUA_VLIGHTUSERDATA: return pvalue(t1) == pvalue(t2);
+      case LUA_VSHRSTR:
+        return eqshrstr(tsvalue(t1), tsvalue(t2));
+      case LUA_VLNGSTR:
+        return luaS_eqstr(tsvalue(t1), tsvalue(t2));
+      case LUA_VUSERDATA: {
+        if (uvalue(t1) == uvalue(t2)) return 1;
+        else if (L == NULL) return 0;
+        tm = fasttm(L, uvalue(t1)->metatable, TM_EQ);
+        if (tm == NULL)
+          tm = fasttm(L, uvalue(t2)->metatable, TM_EQ);
+        break;  /* will try TM */
+      }
+      case LUA_VTABLE: {
+        if (hvalue(t1) == hvalue(t2)) return 1;
+        else if (L == NULL) return 0;
+        tm = fasttm(L, hvalue(t1)->metatable, TM_EQ);
+        if (tm == NULL)
+          tm = fasttm(L, hvalue(t2)->metatable, TM_EQ);
+        break;  /* will try TM */
+      }
+
+## ltests.c (lines 361-400)
+      printf("table: %p", hvalue(v)); break;
+    default:
+      lua_assert(0);
+  }
+}
+
+
+static int testobjref (global_State *g, GCObject *f, GCObject *t) {
+  int r1 = testobjref1(g, f, t);
+  if (!r1) {
+    printf("%d(%02X) - ", g->gcstate, g->currentwhite);
+    printobj(g, f);
+    printf("  ->  ");
+    printobj(g, t);
+    printf("\n");
+  }
+  return r1;
+}
+
+
+static void checkobjref (global_State *g, GCObject *f, GCObject *t) {
+    assert(testobjref(g, f, t));
+}
+
+
+/*
+** Version where 't' can be NULL. In that case, it should not apply the
+** macro 'obj2gco' over the object. ('t' may have several types, so this
+** definition must be a macro.)  Most checks need this version, because
+** the check may run while an object is still being created.
+*/
+#define checkobjrefN(g,f,t)	{ if (t) checkobjref(g,f,obj2gco(t)); }
+
+
+static void checkvalref (global_State *g, GCObject *f, const TValue *t) {
+  assert(!iscollectable(t) || (righttt(t) && testobjref(g, f, gcvalue(t))));
+}
+
+
+static void checktable (global_State *g, Table *h) {
+
+## lobject.h (lines 1-40)
+/*
+** $Id: lobject.h $
+** Type definitions for Lua objects
+** See Copyright Notice in lua.h
+*/
+
+
+#ifndef lobject_h
+#define lobject_h
+
+
+#include <stdarg.h>
+
+
+#include "llimits.h"
+#include "lua.h"
+
+
+/*
+** Extra types for collectable non-values
+*/
+#define LUA_TUPVAL	LUA_NUMTYPES  /* upvalues */
+#define LUA_TPROTO	(LUA_NUMTYPES+1)  /* function prototypes */
+#define LUA_TDEADKEY	(LUA_NUMTYPES+2)  /* removed keys in tables */
+
+
+
+/*
+** number of all possible types (including LUA_TNONE but excluding DEADKEY)
+*/
+#define LUA_TOTALTYPES		(LUA_TPROTO + 2)
+
+
+/*
+** tags for Tagged Values have the following use of bits:
+** bits 0-3: actual tag (a LUA_T* constant)
+** bits 4-5: variant bits
+** bit 6: whether value is collectable
+*/
+
+
+## lopcodes.h (lines 1-40)
+/*
+** $Id: lopcodes.h $
+** Opcodes for Lua virtual machine
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lopcodes_h
+#define lopcodes_h
+
+#include "llimits.h"
+#include "lobject.h"
+
+
+/*===========================================================================
+  We assume that instructions are unsigned 32-bit integers.
+  All instructions have an opcode in the first 7 bits.
+  Instructions can have the following formats:
+
+        3 3 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0
+        1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+iABC          C(8)     |      B(8)     |k|     A(8)      |   Op(7)     |
+ivABC         vC(10)     |     vB(6)   |k|     A(8)      |   Op(7)     |
+iABx                Bx(17)               |     A(8)      |   Op(7)     |
+iAsBx              sBx (signed)(17)      |     A(8)      |   Op(7)     |
+iAx                           Ax(25)                     |   Op(7)     |
+isJ                           sJ (signed)(25)            |   Op(7)     |
+
+  ('v' stands for "variant", 's' for "signed", 'x' for "extended".)
+  A signed argument is represented in excess K: The represented value is
+  the written unsigned value minus K, where K is half (rounded down) the
+  maximum value for the corresponding unsigned argument.
+===========================================================================*/
+
+
+/* basic instruction formats */
+enum OpMode {iABC, ivABC, iABx, iAsBx, iAx, isJ};
+
+
+/*
+** size and position of opcode arguments.
+
+## ltablib.c (lines 121-160)
+
+/*
+** Copy elements (1[f], ..., 1[e]) into (tt[t], tt[t+1], ...). Whenever
+** possible, copy in increasing order, which is better for rehashing.
+** "possible" means destination after original range, or smaller
+** than origin, or copying to another table.
+*/
+static int tmove (lua_State *L) {
+  lua_Integer f = luaL_checkinteger(L, 2);
+  lua_Integer e = luaL_checkinteger(L, 3);
+  lua_Integer t = luaL_checkinteger(L, 4);
+  int tt = !lua_isnoneornil(L, 5) ? 5 : 1;  /* destination table */
+  checktab(L, 1, TAB_R);
+  checktab(L, tt, TAB_W);
+  if (e >= f) {  /* otherwise, nothing to move */
+    lua_Integer n, i;
+    luaL_argcheck(L, f > 0 || e < LUA_MAXINTEGER + f, 3,
+                  "too many elements to move");
+    n = e - f + 1;  /* number of elements to move */
+    luaL_argcheck(L, t <= LUA_MAXINTEGER - n + 1, 4,
+                  "destination wrap around");
+    if (t > e || t <= f || (tt != 1 && !lua_compare(L, 1, tt, LUA_OPEQ))) {
+      for (i = 0; i < n; i++) {
+        lua_geti(L, 1, f + i);
+        lua_seti(L, tt, t + i);
+      }
+    }
+    else {
+      for (i = n - 1; i >= 0; i--) {
+        lua_geti(L, 1, f + i);
+        lua_seti(L, tt, t + i);
+      }
+    }
+  }
+  lua_pushvalue(L, tt);  /* return destination table */
+  return 1;
+}
+
+
+static void addfield (lua_State *L, luaL_Buffer *b, lua_Integer i) {
+
+## lvm.c (lines 401-440)
+      size_t zl1 = strlen(s1);  /* index of first '\0' in 's1' */
+      size_t zl2 = strlen(s2);  /* index of first '\0' in 's2' */
+      if (zl2 == rl2)  /* 's2' is finished? */
+        return (zl1 == rl1) ? 0 : 1;  /* check 's1' */
+      else if (zl1 == rl1)  /* 's1' is finished? */
+        return -1;  /* 's1' is less than 's2' ('s2' is not finished) */
+      /* both strings longer than 'zl'; go on comparing after the '\0' */
+      zl1++; zl2++;
+      s1 += zl1; rl1 -= zl1; s2 += zl2; rl2 -= zl2;
+    }
+  }
+}
+
+
+/*
+** Check whether integer 'i' is less than float 'f'. If 'i' has an
+** exact representation as a float ('l_intfitsf'), compare numbers as
+** floats. Otherwise, use the equivalence 'i < f <=> i < ceil(f)'.
+** If 'ceil(f)' is out of integer range, either 'f' is greater than
+** all integers or less than all integers.
+** (The test with 'l_intfitsf' is only for performance; the else
+** case is correct for all values, but it is slow due to the conversion
+** from float to int.)
+** When 'f' is NaN, comparisons must result in false.
+*/
+l_sinline int LTintfloat (lua_Integer i, lua_Number f) {
+  if (l_intfitsf(i))
+    return luai_numlt(cast_num(i), f);  /* compare them as floats */
+  else {  /* i < f <=> i < ceil(f) */
+    lua_Integer fi;
+    if (luaV_flttointeger(f, &fi, F2Iceil))  /* fi = ceil(f) */
+      return i < fi;   /* compare them as integers */
+    else  /* 'f' is either greater or less than all integers */
+      return f > 0;  /* greater? */
+  }
+}
+
+
+/*
+** Check whether integer 'i' is less than or equal to float 'f'.

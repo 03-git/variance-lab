@@ -1,0 +1,98 @@
+I'll show you a Python CLI tool that handles the requirements you specified.
+
+```python
+import argparse
+import json
+import sys
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="CLI tool that accepts host, port, and verbose flags"
+    )
+    parser.add_argument(
+        "--host",
+        default="localhost",
+        help="Host to connect to (default: localhost)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Port number (default: 8080)",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output",
+    )
+
+    try:
+        args = parser.parse_args()
+
+        # Validate port range
+        if not (1 <= args.port <= 65535):
+            print(
+                json.dumps(
+                    {
+                        "error": f"Port must be between 1 and 65535, got {args.port}"
+                    }
+                ),
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        config = {
+            "host": args.host,
+            "port": args.port,
+            "verbose": args.verbose,
+        }
+
+        print(json.dumps(config, indent=2))
+
+    except ValueError as e:
+        print(
+            json.dumps({"error": f"Invalid port: {e}"}),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage (uses defaults)
+python cli_tool.py
+
+# With custom host and port
+python cli_tool.py --host example.com --port 3000
+
+# With verbose flag
+python cli_tool.py --host 192.168.1.1 --port 5432 --verbose
+
+# Invalid port (demonstrates validation)
+python cli_tool.py --port 70000
+
+# Help
+python cli_tool.py --help
+```
+
+**Example outputs:**
+
+```bash
+$ python cli_tool.py --host example.com --port 3000 --verbose
+{
+  "host": "example.com",
+  "port": 3000,
+  "verbose": true
+}
+
+$ python cli_tool.py --port 70000
+{"error": "Port must be between 1 and 65535, got 70000"}
+```
+
+The tool uses `argparse` for flag parsing, validates the port is an integer (automatically via `type=int`), checks it's in the valid range (1-65535), and outputs the configuration as formatted JSON.

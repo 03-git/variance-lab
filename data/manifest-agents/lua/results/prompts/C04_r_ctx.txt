@@ -1,0 +1,504 @@
+
+## lauxlib.c (lines 681-720)
+** =======================================================
+*/
+
+/*
+** The previously freed references form a linked list: t[1] is the index
+** of a first free index, t[t[1]] is the index of the second element,
+** etc. A zero signals the end of the list.
+*/
+LUALIB_API int luaL_ref (lua_State *L, int t) {
+  int ref;
+  if (lua_isnil(L, -1)) {
+    lua_pop(L, 1);  /* remove from stack */
+    return LUA_REFNIL;  /* 'nil' has a unique fixed reference */
+  }
+  t = lua_absindex(L, t);
+  if (lua_rawgeti(L, t, 1) == LUA_TNUMBER)  /* already initialized? */
+    ref = (int)lua_tointeger(L, -1);  /* ref = t[1] */
+  else {  /* first access */
+    lua_assert(!lua_toboolean(L, -1));  /* must be nil or false */
+    ref = 0;  /* list is empty */
+    lua_pushinteger(L, 0);  /* initialize as an empty list */
+    lua_rawseti(L, t, 1);  /* ref = t[1] = 0 */
+  }
+  lua_pop(L, 1);  /* remove element from stack */
+  if (ref != 0) {  /* any free element? */
+    lua_rawgeti(L, t, ref);  /* remove it from list */
+    lua_rawseti(L, t, 1);  /* (t[1] = t[ref]) */
+  }
+  else  /* no free elements */
+    ref = (int)lua_rawlen(L, t) + 1;  /* get a new reference */
+  lua_rawseti(L, t, ref);
+  return ref;
+}
+
+
+LUALIB_API void luaL_unref (lua_State *L, int t, int ref) {
+  if (ref >= 0) {
+    t = lua_absindex(L, t);
+    lua_rawgeti(L, t, 1);
+    lua_assert(lua_isinteger(L, -1));
+
+## liolib.c (lines 801-840)
+  luaL_setfuncs(L, meth, 0);  /* add file methods to method table */
+  lua_setfield(L, -2, "__index");  /* metatable.__index = method table */
+  lua_pop(L, 1);  /* pop metatable */
+}
+
+
+/*
+** function to (not) close the standard files stdin, stdout, and stderr
+*/
+static int io_noclose (lua_State *L) {
+  LStream *p = tolstream(L);
+  p->closef = &io_noclose;  /* keep file opened */
+  luaL_pushfail(L);
+  lua_pushliteral(L, "cannot close standard file");
+  return 2;
+}
+
+
+static void createstdfile (lua_State *L, FILE *f, const char *k,
+                           const char *fname) {
+  LStream *p = newprefile(L);
+  p->f = f;
+  p->closef = &io_noclose;
+  if (k != NULL) {
+    lua_pushvalue(L, -1);
+    lua_setfield(L, LUA_REGISTRYINDEX, k);  /* add file to registry */
+  }
+  lua_setfield(L, -2, fname);  /* add file to module */
+}
+
+
+LUAMOD_API int luaopen_io (lua_State *L) {
+  luaL_newlib(L, iolib);  /* new module */
+  createmeta(L);
+  /* create (and set) default files */
+  createstdfile(L, stdin, IO_INPUT, "stdin");
+  createstdfile(L, stdout, IO_OUTPUT, "stdout");
+  createstdfile(L, stderr, NULL, "stderr");
+  return 1;
+}
+
+## ltable.h (lines 1-40)
+/*
+** $Id: ltable.h $
+** Lua tables (hash)
+** See Copyright Notice in lua.h
+*/
+
+#ifndef ltable_h
+#define ltable_h
+
+#include "lobject.h"
+
+
+#define gnode(t,i)	(&(t)->node[i])
+#define gval(n)		(&(n)->i_val)
+#define gnext(n)	((n)->u.next)
+
+
+/*
+** Clear all bits of fast-access metamethods, which means that the table
+** may have any of these metamethods. (First access that fails after the
+** clearing will set the bit again.)
+*/
+#define invalidateTMcache(t)	((t)->flags &= cast_byte(~maskflags))
+
+
+/*
+** Bit BITDUMMY set in 'flags' means the table is using the dummy node
+** for its hash part.
+*/
+
+#define BITDUMMY		(1 << 6)
+#define NOTBITDUMMY		cast_byte(~BITDUMMY)
+#define isdummy(t)		((t)->flags & BITDUMMY)
+
+#define setnodummy(t)		((t)->flags &= NOTBITDUMMY)
+#define setdummy(t)		((t)->flags |= BITDUMMY)
+
+
+
+/* allocated size for hash nodes */
+
+## lgc.c (lines 41-80)
+
+
+/* mask with all color bits */
+#define maskcolors	(bitmask(BLACKBIT) | WHITEBITS)
+
+/* mask with all GC bits */
+#define maskgcbits      (maskcolors | AGEBITS)
+
+
+/* macro to erase all color bits then set only the current white bit */
+#define makewhite(g,x)	\
+  (x->marked = cast_byte((x->marked & ~maskcolors) | luaC_white(g)))
+
+/* make an object gray (neither white nor black) */
+#define set2gray(x)	resetbits(x->marked, maskcolors)
+
+
+/* make an object black (coming from any color) */
+#define set2black(x)  \
+  (x->marked = cast_byte((x->marked & ~WHITEBITS) | bitmask(BLACKBIT)))
+
+
+#define valiswhite(x)   (iscollectable(x) && iswhite(gcvalue(x)))
+
+#define keyiswhite(n)   (keyiscollectable(n) && iswhite(gckey(n)))
+
+
+/*
+** Protected access to objects in values
+*/
+#define gcvalueN(o)     (iscollectable(o) ? gcvalue(o) : NULL)
+
+
+/*
+** Access to collectable objects in array part of tables
+*/
+#define gcvalarr(t,i)  \
+	((*getArrTag(t,i) & BIT_ISCOLLECTABLE) ? getArrVal(t,i)->gc : NULL)
+
+
+
+## lua.h (lines 81-120)
+
+/* predefined values in the registry */
+/* index 1 is reserved for the reference mechanism */
+#define LUA_RIDX_GLOBALS	2
+#define LUA_RIDX_MAINTHREAD	3
+#define LUA_RIDX_LAST		3
+
+
+/* type of numbers in Lua */
+typedef LUA_NUMBER lua_Number;
+
+
+/* type for integer functions */
+typedef LUA_INTEGER lua_Integer;
+
+/* unsigned integer type */
+typedef LUA_UNSIGNED lua_Unsigned;
+
+/* type for continuation-function contexts */
+typedef LUA_KCONTEXT lua_KContext;
+
+
+/*
+** Type for C functions registered with Lua
+*/
+typedef int (*lua_CFunction) (lua_State *L);
+
+/*
+** Type for continuation functions
+*/
+typedef int (*lua_KFunction) (lua_State *L, int status, lua_KContext ctx);
+
+
+/*
+** Type for functions that read/write blocks when loading/dumping Lua chunks
+*/
+typedef const char * (*lua_Reader) (lua_State *L, void *ud, size_t *sz);
+
+typedef int (*lua_Writer) (lua_State *L, const void *p, size_t sz, void *ud);
+
+
+## lprefix.h (lines 1-40)
+/*
+** $Id: lprefix.h $
+** Definitions for Lua code that must come before any other header file
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lprefix_h
+#define lprefix_h
+
+
+/*
+** Allows POSIX/XSI stuff
+*/
+#if !defined(LUA_USE_C89)	/* { */
+
+#if !defined(_XOPEN_SOURCE)
+#define _XOPEN_SOURCE           600
+#elif _XOPEN_SOURCE == 0
+#undef _XOPEN_SOURCE  /* use -D_XOPEN_SOURCE=0 to undefine it */
+#endif
+
+/*
+** Allows manipulation of large files in gcc and some other compilers
+*/
+#if !defined(LUA_32BITS) && !defined(_FILE_OFFSET_BITS)
+#define _LARGEFILE_SOURCE       1
+#define _FILE_OFFSET_BITS       64
+#endif
+
+#endif				/* } */
+
+
+/*
+** Windows stuff
+*/
+#if defined(_WIN32)	/* { */
+
+#if !defined(_CRT_SECURE_NO_WARNINGS)
+#define _CRT_SECURE_NO_WARNINGS  /* avoid warnings about ISO C functions */
+#endif
+
+## lstate.h (lines 81-120)
+** 'allweak': tables with weak keys and/or weak values to be cleared.
+**
+** The exceptions to that "gray rule" are:
+** - TOUCHED2 objects in generational mode stay in a gray list (because
+** they must be visited again at the end of the cycle), but they are
+** marked black because assignments to them must activate barriers (to
+** move them back to TOUCHED1).
+** - Open upvalues are kept gray to avoid barriers, but they stay out
+** of gray lists. (They don't even have a 'gclist' field.)
+*/
+
+
+
+/*
+** About 'nCcalls':  This count has two parts: the lower 16 bits counts
+** the number of recursive invocations in the C stack; the higher
+** 16 bits counts the number of non-yieldable calls in the stack.
+** (They are together so that we can change and save both with one
+** instruction.)
+*/
+
+
+/* true if this thread does not have non-yieldable calls in the stack */
+#define yieldable(L)		(((L)->nCcalls & 0xffff0000) == 0)
+
+/* real number of C calls */
+#define getCcalls(L)	((L)->nCcalls & 0xffff)
+
+
+/* Increment the number of non-yieldable calls */
+#define incnny(L)	((L)->nCcalls += 0x10000)
+
+/* Decrement the number of non-yieldable calls */
+#define decnny(L)	((L)->nCcalls -= 0x10000)
+
+/* Non-yieldable call increment */
+#define nyci	(0x10000 | 1)
+
+
+
+
+## lvm.c (lines 281-320)
+    return 1;  /* jump back */
+  }
+  else
+    return 0;  /* finish the loop */
+}
+
+
+/*
+** Finish the table access 'val = t[key]' and return the tag of the result.
+*/
+lu_byte luaV_finishget (lua_State *L, const TValue *t, TValue *key,
+                                      StkId val, lu_byte tag) {
+  int loop;  /* counter to avoid infinite loops */
+  const TValue *tm;  /* metamethod */
+  for (loop = 0; loop < MAXTAGLOOP; loop++) {
+    if (tag == LUA_VNOTABLE) {  /* 't' is not a table? */
+      lua_assert(!ttistable(t));
+      tm = luaT_gettmbyobj(L, t, TM_INDEX);
+      if (l_unlikely(notm(tm)))
+        luaG_typeerror(L, t, "index");  /* no metamethod */
+      /* else will try the metamethod */
+    }
+    else {  /* 't' is a table */
+      tm = fasttm(L, hvalue(t)->metatable, TM_INDEX);  /* table's metamethod */
+      if (tm == NULL) {  /* no metamethod? */
+        setnilvalue2s(val);  /* result is nil */
+        return LUA_VNIL;
+      }
+      /* else will try the metamethod */
+    }
+    if (ttisfunction(tm)) {  /* is metamethod a function? */
+      tag = luaT_callTMres(L, tm, t, key, val);  /* call it */
+      return tag;  /* return tag of the result */
+    }
+    t = tm;  /* else try to access 'tm[key]' */
+    luaV_fastget(t, key, s2v(val), luaH_get, tag);
+    if (!tagisempty(tag))
+      return tag;  /* done */
+    /* else repeat (tail call 'luaV_finishget') */
+  }
+
+## lauxlib.h (lines 201-240)
+#define luaL_addchar(B,c) \
+  ((void)((B)->n < (B)->size || luaL_prepbuffsize((B), 1)), \
+   ((B)->b[(B)->n++] = (c)))
+
+#define luaL_addsize(B,s)	((B)->n += (s))
+
+#define luaL_buffsub(B,s)	((B)->n -= (s))
+
+LUALIB_API void (luaL_buffinit) (lua_State *L, luaL_Buffer *B);
+LUALIB_API char *(luaL_prepbuffsize) (luaL_Buffer *B, size_t sz);
+LUALIB_API void (luaL_addlstring) (luaL_Buffer *B, const char *s, size_t l);
+LUALIB_API void (luaL_addstring) (luaL_Buffer *B, const char *s);
+LUALIB_API void (luaL_addvalue) (luaL_Buffer *B);
+LUALIB_API void (luaL_pushresult) (luaL_Buffer *B);
+LUALIB_API void (luaL_pushresultsize) (luaL_Buffer *B, size_t sz);
+LUALIB_API char *(luaL_buffinitsize) (lua_State *L, luaL_Buffer *B, size_t sz);
+
+#define luaL_prepbuffer(B)	luaL_prepbuffsize(B, LUAL_BUFFERSIZE)
+
+/* }====================================================== */
+
+
+
+/*
+** {======================================================
+** File handles for IO library
+** =======================================================
+*/
+
+/*
+** A file handle is a userdata with metatable 'LUA_FILEHANDLE' and
+** initial structure 'luaL_Stream' (it may contain other fields
+** after that initial structure).
+*/
+
+#define LUA_FILEHANDLE          "FILE*"
+
+
+typedef struct luaL_Stream {
+  FILE *f;  /* stream (NULL for incompletely created streams) */
+
+## lobject.h (lines 481-520)
+/* Ensures that addresses after this type are always fully aligned. */
+typedef union UValue {
+  TValue uv;
+  LUAI_MAXALIGN;  /* ensures maximum alignment for udata bytes */
+} UValue;
+
+
+/*
+** Header for userdata with user values;
+** memory area follows the end of this structure.
+*/
+typedef struct Udata {
+  CommonHeader;
+  unsigned short nuvalue;  /* number of user values */
+  size_t len;  /* number of bytes */
+  struct Table *metatable;
+  GCObject *gclist;
+  UValue uv[1];  /* user values */
+} Udata;
+
+
+/*
+** Header for userdata with no user values. These userdata do not need
+** to be gray during GC, and therefore do not need a 'gclist' field.
+** To simplify, the code always use 'Udata' for both kinds of userdata,
+** making sure it never accesses 'gclist' on userdata with no user values.
+** This structure here is used only to compute the correct size for
+** this representation. (The 'bindata' field in its end ensures correct
+** alignment for binary data following this header.)
+*/
+typedef struct Udata0 {
+  CommonHeader;
+  unsigned short nuvalue;  /* number of user values */
+  size_t len;  /* number of bytes */
+  struct Table *metatable;
+  union {LUAI_MAXALIGN;} bindata;
+} Udata0;
+
+
+/* compute the offset of the memory area of a userdata */
+
+## lparser.c (lines 1401-1440)
+  }
+  leavelevel(ls);
+  return op;  /* return first untreated operator */
+}
+
+
+static void expr (LexState *ls, expdesc *v) {
+  subexpr(ls, v, 0);
+}
+
+/* }==================================================================== */
+
+
+
+/*
+** {======================================================================
+** Rules for Statements
+** =======================================================================
+*/
+
+
+static void block (LexState *ls) {
+  /* block -> statlist */
+  FuncState *fs = ls->fs;
+  BlockCnt bl;
+  enterblock(fs, &bl, 0);
+  statlist(ls);
+  leaveblock(fs);
+}
+
+
+/*
+** structure to chain all variables in the left-hand side of an
+** assignment
+*/
+struct LHS_assign {
+  struct LHS_assign *prev;
+  expdesc v;  /* variable (global, local, upvalue, or indexed) */
+};
+
+
+## luaconf.h (lines 1-40)
+/*
+** $Id: luaconf.h $
+** Configuration file for Lua
+** See Copyright Notice in lua.h
+*/
+
+
+#ifndef luaconf_h
+#define luaconf_h
+
+#include <limits.h>
+#include <stddef.h>
+
+
+/*
+** ===================================================================
+** General Configuration File for Lua
+**
+** Some definitions here can be changed externally, through the compiler
+** (e.g., with '-D' options): They are commented out or protected
+** by '#if !defined' guards. However, several other definitions
+** should be changed directly here, either because they affect the
+** Lua ABI (by making the changes here, you ensure that all software
+** connected to Lua, such as C libraries, will be compiled with the same
+** configuration); or because they are seldom changed.
+**
+** Search for "@@" to find all configurable definitions.
+** ===================================================================
+*/
+
+
+/*
+** {====================================================================
+** System Configuration: macros to adapt (if needed) Lua to some
+** particular platform, for instance restricting it to C89.
+** =====================================================================
+*/
+
+/*
+@@ LUA_USE_C89 controls the use of non-ISO-C89 features.

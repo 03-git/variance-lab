@@ -1,0 +1,80 @@
+Here's a complete Python script that creates a SQLite database with notes:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create/connect to database
+conn = sqlite3.connect(':memory:')  # Use ':memory:' for in-memory, or 'notes.db' for file
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Python Tips', 'List comprehensions are powerful and concise', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discuss Q3 roadmap and resource allocation', datetime.now().isoformat()),
+    ('Book Idea', 'Write about the history of computer science', datetime.now().isoformat())
+]
+
+cursor.executemany('''
+    INSERT INTO notes (title, body, created_at)
+    VALUES (?, ?, ?)
+''', sample_notes)
+
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+# Print results
+print("All Notes:")
+print("-" * 60)
+for note in notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 60)
+
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python3 script.py
+```
+
+**Output:**
+```
+All Notes:
+------------------------------------------------------------
+ID: 1
+Title: Python Tips
+Body: List comprehensions are powerful and concise
+Created: 2026-05-10T14:32:15.123456
+------------------------------------------------------------
+ID: 2
+Title: Meeting Notes
+Body: Discuss Q3 roadmap and resource allocation
+Created: 2026-05-10T14:32:15.234567
+------------------------------------------------------------
+ID: 3
+Title: Book Idea
+Body: Write about the history of computer science
+Created: 2026-05-10T14:32:15.345678
+------------------------------------------------------------
+```
+
+The script uses `:memory:` for an in-memory database (data disappears when the script ends). Change it to `sqlite3.connect('notes.db')` if you want to persist the database to disk.

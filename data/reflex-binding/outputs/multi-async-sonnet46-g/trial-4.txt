@@ -1,0 +1,44 @@
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info('peername')
+    print(f"Connected: {addr}")
+    try:
+        async for line in reader:
+            writer.write(line)
+            await writer.drain()
+    except asyncio.IncompleteReadError:
+        pass
+    finally:
+        print(f"Disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main() -> None:
+    server = await asyncio.start_server(handle_client, '127.0.0.1', 8888)
+    addr = server.sockets[0].getsockname()
+    print(f"Listening on {addr}")
+    async with server:
+        await server.serve_forever()
+
+asyncio.run(main())
+```
+
+**How to run:**
+
+```bash
+# Terminal 1 — start the server
+python echo_server.py
+
+# Terminal 2 — connect a client
+nc 127.0.0.1 8888
+hello        # type this, get "hello" echoed back
+```
+
+**Multiple clients simultaneously** — open several `nc` sessions; each runs in its own coroutine via `asyncio.start_server`, no threads needed.
+
+Key points:
+- `asyncio.start_server` manages the accept loop and dispatches each connection to `handle_client` as a coroutine.
+- `async for line in reader` reads until newline; the loop exits cleanly on EOF.
+- `writer.drain()` yields control so other coroutines can run while the OS flushes the write buffer.

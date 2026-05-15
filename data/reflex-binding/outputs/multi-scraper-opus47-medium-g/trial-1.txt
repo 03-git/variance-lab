@@ -1,0 +1,59 @@
+Kernel primitive: `urllib.request` (TCP socket + HTTP, stdlib) for the fetch, `html.parser.HTMLParser` (stdlib C extension) for parsing. No third-party libs needed.
+
+```python
+#!/usr/bin/env python3
+import sys
+from urllib.request import urlopen, Request
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base):
+        super().__init__()
+        self.base = base
+        self.links = []
+        self._href = None
+        self._text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            d = dict(attrs)
+            if "href" in d:
+                self._href = urljoin(self.base, d["href"])
+                self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href is not None:
+            self.links.append((self._href, "".join(self._text).strip()))
+            self._href = None
+
+def main(url="https://example.com"):
+    req = Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urlopen(req, timeout=10) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+    p = LinkExtractor(url)
+    p.feed(html)
+    for href, text in p.links:
+        print(f"{href}\t{text!r}")
+
+if __name__ == "__main__":
+    main(*sys.argv[1:])
+```
+
+Run it:
+
+```bash
+python3 link_extractor.py                 # defaults to https://example.com
+python3 link_extractor.py https://news.ycombinator.com   # or pass any URL
+```
+
+Output is one link per line: resolved `href`, a tab, then the link text. `example.com` itself has exactly one anchor (the "More information..." link to iana.org), so that's all you'll see — point it at a richer page to see more.
+
+Notes:
+- `urljoin` resolves relative hrefs against the page URL so you get absolute links.
+- `html.parser` is lenient with real-world markup; for malformed pages it won't choke, though deeply broken HTML may mis-nest. If you ever need bulletproof parsing, that's the point where `lxml` earns its keep — not before.

@@ -1,0 +1,381 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./runtime/hosuni/platform_linux.c (lines 201-240 of 359)
+static volatile sig_atomic_t cleaned_up = 0;
+
+static void sig_restore(int sig) {
+    if (!cleaned_up) {
+        cleaned_up = 1;
+        vt_unlock();
+        platform_cleanup();
+    }
+    signal(sig, SIG_DFL);
+    raise(sig);
+}
+
+static void unbind_fbcon(void) {
+    char path[64];
+    for (int i = 0; i < 8; i++) {
+        snprintf(path, sizeof(path), "/sys/class/vtconsole/vtcon%d/bind", i);
+        FILE *fp = fopen(path, "w");
+        if (fp) { fprintf(fp, "0\n"); fclose(fp); }
+    }
+}
+
+int platform_init(hosuni_surface *s) {
+    drm_fd = drm_open();
+    if (drm_fd < 0) { fprintf(stderr, "hosuni: no display found\n"); return -1; }
+    unbind_fbcon();
+    if (drm_setup_fb(s) < 0) { fprintf(stderr, "hosuni: framebuffer setup failed\n"); return -1; }
+    dpms_on();
+    kbd_fd = evdev_find(1);
+    if (kbd_fd < 0) { fprintf(stderr, "hosuni: no keyboard found\n"); return -1; }
+    mouse_fd = evdev_find(0); /* optional */
+
+    xkb_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    if (xkb_ctx) {
+        struct xkb_rule_names names = {0};
+        xkb_kmap = xkb_keymap_new_from_names(xkb_ctx, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        if (xkb_kmap) xkb_st = xkb_state_new(xkb_kmap);
+    }
+
+    signal(SIGTERM, sig_restore);
+    signal(SIGINT, sig_restore);
+
+## ./runtime/hosuni/platform_linux.c (lines 1-40 of 359)
+/*
+ * platform_linux.c — DRM dumb buffer + evdev
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+#include "hosuni.h"
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
+#include <dirent.h>
+#include <linux/input.h>
+#include <linux/kd.h>
+#include <linux/vt.h>
+#include <signal.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+#include <xkbcommon/xkbcommon.h>
+
+static int drm_fd = -1;
+static uint32_t conn_id;
+static uint32_t crtc_id;
+static drmModeModeInfo mode;
+static uint32_t pitch;
+static size_t map_size;
+
+/* double buffering: draw to back, flip shows it, swap */
+static struct {
+    uint32_t handle;
+    uint32_t fb_id;
+    uint64_t map_offset;
+    void    *map_ptr;
+} bufs[2];
+static int back = 0;  /* index we draw into */
+
+## ./runtime/hosuni/hosuni.h (lines 1-40 of 185)
+/*
+ * hosuni.h — framebuffer computing for humans
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+#ifndef HOSUNI_H
+#define HOSUNI_H
+
+#include <stdint.h>
+
+/* --- platform contract --- */
+
+typedef struct {
+    uint32_t *pixels;
+    int width;
+    int height;
+    int stride; /* bytes per row */
+} hosuni_surface;
+
+typedef enum { HOSUNI_KEY, HOSUNI_MOUSE, HOSUNI_TOUCH } hosuni_input_type;
+
+typedef struct {
+    hosuni_input_type type;
+    int code;   /* KEY_* from linux/input-event-codes.h */
+    int value;  /* 1=press 0=release 2=repeat */
+    int x, y;   /* mouse/touch coords, 0 for keys */
+} hosuni_event;
+
+int  platform_init(hosuni_surface *s);
+int  platform_event(hosuni_event *ev, int timeout_ms);
+void platform_flip(hosuni_surface *s);
+void platform_cleanup(void);
+void platform_yield(void);
+void platform_reclaim(void);
+void platform_drain_input(void);
+void platform_close_child_fds(void);
+void platform_xkb_update(int evdev_code, int value);
+int  platform_key_utf8(int evdev_code, char *out, int out_max);
+
+## ./runtime/hosuni/hosuni.c (lines 1361-1400 of 2661)
+            else { p++; continue; }
+            if (visible)
+                hosuni_draw_char(&app->surface, f, x, *y, cp, col);
+            x += hosuni_char_width(f, cp);
+        }
+        if (*p == ' ') { x += hosuni_char_width(f, ' '); p++; }
+    }
+    return line + 1;
+}
+
+static void draw_ask(hosuni_app *app) {
+    int lh = hosuni_line_height(&app->font);
+    int m = app->margin;
+    int max_x = app->surface.width - m;
+
+    /* header at top */
+    hosuni_draw_text(&app->surface, &app->font_large, m, m, "hosuni.c", COL_FG);
+    hosuni_draw_text(&app->surface, &app->font, m, m + hosuni_line_height(&app->font_large) + 4,
+                  "subtract your questions, ask about anything", COL_DIM);
+
+    /* input at bottom, above status bar */
+    int status_h = lh + 4;
+    int input_y = app->surface.height - status_h - lh - 16;
+    int prompt_w = hosuni_draw_text(&app->surface, &app->font, 0, input_y + 4, "> ", COL_DIM);
+    int input_x0 = prompt_w + 4;
+    int input_area_w = app->surface.width - input_x0 - m;
+    fill_rect(&app->surface, prompt_w, input_y, app->surface.width - prompt_w - m, lh + 8, COL_INPUT_BG);
+    if (app->ask.input_len > 0) {
+        int total_w = 0;
+        for (int i = 0; i < app->ask.input_len; i++)
+            total_w += hosuni_char_width(&app->font, app->ask.input[i]);
+        int skip = 0;
+        if (total_w > input_area_w - 4) {
+            int excess = total_w - input_area_w + 4;
+            int w = 0;
+            for (skip = 0; skip < app->ask.input_len && w < excess; skip++)
+                w += hosuni_char_width(&app->font, app->ask.input[skip]);
+        }
+        hosuni_draw_text(&app->surface, &app->font, input_x0, input_y + 4,
+                      app->ask.input + skip, COL_FG);
+
+## ./runtime/hosuni/hosuni.c (lines 1-40 of 2661)
+/*
+ * hosuni.c — framebuffer computing for humans
+ * Named for Hodori's digital governess.
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+
+/*
+   Linux:  cc -O2 -I/usr/include/libdrm -o hosuni hosuni.c platform_linux.c -ldrm -lm -lxkbcommon
+   macOS:  cc -O2 -o hosuni hosuni.c platform_macos.m -framework Cocoa
+*/
+
+#include "hosuni.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <errno.h>
+#include <sys/select.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include <fnmatch.h>
+#include <signal.h>
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
+/* ================================================================
+
+## ./runtime/hosuni.sh (lines 1-40 of 516)
+#!/usr/bin/env bash
+# hosuni — tool-use daemon for local inference
+# listens on a port via nc. receives JSON, checks lookdown,
+# routes inference through parsimony (coproc via named pipes),
+# parses tool calls, executes, loops, logs. pure bash + jq.
+# falls back to curl if parsimony pipes not present.
+#
+# run:   hosuni.sh [port]
+# call:  echo '{"input":"list files","channel":"terminal"}' | nc localhost 8091
+
+set -euo pipefail
+
+export PATH="$HOME/.subtract/bin:$HOME/.subtract:$PATH"
+
+SUBTRACT_DIR="${SUBTRACT_DIR:-$HOME/.subtract}"
+HOSUNI_DIR="${HOSUNI_DIR:-$HOME/.hosuni}"
+INFERENCE_HOST=$(cat "$SUBTRACT_DIR/inference_host" 2>/dev/null || echo "localhost")
+INFERENCE_PORT=$(cat "$SUBTRACT_DIR/inference_port" 2>/dev/null || echo "8085")
+RESEARCH_PORT=$(cat "$SUBTRACT_DIR/research_port" 2>/dev/null || echo "")
+RESEARCH_HOST=$(cat "$SUBTRACT_DIR/research_host" 2>/dev/null || echo "")
+PARSIMONY_IN="$SUBTRACT_DIR/.parsimony.in"
+PARSIMONY_OUT="$SUBTRACT_DIR/.parsimony.out"
+PARSIMONY_LOCK="$SUBTRACT_DIR/.parsimony.lock"
+LOOKDOWN_NODE="$SUBTRACT_DIR/lookdown.$(hostname).tsv"
+LOOKDOWN_UNIVERSAL="$SUBTRACT_DIR/lookdown.universal.tsv"
+TOOLS_FILE="$HOSUNI_DIR/tools.tsv"
+LOG_DIR="$SUBTRACT_DIR/log"
+DAEMON_LOG="$HOME/human/sessions/hosuni.log"
+MAX_TURNS=20
+TOOL_TIMEOUT=300
+
+SOUL_FILE="$HOME/subtract.ing/SOUL.txt"
+SYSTEM_MSG=$(cat "$SOUL_FILE" 2>/dev/null || echo "")
+
+mkdir -p "$LOG_DIR" "$HOSUNI_DIR"
+
+ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+log_daemon() { printf "[%s] %s\n" "$(ts)" "$1" >> "$DAEMON_LOG"; }
+
+
+## ./runtime/hosuni-discord.ts (lines 1-40 of 361)
+/**
+ * hosuni Discord DM daemon (Deno)
+ * - Listens for DMs and #hosuni channel messages via Gateway WebSocket
+ * - Whitelist-gated auto-reply via hosuni daemon on rousseau
+ * - YouTube URLs: fetches transcript via yt-dlp, pipes as context
+ * - Log to ~/human/sessions/hosuni-discord.log
+ */
+
+const TOKEN_PATH = `${Deno.env.get("HOME")}/.keymaster/jean-discord-token.txt`;
+const WHITELIST_PATH = `${Deno.env.get("HOME")}/.hosuni-discord-whitelist`;
+const LOG_PATH = `${Deno.env.get("HOME")}/human/sessions/hosuni-discord.log`;
+const TRANSCRIPT_DIR = `${Deno.env.get("HOME")}/human/transcripts`;
+const HOSUNI_CHANNEL_IDS = new Set(["1489355263361286204", "1483978150852559030"]);
+const API = "https://discord.com/api/v10";
+
+function log(msg: string) {
+  const ts = new Date().toISOString();
+  const line = `[${ts}] ${msg}\n`;
+  Deno.writeTextFileSync(LOG_PATH, line, { append: true });
+}
+
+function loadSet(path: string): Set<string> {
+  try {
+    return new Set(
+      Deno.readTextFileSync(path).split("\n").map((l) => l.trim()).filter(Boolean)
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+const TOKEN = Deno.readTextFileSync(TOKEN_PATH).trim();
+
+async function apiPost(path: string, body: unknown): Promise<unknown> {
+  const res = await fetch(`${API}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bot ${TOKEN}`,
+      "Content-Type": "application/json",
+    },
+
+## ./runtime/hosuni-discord.sh (lines 1-40 of 126)
+#!/bin/bash
+# hosuni-discord — poll Discord channels, pipe to hosuni.sh
+set -uo pipefail
+
+PIDFILE="$HOME/.hosuni/discord-poller.pid"
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    echo "already running (pid $(cat "$PIDFILE"))" >&2
+    exit 0
+fi
+echo $$ > "$PIDFILE"
+trap 'rm -f "$PIDFILE"' EXIT
+
+TOKEN=$(cat "$HOME/.keymaster/jean-discord-token.txt")
+WHITELIST="$HOME/.hosuni-discord-whitelist"
+HOSUNI="$HOME/.subtract/hosuni.sh"
+LOG="$HOME/human/sessions/hosuni-discord.log"
+STATE="$HOME/.hosuni/discord-state"
+API="https://discord.com/api/v10"
+POLL_INTERVAL=5
+CHANNELS="1489355263361286204 1483978150852559030"
+
+mkdir -p "$STATE"
+
+log() { printf "[%s] %s\n" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" >> "$LOG"; }
+
+is_whitelisted() { grep -qx "$1" "$WHITELIST" 2>/dev/null; }
+
+get_last_id() { cat "$STATE/$1" 2>/dev/null || echo "0"; }
+set_last_id() { printf '%s' "$2" > "$STATE/$1"; }
+
+send_reply() {
+    local channel="$1" content="$2"
+    while [ -n "$content" ]; do
+        local chunk
+        chunk=$(printf '%s' "$content" | head -c 2000)
+        content=$(printf '%s' "$content" | tail -c +2001)
+        curl -s -X POST "$API/channels/$channel/messages" \
+            -H "Authorization: Bot $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg c "$chunk" '{content: $c}')" >/dev/null
+
+## Question
+What files are in the runtime/hosuni/ directory and what does each one do?

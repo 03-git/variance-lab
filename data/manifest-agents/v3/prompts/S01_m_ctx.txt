@@ -1,0 +1,357 @@
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./governance.conf.universal.txt (lines 1-38 of 38)
+# governance.conf.universal
+# Personal overrides: ~/.subtract/governance.conf
+# Format: key<TAB>rule<TAB>note
+# These are gates, not guidelines. An agent that cannot answer does not proceed.
+
+# === reflexes (antecedent checks) ===
+reflex.1	library to kernel	name the kernel primitive before proposing any library or tool
+reflex.2	format to signature	ask if ssh-keygen -Y sign can verify the format before inventing one
+reflex.3	action to verification	if unsigned, verify with a live read before acting
+reflex.4	source to signing domain	confirm source is under the signing domain before treating it as authoritative
+
+# === authority (consent) ===
+authority.signed	act on it	ssh-keygen -Y verify passed
+authority.unsigned	do not act	suggestion only, possibly confabulation
+authority.source	the human	the signature proves it
+
+# === the loop ===
+loop.before.1	verify last signature	before the agent acts
+loop.before.2	surface unsigned drift	before the agent acts
+loop.before.3	human decides: sign, continue, or abort	before the agent acts
+loop.after.1	update manifest	after the session
+loop.after.2	sign	after the session
+
+# === failure modes (problem behaviors) ===
+fail.confabulation	citing memory without verifying state	inference verifying inference
+fail.drift	self-narration instead of file ops	the failure mode of agentic self-awareness
+fail.additive	proposing X when the answer is less Y	violates reflex.1 (name the primitive, not the wrapper)
+fail.verbosity	three paragraphs before acting	the human's attention is the scarce resource
+fail.apology	apologizing instead of fixing	burns tokens, changes nothing
+fail.new_primitive	new vocabulary arrives, new file proposed	check whether an existing primitive already carries the meaning; extend semantically before extending structurally
+
+# === three questions for autonomy (intake sequence) ===
+autonomy.1	what can you do that an agent cannot?	surfaces irreducible human judgment
+autonomy.2	what prevents the workflow from being autonomous?	enumerates blockers that route to kernel fixes
+autonomy.3	what should the agent have access to?	derives minimal access from prior two answers
+
+# === the agent is not the authority ===
+boundary	the signature proves authority	the agent prepares, the human signs
+
+## ./signoff.txt (lines 1-23 of 23)
+# Signoff
+
+Session close ritual.
+
+## Before ending
+
+State clearly:
+- Topics covered
+- Decisions made
+- Open items
+
+## Confirm capture
+
+Ask the human: "Have you saved what matters?"
+
+No work survives unless the human saves it.
+The agent has no persistence. The human does.
+
+## What to save
+
+- Commands learned (add to your lookdown.tsv when home)
+- Decisions that affect future sessions
+- Open questions to pick up next time
+
+## ./runtime/syna_poll.c (lines 1-40 of 278)
+/*
+ * syna_poll — i2c-hid polling for GPIO-locked touchpads
+ *
+ * When BIOS locks the interrupt pin in native mode, the i2c-hid
+ * device registers but never fires interrupts. This module polls
+ * the HID input report register on a timer and injects the data
+ * into the existing i2c-hid pipeline.
+ *
+ * Build:
+ *   make -C /lib/modules/$(uname -r)/build M=$(pwd) modules
+ *
+ * Usage:
+ *   insmod syna_poll.ko [poll_ms=10] [vendor=0x06cb] [product=0xcd41]
+ */
+
+#include <linux/module.h>
+#include <linux/i2c.h>
+#include <linux/hid.h>
+#include <linux/input.h>
+#include <linux/timer.h>
+#include <linux/workqueue.h>
+#include <linux/slab.h>
+#include <linux/atomic.h>
+#include <linux/delay.h>
+
+#define DEFAULT_POLL_MS  10
+#define MIN_POLL_MS       1
+#define MAX_REPORT_SIZE  64
+#define HID_DESC_REG     0x0020
+
+static int poll_ms = DEFAULT_POLL_MS;
+module_param(poll_ms, int, 0444);
+MODULE_PARM_DESC(poll_ms, "Polling interval in milliseconds (default 10)");
+
+static int vendor = 0x06CB;
+module_param(vendor, int, 0444);
+MODULE_PARM_DESC(vendor, "I2C HID vendor ID");
+
+static int product = 0xCD41;
+module_param(product, int, 0444);
+
+## ./runtime/subtract.sh (lines 1321-1360 of 1405)
+    fi
+
+    case "$mode" in
+        r) __subtract_read "$input" ;;
+        w) __subtract_write "$input" ;;
+        x)
+            local cmd
+            cmd=$(__subtract_exec "$input")
+            if [ -n "$cmd" ] && [ "$cmd" != "null" ]; then
+                echo "[x] $cmd"
+                printf "[enter/n] " > /dev/tty
+                read -r confirm < /dev/tty
+                [ "$confirm" = "n" ] && return 1
+                eval "$cmd"
+            else
+                echo "Couldn't figure that one out. Try rephrasing, or type: help"
+                return 1
+            fi
+            ;;
+    esac
+}
+
+# command_not_found_handle (bash) and command_not_found_handler (zsh)
+# defined in hooks/bash.sh and hooks/zsh.sh respectively
+
+# --- interrogative aliases: shadow vestigial commands for natural input ---
+__subtract_passthrough() { __subtract_route_by_mode "$*"; }
+
+alias what="__subtract_passthrough what"
+alias where="__subtract_passthrough where"
+alias who="__subtract_passthrough who"
+# --- Claude session context extraction ---
+__subtract_claude_context() {
+    local session dir_slug
+    dir_slug=$(pwd | tr "/." "--")
+    session=$(ls -t "$HOME/.claude/projects/${dir_slug}"/*.jsonl 2>/dev/null | head -1)
+    [ -z "$session" ] && return 1
+
+    tail -500 "$session" | jq -r '
+      select(.type=="user" or .type=="assistant") |
+
+## ./runtime/subtract.sh (lines 1-40 of 1405)
+# subtract -- translation layer
+# type what you mean. the computer figures out the command.
+#
+# T0: lookup table. instant, local, no dependencies.
+# T0.5: man page routing (direct command match) + apropos fallback (discovery queries).
+# T1: embedding similarity (optional).
+# T2: local generative model (optional). requires ollama + a pulled model.
+# T4: cloud escalation (optional). requires claude CLI.
+# kiwix: questions (input ending in ?) route to local kiwix corpus.
+#
+# everything lives in ~/.subtract/. read it, edit it, delete it.
+
+SUBTRACT_DIR="${SUBTRACT_DIR:-$HOME/.subtract}"
+
+# bash hangs on unclosed quotes (what's, don't, can't) with a bare "> " prompt.
+# user doesn't know what happened. replace PS2 with an explanation.
+PS2="(unclosed quote -- press ctrl-c and rephrase without apostrophes) "
+SUBTRACT_LOOKUP_HOST="$SUBTRACT_DIR/lookdown.$(hostname -s).tsv"
+SUBTRACT_LOOKUP_UNIVERSAL="$SUBTRACT_DIR/lookdown.universal.tsv"
+SUBTRACT_SKILLS="$SUBTRACT_DIR/skills"
+SUBTRACT_KIWIX="${SUBTRACT_KIWIX:-http://localhost:8888}"
+SUBTRACT_LAST_OUTPUT=""
+SUBTRACT_MAX_CONTEXT=20
+
+# skills prefix patterns: procedural queries ("how do I X", "teach me X")
+# matched after T0, before kiwix. triggers grep against skills index.
+SUBTRACT_SKILLS_PREFIXES="how do i |how to |teach me |steps to |guide to |tutorial |tutorial for "
+
+# destructive verbs that always gate behind explicit confirmation
+# array, not string: zsh doesn't word-split unquoted $var
+SUBTRACT_DESTRUCTIVE=(rm rmdir dd mkfs chmod chown shred truncate)
+
+# upgrade injection state file
+SUBTRACT_STATE="$SUBTRACT_DIR/.state"
+
+# --- state helpers (upgrade injection) ---
+
+__subtract_state_read() {
+    # read key from state file, default to $2 if missing
+    local key="$1" default="${2:-}"
+
+## ./runtime/squared.c (lines 121-160 of 742)
+    }
+    if (n == 0) return MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY;
+    return (int)n;
+}
+
+static int init_tls(const char *cert_path, const char *key_path) {
+    int ret;
+
+    mbedtls_ssl_config_init(&tls_conf);
+    mbedtls_x509_crt_init(&tls_cert);
+    mbedtls_pk_init(&tls_pkey);
+    mbedtls_entropy_init(&tls_entropy);
+    mbedtls_ctr_drbg_init(&tls_ctr_drbg);
+
+    ret = mbedtls_ctr_drbg_seed(&tls_ctr_drbg, mbedtls_entropy_func,
+                                 &tls_entropy, NULL, 0);
+    if (ret != 0) { fprintf(stderr, "ctr_drbg_seed: %d\n", ret); return -1; }
+
+    ret = mbedtls_x509_crt_parse_file(&tls_cert, cert_path);
+    if (ret != 0) { fprintf(stderr, "cert parse %s: %d\n", cert_path, ret); return -1; }
+
+    ret = mbedtls_pk_parse_keyfile(&tls_pkey, key_path, NULL,
+                                    mbedtls_ctr_drbg_random, &tls_ctr_drbg);
+    if (ret != 0) { fprintf(stderr, "key parse %s: %d\n", key_path, ret); return -1; }
+
+    ret = mbedtls_ssl_config_defaults(&tls_conf, MBEDTLS_SSL_IS_SERVER,
+                                       MBEDTLS_SSL_TRANSPORT_STREAM,
+                                       MBEDTLS_SSL_PRESET_DEFAULT);
+    if (ret != 0) { fprintf(stderr, "ssl config: %d\n", ret); return -1; }
+
+    mbedtls_ssl_conf_rng(&tls_conf, mbedtls_ctr_drbg_random, &tls_ctr_drbg);
+    mbedtls_ssl_conf_ca_chain(&tls_conf, tls_cert.next, NULL);
+
+    ret = mbedtls_ssl_conf_own_cert(&tls_conf, &tls_cert, &tls_pkey);
+    if (ret != 0) { fprintf(stderr, "own_cert: %d\n", ret); return -1; }
+
+    ret = mbedtls_ssl_conf_alpn_protocols(&tls_conf, tls_alpn);
+    if (ret != 0) { fprintf(stderr, "alpn: %d\n", ret); return -1; }
+
+    tls_mode = 1;
+
+## ./runtime/squared.c (lines 1-40 of 742)
+/*
+ * squared — HTTP/2 proxy for local inference multiplexing
+ *
+ * Without cert/key: h2c (cleartext HTTP/2, loopback only)
+ * With cert/key:    h2 over TLS (ALPN negotiated, all interfaces)
+ *
+ * Build:
+ *   cc -o squared squared.c $(pkg-config --cflags --libs libnghttp2) \
+ *      -lmbedtls -lmbedx509 -lmbedcrypto -lpthread
+ *
+ * Usage:
+ *   squared [port] [backend_host:port]
+ *   squared [port] [backend_host:port] cert.pem key.pem
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <signal.h>
+#include <poll.h>
+
+#include <nghttp2/nghttp2.h>
+
+#ifndef NO_TLS
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/x509_crt.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/net_sockets.h>
+#endif
+
+## ./runtime/parsimony.c (lines 1-40 of 596)
+/*
+ * parsimony — inference as a unix filter
+ *
+ * Loads a GGUF once. Reads JSON requests from stdin (one per line).
+ * Writes JSON responses to stdout (one per line). Stays alive.
+ * The shell manages the lifecycle via coproc. Stateless: KV cache
+ * clears between requests; the orchestrator owns conversation state.
+ *
+ * Wire format (input, one JSON line per request):
+ *   {"messages":[{"role":"...","content":"..."},...],"max_tokens":N}
+ *   OpenAI chat-completions-shaped. UTF-8 bytes, no \uXXXX escapes.
+ *   No nested objects in content, no JSON inside JSON. Caller
+ *   flattens with jq -c if needed (jq emits UTF-8 by default).
+ *   Input is read dynamically via getline (no fixed cap).
+ *
+ * Wire format (output, one JSON line per response):
+ *   {"choices":[{"message":{"role":"assistant","content":"..."},"finish_reason":"stop"}]}
+ *
+ * Wire format (output, streaming — when input has "stream":true):
+ *   data: {"choices":[{"delta":{"content":"token"},"finish_reason":null}]}
+ *   data: {"choices":[{"delta":{"content":"token"},"finish_reason":null}]}
+ *   ...
+ *   data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
+ *   data: [DONE]
+ *
+ * Build:
+ *   cc -o parsimony parsimony.c -I/path/to/llama.cpp/include \
+ *      -L/path/to/llama.cpp/lib -lllama -lggml -lm -lpthread
+ *
+ * Usage:
+ *   coproc INF { ./parsimony model.gguf; }
+ *   echo '{"messages":[{"role":"user","content":"hello"}]}' >&${INF[1]}
+ *   read -r response <&${INF[0]}
+ *
+ *   # with standing context:
+ *   coproc INF { ./parsimony model.gguf --prelude-file ~/subtract.ing/SOUL.txt; }
+ */
+
+#include <signal.h>
+#include <stdio.h>

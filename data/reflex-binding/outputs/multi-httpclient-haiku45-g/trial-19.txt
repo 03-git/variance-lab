@@ -1,0 +1,49 @@
+Here's a Python script that does what you're asking for:
+
+```python
+import sys
+import requests
+
+if len(sys.argv) < 2:
+    print("Usage: python script.py <url>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    response = requests.get(url, timeout=10)
+    
+    print(f"Status Code: {response.status_code}")
+    print("\nHeaders:")
+    for key, value in response.headers.items():
+        print(f"  {key}: {value}")
+    
+    print("\nBody (first 500 characters):")
+    body = response.text[:500]
+    print(body)
+    if len(response.text) > 500:
+        print("...[truncated]")
+        
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+```
+
+**To run it:**
+
+```bash
+# First, ensure you have requests installed
+pip install requests
+
+# Then run with a URL
+python script.py https://example.com
+```
+
+**How it works:**
+- The `requests.get()` method automatically follows redirects by default (up to 30 by default)
+- It prints the final status code after any redirects
+- Headers are displayed in a readable format
+- The body is limited to the first 500 characters with a truncation indicator if longer
+- It includes error handling for network issues and a 10-second timeout
+
+If you need to customize redirect behavior, you can add `allow_redirects=False` to prevent following redirects, or `max_redirects=n` to change the limit.

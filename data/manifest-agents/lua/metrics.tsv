@@ -1,0 +1,31 @@
+id	arm	question	wall_ms	prompt_tokens	completion_tokens
+T01	M	What are the main source files that implement the Lua parser and what does each one do?	119684	4318	605
+T01	R	What are the main source files that implement the Lua parser and what does each one do?	15161	3707	342
+T02	M	What functions does lapi.c export and what is its role in the Lua architecture?	20734	3944	699
+T02	R	What functions does lapi.c export and what is its role in the Lua architecture?	20030	3537	597
+T03	M	What does the Makefile build and what targets does it define?	17812	4536	470
+T03	R	What does the Makefile build and what targets does it define?	22212	3551	536
+T04	M	What header files define the Lua public API vs internal API?	13172	4255	267
+T04	R	What header files define the Lua public API vs internal API?	19138	3340	504
+T05	M	List all files that implement standard library functions (string, table, math, etc).	17693	4626	494
+T05	R	List all files that implement standard library functions (string, table, math, etc).	14033	2966	302
+S01	M	How does Lua's garbage collector work? Trace the implementation across files.	26731	4078	853
+S01	R	How does Lua's garbage collector work? Trace the implementation across files.	29963	3949	991
+S02	M	How does Lua implement coroutines? Which files and functions are involved?	15553	3453	434
+S02	R	How does Lua implement coroutines? Which files and functions are involved?	22290	3518	641
+S03	M	Trace a Lua function call from the C API through to bytecode execution.	52079	4299	1647
+S03	R	Trace a Lua function call from the C API through to bytecode execution.	24686	3994	700
+S04	M	How does the Lua compiler transform source code into bytecodes? What are the compilation phases?	20451	4488	629
+S04	R	How does the Lua compiler transform source code into bytecodes? What are the compilation phases?	100865	3564	916
+S05	M	How does Lua implement tables (hash + array part)? Which files handle table operations?	55637	5161	907
+S05	R	How does Lua implement tables (hash + array part)? Which files handle table operations?	71106	4197	1278
+C01	M	Which files handle memory allocation and what patterns do they share?	35957	4622	668
+C01	R	Which files handle memory allocation and what patterns do they share?	25275	3465	739
+C02	M	Compare how string and table types are represented internally.	55311	5250	2421
+C02	R	Compare how string and table types are represented internally.	54495	3824	2521
+C03	M	What error handling mechanisms exist across the codebase and how do they relate?	27507	3716	1112
+C03	R	What error handling mechanisms exist across the codebase and how do they relate?	55002	4139	1956
+C04	M	Which files reference the lua_State structure and what aspects of it do they access?	19470	5068	465
+C04	R	Which files reference the lua_State structure and what aspects of it do they access?	26283	3463	817
+C05	M	Compare the implementation of the debug library with the core debug infrastructure.	26180	3770	918
+C05	R	Compare the implementation of the debug library with the core debug infrastructure.	28874	2995	1000

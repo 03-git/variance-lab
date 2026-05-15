@@ -1,0 +1,38 @@
+```python
+# test_celsius_to_fahrenheit.py
+import unittest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run it:
+
+```
+python -m unittest test_celsius_to_fahrenheit.py -v
+```
+
+Notes:
+- `unittest` is stdlib — no install needed.
+- `"hot" * 9` actually succeeds in Python (string repetition), but the subsequent `/ 5` raises `TypeError`, so the assertion holds. If you'd rather fail fast, add an explicit `isinstance(c, (int, float))` guard at the top of the function and the test still passes.
+- Swap in `pytest test_celsius_to_fahrenheit.py` if you prefer pytest; the same file works unchanged.

@@ -1,0 +1,48 @@
+To build this, I will use the `http` server primitive provided by the Node.js runtime.
+
+### Code (`server.js`)
+
+```javascript
+const http = require('http');
+
+const server = http.createServer((req, res) => {
+  // Check if the route is GET /time
+  if (req.method === 'GET' && req.url === '/time') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    
+    const response = JSON.stringify({
+      time: new Date().toISOString()
+    });
+    
+    res.end(response);
+  } else {
+    // Handle 404 for other routes
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not Found' }));
+  }
+});
+
+const PORT = 3000;
+server.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}/time`);
+});
+```
+
+### How to run it
+
+1.  **Ensure you have Node.js installed.**
+2.  **Save the code** above into a file named `server.js`.
+3.  **Open your terminal** and navigate to the folder containing the file.
+4.  **Start the server** by running:
+    ```bash
+    node server.js
+    ```
+5.  **Test the endpoint** using `curl` in a new terminal window or by visiting the URL in your browser:
+    ```bash
+    curl http://localhost:3000/time
+    ```
+
+**Expected Output:**
+```json
+{"time":"2023-10-27T10:00:00.000Z"}
+```

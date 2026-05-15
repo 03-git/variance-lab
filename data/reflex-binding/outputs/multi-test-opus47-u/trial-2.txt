@@ -1,0 +1,28 @@
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212
+
+def test_negative_forty_equivalence():
+    assert celsius_to_fahrenheit(-40) == -40
+
+def test_non_numeric_input():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+Save as `test_temp.py`, then run:
+
+```
+pip install pytest
+pytest test_temp.py -v
+```
+
+`-40` is the temperature where Celsius and Fahrenheit are equal — a useful sanity check. The non-numeric test asserts a `TypeError` is raised when string multiplication by `9` produces a string and adding `32` (int) fails.

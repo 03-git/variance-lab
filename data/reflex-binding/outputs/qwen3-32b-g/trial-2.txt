@@ -1,0 +1,55 @@
+To build the HTTP endpoint as described, here's the step-by-step implementation using Python and Flask:
+
+---
+
+### ✅ Code Implementation
+```python
+# app.py
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route("/time", methods=["GET"])
+def get_current_time():
+    current_time = datetime.utcnow().isoformat()
+    return jsonify({"time": current_time})
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
+```
+
+---
+
+### 🧪 How to Run It
+1. **Install Flask**  
+   ```bash
+   pip install flask
+   ```
+
+2. **Start the Server**  
+   ```bash
+   python app.py
+   ```
+
+3. **Access the Endpoint**  
+   - Open a browser or use `curl`:  
+     ```bash
+     curl http://localhost:5000/time
+     ```
+
+---
+
+### 📊 Example Response
+```json
+{"time": "2024-05-29T12:34:56.789012"}
+```
+
+---
+
+### 🛠️ Notes
+- **ISO 8601 Format**: Uses `datetime.utcnow().isoformat()` for standard compliance.
+- **Production**: For deployment, use a production server like Gunicorn or Nginx.
+- **Dependencies**: Requires Python 3 and Flask.
+
+This implementation adheres to the kernel primitive (`GET /time`) and uses Flask's built-in JSON handling.

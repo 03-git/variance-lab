@@ -1,0 +1,94 @@
+Here's a Python CLI tool that meets your requirements:
+
+```python
+import argparse
+import json
+import sys
+
+def validate_port(port_str):
+    """Custom type validator for port argument"""
+    try:
+        port = int(port_str)
+        if not (1 <= port <= 65535):
+            raise ValueError(f"port must be between 1 and 65535, got {port}")
+        return port
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e))
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Print configuration as JSON'
+    )
+    parser.add_argument(
+        '--host',
+        type=str,
+        default='localhost',
+        help='Host to connect to (default: localhost)'
+    )
+    parser.add_argument(
+        '--port',
+        type=validate_port,
+        required=True,
+        help='Port number (1-65535)'
+    )
+    parser.add_argument(
+        '--verbose',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    
+    args = parser.parse_args()
+    
+    config = {
+        'host': args.host,
+        'port': args.port,
+        'verbose': args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == '__main__':
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Save it as cli_tool.py and run:
+
+# Basic usage with required port
+python cli_tool.py --port 8080
+
+# With custom host
+python cli_tool.py --host example.com --port 3000
+
+# With verbose flag
+python cli_tool.py --host 127.0.0.1 --port 5432 --verbose
+
+# Invalid port (demonstrates validation)
+python cli_tool.py --port 99999  # Error: port must be between 1 and 65535
+python cli_tool.py --port abc    # Error: invalid int value
+
+# Get help
+python cli_tool.py --help
+```
+
+**Example outputs:**
+
+```json
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": false
+}
+```
+
+```json
+{
+  "host": "example.com",
+  "port": 3000,
+  "verbose": true
+}
+```
+
+The `validate_port` function handles type conversion and range validation, giving clean error messages when invalid input is provided.

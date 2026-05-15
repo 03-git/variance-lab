@@ -1,0 +1,88 @@
+Since you didn't specify a programming language, I will provide the two most popular ways to do this: **Python (using FastAPI)** and **Node.js (using Express)**.
+
+---
+
+### Option 1: Python (using FastAPI)
+FastAPI is modern, extremely fast, and handles JSON conversion automatically.
+
+#### 1. The Code (`main.py`)
+```python
+from fastapi import FastAPI
+from datetime import datetime, timezone
+
+app = FastAPI()
+
+@app.get("/time")
+async def get_time():
+    # Returns current time in ISO 8601 format with UTC timezone
+    return {"time": datetime.now(timezone.utc).isoformat()}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
+#### 2. How to run it
+1.  **Install dependencies:**
+    ```bash
+    pip install fastapi uvicorn
+    ```
+2.  **Run the server:**
+    ```bash
+    python main.py
+    ```
+3.  **Test it:**
+    Open your browser to `http://127.0.0.1:8000/time` or use terminal:
+    ```bash
+    curl http://127.0.0.1:8000/time
+    ```
+
+---
+
+### Option 2: Node.js (using Express)
+Express is the industry standard for lightweight web servers in JavaScript.
+
+#### 1. The Code (`index.js`)
+```javascript
+const express = require('express');
+const app = express();
+const PORT = 3000;
+
+app.get('/time', (req, res) => {
+    // .toISOString() returns a valid ISO 8601 string
+    res.json({
+        time: new Date().toISOString()
+    });
+});
+
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+});
+```
+
+#### 2. How to run it
+1.  **Initialize and install dependencies:**
+    ```bash
+    npm init -y
+    npm install express
+    ```
+2.  **Run the server:**
+    ```bash
+    node index.js
+    ```
+3.  **Test it:**
+    Open your browser to `http://localhost:3000/time` or use terminal:
+    ```bash
+    curl http://localhost:3000/time
+    ```
+
+---
+
+### Expected Output
+Regardless of which language you choose, the response will look like this:
+
+```json
+{
+  "time": "2023-10-27T10:30:05.123456Z"
+}
+```

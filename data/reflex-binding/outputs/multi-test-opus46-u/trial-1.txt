@@ -1,0 +1,87 @@
+Here's a test suite using `pytest`:
+
+```python
+# test_temperature.py
+import pytest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32
+
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212
+
+
+def test_minus_forty_is_equal_in_both_scales():
+    assert celsius_to_fahrenheit(-40) == -40
+
+
+def test_non_numeric_input_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+If `celsius_to_fahrenheit` already lives in its own module (say `temperature.py`), drop the inline definition and use `from temperature import celsius_to_fahrenheit` instead.
+
+## How to run it
+
+```bash
+pip install pytest
+pytest test_temperature.py -v
+```
+
+Expected output:
+
+```
+test_temperature.py::test_freezing_point PASSED
+test_temperature.py::test_boiling_point PASSED
+test_temperature.py::test_minus_forty_is_equal_in_both_scales PASSED
+test_temperature.py::test_non_numeric_input_raises PASSED
+```
+
+### Notes
+- The non-numeric test relies on `"hot" * 9` producing a `str`, then `... / 5` raising `TypeError`. That holds for strings, but other types behave differently — e.g. `None` raises `TypeError` at the multiplication step (fine), while a `list` like `[1]` would also raise `TypeError`. If you want stricter behavior, add an explicit type check to the function:
+
+  ```python
+  def celsius_to_fahrenheit(c):
+      if not isinstance(c, (int, float)) or isinstance(c, bool):
+          raise TypeError("c must be a number")
+      return c * 9 / 5 + 32
+  ```
+
+If you'd rather not use pytest, here's the same suite with the stdlib `unittest`:
+
+```python
+# test_temperature.py
+import unittest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_input_raises(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run with: `python -m unittest test_temperature.py -v` (or just `python test_temperature.py`).

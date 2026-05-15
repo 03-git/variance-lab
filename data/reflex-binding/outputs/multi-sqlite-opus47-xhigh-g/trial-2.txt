@@ -1,0 +1,37 @@
+```python
+import sqlite3
+from datetime import datetime
+
+conn = sqlite3.connect("notes.db")
+cur = conn.cursor()
+
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+""")
+
+now = datetime.now().isoformat(timespec="seconds")
+samples = [
+    ("kernel first", "name the primitive before the wrapper", now),
+    ("via negativa", "subtract, don't add", now),
+    ("signature is authority", "the human signs, the agent prepares", now),
+]
+cur.executemany("INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)", samples)
+conn.commit()
+
+for row in cur.execute("SELECT id, title, body, created_at FROM notes"):
+    print(row)
+
+conn.close()
+```
+
+Run:
+```
+python3 notes.py
+```
+
+Each run appends another 3 rows (no `DROP`/uniqueness). Add `cur.execute("DELETE FROM notes")` before the inserts if you want a clean slate, or `rm notes.db` between runs.

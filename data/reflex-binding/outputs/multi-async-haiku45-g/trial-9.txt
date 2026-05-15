@@ -1,0 +1,82 @@
+Here's an async TCP echo server using Python's `asyncio` module:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected from {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readuntil(b'\n')
+            if not data:
+                break
+            
+            message = data.decode().strip()
+            print(f"Received from {addr}: {message}")
+            
+            # Echo it back
+            writer.write(data)
+            await writer.drain()
+    except asyncio.IncompleteReadError:
+        print(f"Client {addr} disconnected")
+    except ConnectionResetError:
+        print(f"Client {addr} reset connection")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Connection closed for {addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    print("Echo server listening on 127.0.0.1:8888")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**To run the server:**
+
+```bash
+python3 echo_server.py
+```
+
+**To test it, use a simple client in another terminal:**
+
+```bash
+# Option 1: Using netcat
+nc localhost 8888
+# Then type lines and press Enter
+
+# Option 2: Using Python telnetlib interactively
+python3 -c "
+import socket
+s = socket.socket()
+s.connect(('localhost', 8888))
+while True:
+    msg = input('> ')
+    s.send((msg + '\n').encode())
+    print('Echo:', s.recv(1024).decode())
+"
+```
+
+**How it works:**
+
+- `handle_client()` is an async coroutine that handles one client connection
+- `readuntil(b'\n')` waits for a newline without blocking other clients
+- `writer.write()` and `await writer.drain()` send data back to the client
+- `asyncio.start_server()` listens for connections and spawns a new task for each one
+- Multiple clients are handled concurrently because each `handle_client()` awaits I/O, allowing the event loop to switch to other clients
+
+The key advantage over threading is that asyncio uses a single thread with an event loop, making it more memory-efficient and simpler to reason about.

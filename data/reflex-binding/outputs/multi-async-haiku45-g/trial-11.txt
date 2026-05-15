@@ -1,0 +1,74 @@
+Here's an async TCP echo server with a test client:
+
+**echo_server.py**
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            line = await reader.readline()
+            if not line:
+                break
+            
+            print(f"{addr}: {line.decode().strip()}")
+            writer.write(line)
+            await writer.drain()
+    except asyncio.CancelledError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    server = await asyncio.start_server(handle_client, '127.0.0.1', 9999)
+    
+    async with server:
+        print("Echo server listening on 127.0.0.1:9999")
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**echo_client.py** (to test it)
+```python
+import asyncio
+
+async def main():
+    reader, writer = await asyncio.open_connection('127.0.0.1', 9999)
+    
+    messages = [b"Hello\n", b"World\n", b"Async echo\n"]
+    
+    for msg in messages:
+        writer.write(msg)
+        await writer.drain()
+        
+        echo = await reader.readline()
+        print(f"Sent: {msg.decode().strip()}")
+        print(f"Echo: {echo.decode().strip()}")
+    
+    writer.close()
+    await writer.wait_closed()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**To run:**
+
+Terminal 1:
+```bash
+python echo_server.py
+```
+
+Terminal 2:
+```bash
+python echo_client.py
+```
+
+The server uses `asyncio.start_server()` to handle each client concurrently. The `handle_client()` coroutine runs for each connection, reading lines and echoing them back. You can connect multiple clients simultaneously and they'll all be handled in parallel.

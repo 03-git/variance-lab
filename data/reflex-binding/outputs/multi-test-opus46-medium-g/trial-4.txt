@@ -1,0 +1,51 @@
+
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):
+        self.assertAlmostEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertAlmostEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_negative_40(self):
+        self.assertAlmostEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run it:
+
+```bash
+python3 -c '
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):
+        self.assertAlmostEqual(celsius_to_fahrenheit(0), 32)
+    def test_boiling(self):
+        self.assertAlmostEqual(celsius_to_fahrenheit(100), 212)
+    def test_negative_40(self):
+        self.assertAlmostEqual(celsius_to_fahrenheit(-40), -40)
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+unittest.main()
+'
+```
+
+Or save to a file and run `python3 test_celsius.py`. The `-40` case is the known fixed point where Celsius equals Fahrenheit. The non-numeric test confirms that passing a string raises `TypeError` from the arithmetic.

@@ -1,0 +1,77 @@
+```python
+# test_temperature.py
+import pytest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32
+
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212
+
+
+def test_minus_forty_is_same():
+    # -40 °C == -40 °F, the one place the scales cross
+    assert celsius_to_fahrenheit(-40) == -40
+
+
+def test_non_numeric_input_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+If `celsius_to_fahrenheit` lives in its own module, replace the inline `def` with e.g. `from temperature import celsius_to_fahrenheit`.
+
+## How to run it
+
+```bash
+pip install pytest
+pytest test_temperature.py -v
+```
+
+Expected output:
+
+```
+test_temperature.py::test_freezing_point PASSED
+test_temperature.py::test_boiling_point PASSED
+test_temperature.py::test_minus_forty_is_same PASSED
+test_temperature.py::test_non_numeric_input_raises PASSED
+```
+
+Note on the non-numeric case: `"hot" * 9` is valid Python (string repetition), but the next step `/ 5` raises `TypeError`, so the test passes. If you later add explicit input validation that raises `ValueError` instead, update the `pytest.raises(...)` accordingly.
+
+If you'd rather not use pytest, the same suite with the stdlib `unittest` module:
+
+```python
+import unittest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_forty_is_same(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_input_raises(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run with: `python test_temperature.py`

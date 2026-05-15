@@ -1,0 +1,418 @@
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./runtime/syna_poll.c (lines 1-40 of 278)
+/*
+ * syna_poll — i2c-hid polling for GPIO-locked touchpads
+ *
+ * When BIOS locks the interrupt pin in native mode, the i2c-hid
+ * device registers but never fires interrupts. This module polls
+ * the HID input report register on a timer and injects the data
+ * into the existing i2c-hid pipeline.
+ *
+ * Build:
+ *   make -C /lib/modules/$(uname -r)/build M=$(pwd) modules
+ *
+ * Usage:
+ *   insmod syna_poll.ko [poll_ms=10] [vendor=0x06cb] [product=0xcd41]
+ */
+
+#include <linux/module.h>
+#include <linux/i2c.h>
+#include <linux/hid.h>
+#include <linux/input.h>
+#include <linux/timer.h>
+#include <linux/workqueue.h>
+#include <linux/slab.h>
+#include <linux/atomic.h>
+#include <linux/delay.h>
+
+#define DEFAULT_POLL_MS  10
+#define MIN_POLL_MS       1
+#define MAX_REPORT_SIZE  64
+#define HID_DESC_REG     0x0020
+
+static int poll_ms = DEFAULT_POLL_MS;
+module_param(poll_ms, int, 0444);
+MODULE_PARM_DESC(poll_ms, "Polling interval in milliseconds (default 10)");
+
+static int vendor = 0x06CB;
+module_param(vendor, int, 0444);
+MODULE_PARM_DESC(vendor, "I2C HID vendor ID");
+
+static int product = 0xCD41;
+module_param(product, int, 0444);
+
+## ./runtime/subtract.sh (lines 1-40 of 1405)
+# subtract -- translation layer
+# type what you mean. the computer figures out the command.
+#
+# T0: lookup table. instant, local, no dependencies.
+# T0.5: man page routing (direct command match) + apropos fallback (discovery queries).
+# T1: embedding similarity (optional).
+# T2: local generative model (optional). requires ollama + a pulled model.
+# T4: cloud escalation (optional). requires claude CLI.
+# kiwix: questions (input ending in ?) route to local kiwix corpus.
+#
+# everything lives in ~/.subtract/. read it, edit it, delete it.
+
+SUBTRACT_DIR="${SUBTRACT_DIR:-$HOME/.subtract}"
+
+# bash hangs on unclosed quotes (what's, don't, can't) with a bare "> " prompt.
+# user doesn't know what happened. replace PS2 with an explanation.
+PS2="(unclosed quote -- press ctrl-c and rephrase without apostrophes) "
+SUBTRACT_LOOKUP_HOST="$SUBTRACT_DIR/lookdown.$(hostname -s).tsv"
+SUBTRACT_LOOKUP_UNIVERSAL="$SUBTRACT_DIR/lookdown.universal.tsv"
+SUBTRACT_SKILLS="$SUBTRACT_DIR/skills"
+SUBTRACT_KIWIX="${SUBTRACT_KIWIX:-http://localhost:8888}"
+SUBTRACT_LAST_OUTPUT=""
+SUBTRACT_MAX_CONTEXT=20
+
+# skills prefix patterns: procedural queries ("how do I X", "teach me X")
+# matched after T0, before kiwix. triggers grep against skills index.
+SUBTRACT_SKILLS_PREFIXES="how do i |how to |teach me |steps to |guide to |tutorial |tutorial for "
+
+# destructive verbs that always gate behind explicit confirmation
+# array, not string: zsh doesn't word-split unquoted $var
+SUBTRACT_DESTRUCTIVE=(rm rmdir dd mkfs chmod chown shred truncate)
+
+# upgrade injection state file
+SUBTRACT_STATE="$SUBTRACT_DIR/.state"
+
+# --- state helpers (upgrade injection) ---
+
+__subtract_state_read() {
+    # read key from state file, default to $2 if missing
+    local key="$1" default="${2:-}"
+
+## ./runtime/parsimony.c (lines 81-120 of 596)
+    if (!p) return 0;
+    p++;
+
+    int n = 0;
+    while (n < max) {
+        const char *obj = strchr(p, '{');
+        if (!obj) break;
+
+        const char *role = strstr(obj, "\"role\"");
+        if (!role) break;
+        role = skip_to_value_quote(role + 6);
+        if (!role) break;
+        role++;
+        const char *role_end = strchr(role, '"');
+        if (!role_end) break;
+        int rlen = (int)(role_end - role);
+        if (rlen >= 32) rlen = 31;
+        memcpy(msgs[n].role, role, rlen);
+        msgs[n].role[rlen] = '\0';
+
+        const char *content = strstr(obj, "\"content\"");
+        if (!content) break;
+        content = skip_to_value_quote(content + 9);
+        if (!content) break;
+        content++;
+        int ci = 0;
+        while (*content && ci < 8191) {
+            if (*content == '\\' && *(content + 1) == '"') {
+                msgs[n].content[ci++] = '"';
+                content += 2;
+            } else if (*content == '\\' && *(content + 1) == 'n') {
+                msgs[n].content[ci++] = '\n';
+                content += 2;
+            } else if (*content == '\\' && *(content + 1) == '\\') {
+                msgs[n].content[ci++] = '\\';
+                content += 2;
+            } else if (*content == '\\' && *(content + 1) == 't') {
+                msgs[n].content[ci++] = '\t';
+                content += 2;
+            } else if (*content == '\\' && *(content + 1) == 'r') {
+
+## ./runtime/parsimony.c (lines 1-40 of 596)
+/*
+ * parsimony — inference as a unix filter
+ *
+ * Loads a GGUF once. Reads JSON requests from stdin (one per line).
+ * Writes JSON responses to stdout (one per line). Stays alive.
+ * The shell manages the lifecycle via coproc. Stateless: KV cache
+ * clears between requests; the orchestrator owns conversation state.
+ *
+ * Wire format (input, one JSON line per request):
+ *   {"messages":[{"role":"...","content":"..."},...],"max_tokens":N}
+ *   OpenAI chat-completions-shaped. UTF-8 bytes, no \uXXXX escapes.
+ *   No nested objects in content, no JSON inside JSON. Caller
+ *   flattens with jq -c if needed (jq emits UTF-8 by default).
+ *   Input is read dynamically via getline (no fixed cap).
+ *
+ * Wire format (output, one JSON line per response):
+ *   {"choices":[{"message":{"role":"assistant","content":"..."},"finish_reason":"stop"}]}
+ *
+ * Wire format (output, streaming — when input has "stream":true):
+ *   data: {"choices":[{"delta":{"content":"token"},"finish_reason":null}]}
+ *   data: {"choices":[{"delta":{"content":"token"},"finish_reason":null}]}
+ *   ...
+ *   data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
+ *   data: [DONE]
+ *
+ * Build:
+ *   cc -o parsimony parsimony.c -I/path/to/llama.cpp/include \
+ *      -L/path/to/llama.cpp/lib -lllama -lggml -lm -lpthread
+ *
+ * Usage:
+ *   coproc INF { ./parsimony model.gguf; }
+ *   echo '{"messages":[{"role":"user","content":"hello"}]}' >&${INF[1]}
+ *   read -r response <&${INF[0]}
+ *
+ *   # with standing context:
+ *   coproc INF { ./parsimony model.gguf --prelude-file ~/subtract.ing/SOUL.txt; }
+ */
+
+#include <signal.h>
+#include <stdio.h>
+
+## ./runtime/hosuni/hosuni.c (lines 681-720 of 2661)
+    while (1) {
+        char *hit_c = strstr(p, "\"content\":\"");
+        char *hit_r = strstr(p, "\"reasoning_content\":\"");
+        char *hit = NULL;
+        if (hit_c && hit_r) hit = (hit_c < hit_r) ? hit_c : hit_r;
+        else if (hit_c) hit = hit_c;
+        else hit = hit_r;
+        if (!hit) break;
+        if (hit == hit_r) is_reasoning = 1;
+        else is_reasoning = 0;
+        p = strstr(hit, "\":\"") + 3;
+        while (*p && *p != '"' && out < chunk_max - 1) {
+            if (*p == '\\' && *(p + 1) == 'n') { chunk[out++] = '\n'; p += 2; }
+            else if (*p == '\\' && *(p + 1) == '"') { chunk[out++] = '"'; p += 2; }
+            else if (*p == '\\' && *(p + 1) == '\\') { chunk[out++] = '\\'; p += 2; }
+            else chunk[out++] = *p++;
+        }
+        if (*p == '"') { p++; last_consumed = p; }
+        else { last_consumed = hit; break; }
+    }
+    /* shift unconsumed data to front */
+    if (last_consumed > buf) {
+        int remain = buf_len - (int)(last_consumed - buf);
+        if (remain > 0) memmove(buf, last_consumed, remain);
+        buf_len = remain > 0 ? remain : 0;
+    }
+    /* strip Gemma-4 inline thinking: <|channel>...<channel|> */
+    if (out > 0) {
+        int w = 0;
+        for (int r = 0; r < out; r++) {
+            if (!in_thinking && r + 10 <= out && strncmp(chunk + r, "<|channel>", 10) == 0) {
+                in_thinking = 1; r += 9; continue;
+            }
+            if (in_thinking && r + 10 <= out && strncmp(chunk + r, "<channel|>", 10) == 0) {
+                in_thinking = 0; r += 9; continue;
+            }
+            if (!in_thinking) chunk[w++] = chunk[r];
+        }
+        out = w;
+    }
+
+## ./runtime/hosuni/hosuni.c (lines 1-40 of 2661)
+/*
+ * hosuni.c — framebuffer computing for humans
+ * Named for Hodori's digital governess.
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+
+/*
+   Linux:  cc -O2 -I/usr/include/libdrm -o hosuni hosuni.c platform_linux.c -ldrm -lm -lxkbcommon
+   macOS:  cc -O2 -o hosuni hosuni.c platform_macos.m -framework Cocoa
+*/
+
+#include "hosuni.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <errno.h>
+#include <sys/select.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include <fnmatch.h>
+#include <signal.h>
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
+/* ================================================================
+
+## ./subtracting.html (lines 41-80 of 227)
+
+    <h2>What it is</h2>
+
+    <p>Shell translation infrastructure. Type intent, get command,
+    learn command, stop needing translation.</p>
+
+    <p>For humans: you learn how to use Unix more.<br>
+    For agents: you're reminded how Unix can be used.</p>
+
+    <p>Software as a besides. The goal is that the user learns the
+    command and stops needing translation.</p>
+
+    <p>subtract shows you the supercomputer in every computer — when you look down close enough.</p>
+
+    <hr>
+
+    <h2>Why</h2>
+
+    <p>subtract rests on three primitives that already ship with Unix:</p>
+
+<pre>
+Entry   command_not_found_handle   intent enters bash
+Trust   ssh-keygen -Y              signed provenance for knowledge
+Time    sleep, at, cron            yield to the kernel scheduler
+</pre>
+
+    <p>No account. No API key. No terms of service. No usage meter.
+    Computers come with commands that work when you are not online.</p>
+
+    <p>Let your local computer help you think and do, instead of
+    asking a cloud AI to do all the thinking and doing. As learned
+    commands grow, the user invokes the command directly. A learned
+    command has no inference cost.</p>
+
+<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin:1.5em 0">
+<tr style="border-bottom:1px solid #333"><th style="text-align:left;padding:.4em .6em">subtract</th><th style="text-align:left;padding:.4em .6em">the alternative</th></tr>
+<tr><td style="padding:.3em .6em">command_not_found_handle (bash, 1 function)</td><td style="padding:.3em .6em">Python CLI + Click + Docker + pip install</td></tr>
+<tr><td style="padding:.3em .6em">lookdown.tsv (flat file, grep)</td><td style="padding:.3em .6em">vector database + embeddings + RAG pipeline + 47 packages</td></tr>
+<tr><td style="padding:.3em .6em">handler.sh (case statement tier routing)</td><td style="padding:.3em .6em">semantic router chain + "mixture of agents"</td></tr>
+<tr><td style="padding:.3em .6em">bridge.py (140 lines, stdlib only)</td><td style="padding:.3em .6em">FastAPI + Uvicorn + Redis + WebSocket + requirements.txt</td></tr>
+
+## ./subtracting.html (lines 1-40 of 227)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <title>subtracting — why subtract exists</title>
+    <meta name="description" content="The thesis, lineage, and evidence behind subtract.ing.">
+    <style>
+        body {
+            background: #111;
+            color: #c0c0c0;
+            font-family: monospace;
+            margin: 2rem auto;
+            max-width: 72ch;
+            padding: 0 1rem;
+            line-height: 1.5;
+        }
+        h1 { font-size: 1rem; font-weight: normal; margin: 0; }
+        h2 { font-size: 1rem; font-weight: normal; margin: 2rem 0 0.5rem; color: #8be9fd; }
+        p { margin: 0.5rem 0; }
+        hr { border: none; color: #555; margin: 1.5rem 0; }
+        hr::before { content: "* * *"; display: block; text-align: left; }
+        a { color: #8be9fd; }
+        a:visited { color: #bd93f9; }
+        .dim { color: #666; }
+        pre { margin: 0.5rem 0; white-space: pre-wrap; }
+        blockquote {
+            border-left: 2px solid #555;
+            margin: 1rem 0;
+            padding-left: 1rem;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <h1><a href="/">subtract.ing</a> / subtracting</h1>
+    <p>Theory, lineage, and evidence.</p>
+
+    <hr>
+
+## ./runtime/squared.c (lines 1-40 of 742)
+/*
+ * squared — HTTP/2 proxy for local inference multiplexing
+ *
+ * Without cert/key: h2c (cleartext HTTP/2, loopback only)
+ * With cert/key:    h2 over TLS (ALPN negotiated, all interfaces)
+ *
+ * Build:
+ *   cc -o squared squared.c $(pkg-config --cflags --libs libnghttp2) \
+ *      -lmbedtls -lmbedx509 -lmbedcrypto -lpthread
+ *
+ * Usage:
+ *   squared [port] [backend_host:port]
+ *   squared [port] [backend_host:port] cert.pem key.pem
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <signal.h>
+#include <poll.h>
+
+#include <nghttp2/nghttp2.h>
+
+#ifndef NO_TLS
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/x509_crt.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/net_sockets.h>
+#endif

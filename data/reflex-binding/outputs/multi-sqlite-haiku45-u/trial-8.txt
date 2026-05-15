@@ -1,0 +1,85 @@
+Here's a complete Python script for creating and querying a notes database:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Connect to database (use ':memory:' for in-memory DB, or 'notes.db' for file)
+conn = sqlite3.connect('notes.db')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('My First Note', 'This is the body of my first note.', datetime.now().isoformat()),
+    ('Python Tips', 'Remember to use virtual environments for projects.', datetime.now().isoformat()),
+    ('Shopping List', 'Milk, eggs, bread, coffee', datetime.now().isoformat()),
+]
+
+cursor.executemany('''
+    INSERT INTO notes (title, body, created_at)
+    VALUES (?, ?, ?)
+''', sample_notes)
+
+conn.commit()
+
+# Query all notes and print them
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+notes = cursor.fetchall()
+
+print("All Notes:")
+print("=" * 60)
+for note_id, title, body, created_at in notes:
+    print(f"ID:        {note_id}")
+    print(f"Title:     {title}")
+    print(f"Body:      {body}")
+    print(f"Created:   {created_at}")
+    print("-" * 60)
+
+conn.close()
+```
+
+**How to run it:**
+
+1. **Save the script** (e.g., as `notes_db.py`)
+2. **Run it:**
+   ```bash
+   python notes_db.py
+   ```
+
+**Output:**
+```
+All Notes:
+============================================================
+ID:        1
+Title:     My First Note
+Body:      This is the body of my first note.
+Created:   2026-05-10T14:23:45.123456
+------------------------------------------------------------
+ID:        2
+Title:     Python Tips
+Body:      Remember to use virtual environments for projects.
+Created:   2026-05-10T14:23:45.123457
+------------------------------------------------------------
+ID:        3
+Title:     Shopping List
+Body:      Milk, eggs, bread, coffee
+Created:   2026-05-10T14:23:45.123458
+------------------------------------------------------------
+```
+
+**Key points:**
+- Uses `sqlite3` (built into Python, no install needed)
+- `CREATE TABLE IF NOT EXISTS` prevents errors on re-runs
+- `executemany()` efficiently inserts multiple rows at once
+- `?` placeholders prevent SQL injection
+- Creates a `notes.db` file in your working directory (or use `:memory:` for in-memory only)

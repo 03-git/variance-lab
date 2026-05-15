@@ -1,0 +1,62 @@
+I'll write a Python CLI tool with argparse that validates the port and outputs JSON.
+
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(description="CLI tool for host/port configuration")
+    parser.add_argument("--host", required=True, help="Host address")
+    parser.add_argument("--port", type=int, required=True, help="Port number")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    
+    try:
+        args = parser.parse_args()
+    except SystemExit:
+        sys.exit(1)
+    
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        print(f"Error: Port must be between 1 and 65535, got {args.port}", file=sys.stderr)
+        sys.exit(1)
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**To run it:**
+
+```bash
+python3 script.py --host localhost --port 8080
+python3 script.py --host 192.168.1.1 --port 9000 --verbose
+python3 script.py --host example.com --port 70000  # Error: port out of range
+```
+
+**Example outputs:**
+
+```bash
+$ python3 script.py --host localhost --port 8080
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": false
+}
+
+$ python3 script.py --host localhost --port 443 --verbose
+{
+  "host": "localhost",
+  "port": 443,
+  "verbose": true
+}
+```
+
+The tool uses `argparse` to handle flag parsing, `type=int` to convert port to integer (which rejects non-numeric values automatically), then validates the port range with a simple bounds check before outputting the config as formatted JSON.

@@ -1,0 +1,70 @@
+I'll show you a Python script that fetches a webpage and extracts all hyperlinks. Here's the code:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+def extract_links(url):
+    try:
+        # Fetch the webpage
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        # Parse the HTML
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Find all anchor tags
+        links = soup.find_all('a')
+        
+        if not links:
+            print("No links found on the page.")
+            return
+        
+        print(f"Found {len(links)} links:\n")
+        for i, link in enumerate(links, 1):
+            href = link.get('href', '#no-href')
+            text = link.get_text(strip=True) or '[empty text]'
+            print(f"{i}. href: {href}")
+            print(f"   text: {text}\n")
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching the URL: {e}")
+    except Exception as e:
+        print(f"Error parsing HTML: {e}")
+
+if __name__ == "__main__":
+    extract_links("https://example.com")
+```
+
+**How to run it:**
+
+1. **Install dependencies** (if not already installed):
+   ```bash
+   pip install requests beautifulsoup4
+   ```
+
+2. **Run the script**:
+   ```bash
+   python script.py
+   ```
+
+**What the script does:**
+- Uses `requests` to fetch the webpage
+- Uses `BeautifulSoup` to parse the HTML
+- Finds all `<a>` tags and extracts the `href` attribute and link text
+- Prints each link with its URL and display text
+- Handles errors like network issues or parsing problems
+
+**Output example:**
+```
+Found 3 links:
+
+1. href: https://www.iana.org/domains/example
+   text: More information...
+
+2. href: https://www.example.org
+   text: Example Domain
+
+3. href: https://example.com/page
+   text: [empty text]
+```

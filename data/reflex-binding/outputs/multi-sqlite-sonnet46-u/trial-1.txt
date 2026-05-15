@@ -1,0 +1,59 @@
+```python
+import sqlite3
+from datetime import datetime
+
+conn = sqlite3.connect("notes.db")
+cur = conn.cursor()
+
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+""")
+
+sample_notes = [
+    ("Meeting Notes", "Discuss Q3 roadmap and assign owners.", datetime.now().isoformat()),
+    ("Shopping List", "Eggs, milk, bread, coffee.", datetime.now().isoformat()),
+    ("Book Recommendation", "Read 'The Pragmatic Programmer' next.", datetime.now().isoformat()),
+]
+
+cur.executemany(
+    "INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+    sample_notes,
+)
+conn.commit()
+
+cur.execute("SELECT id, title, body, created_at FROM notes")
+rows = cur.fetchall()
+
+for row in rows:
+    id_, title, body, created_at = row
+    print(f"[{id_}] {title} ({created_at})")
+    print(f"     {body}")
+
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python notes.py
+```
+
+**Expected output:**
+```
+[1] Meeting Notes (2026-05-10T14:32:01.123456)
+     Discuss Q3 roadmap and assign owners.
+[2] Shopping List (2026-05-10T14:32:01.123457)
+     Eggs, milk, bread, coffee.
+[3] Book Recommendation (2026-05-10T14:32:01.123458)
+     Read 'The Pragmatic Programmer' next.
+```
+
+A few notes:
+- Uses `?` placeholders in `executemany` to prevent SQL injection.
+- `notes.db` is created in the current directory; use `":memory:"` instead if you want an in-memory-only database.
+- Re-running the script appends 3 more rows each time since it uses `CREATE TABLE IF NOT EXISTS` — add a `DELETE FROM notes` before the insert if you want a clean slate each run.

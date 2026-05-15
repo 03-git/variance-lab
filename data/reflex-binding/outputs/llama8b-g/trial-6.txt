@@ -1,0 +1,41 @@
+**time_endpoint.py**
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    """
+    Returns the current time as an ISO 8601 timestamp.
+    """
+    current_time = datetime.now().isoformat()
+    return jsonify({'time': current_time})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+**Running the Code:**
+
+1. Install Flask using pip:
+```bash
+pip install flask
+```
+2. Save the above code in a file named `time_endpoint.py`.
+3. Open a terminal and navigate to the directory where you saved the file.
+4. Run the Flask development server:
+```bash
+python time_endpoint.py
+```
+5. The server will start on `http://localhost:5000`. You can access the `/time` endpoint by visiting `http://localhost:5000/time` in your web browser or using a tool like `curl`:
+```bash
+curl http://localhost:5000/time
+```
+This should return a JSON response like:
+```json
+{"time": "2023-03-01T14:30:00.000000"}
+```
+You can stop the server by pressing `Ctrl+C` in the terminal.
+
+**Note:** This is a simple example to demonstrate how to create an HTTP endpoint with Flask. In a real-world scenario, you would typically use a WSGI server like Gunicorn or uWSGI to run your Flask application in production.

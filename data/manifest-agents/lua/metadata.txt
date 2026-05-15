@@ -1,0 +1,4 @@
+Sun May 10 13:13:06 UTC 2026
+corpus: lua-5.4
+model: qwen2.5-7b (llama.cpp)
+manifest: curated via sonnet-4-6

@@ -1,0 +1,59 @@
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    print(f"connect {addr}")
+    try:
+        async for line in reader:
+            writer.write(line)
+            await writer.drain()
+    except asyncio.IncompleteReadError:
+        pass
+    finally:
+        print(f"disconnect {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main() -> None:
+    server = await asyncio.start_server(handle_client, "127.0.0.1", 8888)
+    addr = server.sockets[0].getsockname()
+    print(f"listening on {addr}")
+    async with server:
+        await server.serve_forever()
+
+asyncio.run(main())
+```
+
+**Run it:**
+
+```bash
+python echo_server.py
+```
+
+**Test with netcat (each in its own terminal):**
+
+```bash
+nc 127.0.0.1 8888
+hello
+# → hello
+```
+
+**Or with Python:**
+
+```bash
+python -c "
+import socket, time
+s = socket.create_connection(('127.0.0.1', 8888))
+s.sendall(b'hello world\n')
+print(s.recv(1024).decode(), end='')
+s.close()
+"
+```
+
+**How it works:**
+
+- `asyncio.start_server` accepts connections and dispatches each to `handle_client` as a coroutine — no threads, no processes.
+- `async for line in reader` reads until `\n` (or EOF), yielding the event loop between reads so other clients run.
+- `writer.drain()` yields until the write buffer flushes, preventing backpressure buildup.
+- Multiple clients are handled concurrently by the single-threaded event loop; the `finally` block ensures the writer is closed cleanly on disconnect or error.

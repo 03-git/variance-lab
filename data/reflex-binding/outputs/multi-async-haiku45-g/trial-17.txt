@@ -1,0 +1,92 @@
+Here's an async TCP echo server in Python using `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection"""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            line = await reader.readuntil(b'\n')
+            if not line:
+                break
+            
+            message = line.decode().strip()
+            print(f"[{addr}] Received: {message}")
+            
+            # Echo it back
+            writer.write(line)
+            await writer.drain()
+    except asyncio.CancelledError:
+        pass
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def start_server():
+    """Start the echo server"""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(start_server())
+```
+
+**To run it:**
+
+```bash
+# Terminal 1: Start the server
+python echo_server.py
+```
+
+```bash
+# Terminal 2-4: Connect clients (nc or telnet)
+nc localhost 8888
+# or
+telnet localhost 8888
+
+# Type and send messages - they'll be echoed back
+```
+
+**How it works:**
+- `handle_client()` manages each client connection concurrently
+- `readuntil(b'\n')` waits for a complete line from the client
+- `writer.write()` sends the line back, `drain()` flushes the buffer
+- Multiple clients run simultaneously via asyncio's event loop
+- Graceful cleanup on disconnect
+
+**Test with Python clients too:**
+
+```python
+import asyncio
+
+async def client():
+    reader, writer = await asyncio.open_connection('127.0.0.1', 8888)
+    
+    writer.write(b'Hello, server!\n')
+    await writer.drain()
+    
+    response = await reader.readuntil(b'\n')
+    print(f"Server echoed: {response.decode().strip()}")
+    
+    writer.close()
+    await writer.wait_closed()
+
+asyncio.run(client())
+```

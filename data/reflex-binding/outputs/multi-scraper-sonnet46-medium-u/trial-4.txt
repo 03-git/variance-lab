@@ -1,0 +1,52 @@
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._current_text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            attrs = dict(attrs)
+            self._current_href = attrs.get("href")
+            self._current_text = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._current_text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            text = "".join(self._current_text).strip()
+            self.links.append((self._current_href, text))
+            self._current_href = None
+            self._current_text = []
+
+url = "https://example.com"
+with urllib.request.urlopen(url) as response:
+    html = response.read().decode("utf-8")
+
+parser = LinkParser()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"[{text}] -> {href}")
+```
+
+**How to run** (no dependencies beyond the standard library):
+
+```bash
+python3 script.py
+```
+
+**Example output for `https://example.com`:**
+
+```
+[More information...] -> https://www.iana.org/domains/reserved
+```
+
+The script uses only stdlib — `urllib.request` to fetch the page and `html.parser.HTMLParser` to walk the tag stream. It tracks `<a>` open/close tags to pair each `href` with its inner text.

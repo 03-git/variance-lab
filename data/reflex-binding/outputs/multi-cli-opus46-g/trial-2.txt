@@ -1,0 +1,49 @@
+Health audit clean. Quick note per reflex.1: CLI arg parsing bottoms out at `sys.argv` — the argv vector the kernel hands the process via `execve`. `argparse` is just the stdlib wrapper over it (no third-party dependency), so that's what this uses.
+
+```python
+#!/usr/bin/env python3
+"""Parse --host/--port/--verbose, validate port, emit config as JSON."""
+import argparse
+import json
+import sys
+
+
+def port_type(value):
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value!r}")
+    if not (1 <= port <= 65535):
+        raise argparse.ArgumentTypeError(f"port must be in 1-65535, got {port}")
+    return port
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Print parsed CLI config as JSON.")
+    parser.add_argument("--host", default="127.0.0.1", help="hostname or IP (default: 127.0.0.1)")
+    parser.add_argument("--port", type=port_type, default=8080, help="TCP port, 1-65535 (default: 8080)")
+    parser.add_argument("--verbose", action="store_true", help="enable verbose output")
+    args = parser.parse_args(argv)
+
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+How to run it:
+
+```
+# save as cli.py, then:
+python3 cli.py --host 0.0.0.0 --port 9000 --verbose
+# -> {"host": "0.0.0.0", "port": 9000, "verbose": true}
+
+python3 cli.py                      # all defaults -> {"host": "127.0.0.1", "port": 8080, "verbose": false}
+python3 cli.py --port 70000         # error: port must be in 1-65535, got 70000  (exit 2)
+python3 cli.py --port abc           # error: port must be an integer, got 'abc'  (exit 2)
+python3 cli.py --help               # usage text
+```
+
+Validation lives in `port_type`, which `argparse` calls during parsing — invalid ports exit with code 2 and a usage message, valid ones arrive as an `int`.

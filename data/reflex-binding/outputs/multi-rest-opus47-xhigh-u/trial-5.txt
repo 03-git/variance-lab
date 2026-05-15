@@ -1,0 +1,66 @@
+Here's a minimal Express implementation:
+
+```js
+// server.js
+const express = require('express');
+const app = express();
+app.use(express.json());
+
+function validate(body) {
+  const errors = {};
+  const { name, email, age } = body ?? {};
+
+  if (typeof name !== 'string' || name.trim() === '') {
+    errors.name = 'name is required and must be a non-empty string';
+  }
+  if (typeof email !== 'string' || !email.includes('@')) {
+    errors.email = 'email is required and must contain "@"';
+  }
+  if (!Number.isInteger(age) || age < 1 || age > 150) {
+    errors.age = 'age must be an integer between 1 and 150';
+  }
+  return errors;
+}
+
+app.post('/users', (req, res) => {
+  const errors = validate(req.body);
+  if (Object.keys(errors).length > 0) {
+    return res.status(400).json({ error: 'Invalid input', details: errors });
+  }
+  const { name, email, age } = req.body;
+  return res.status(201).json({ name: name.trim(), email, age });
+});
+
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Invalid JSON' });
+  }
+  next(err);
+});
+
+app.listen(3000, () => console.log('http://localhost:3000'));
+```
+
+**Run it:**
+
+```bash
+mkdir users-api && cd users-api
+npm init -y
+npm install express
+# paste the code above into server.js
+node server.js
+```
+
+**Try it:**
+
+```bash
+# success → 201
+curl -i -X POST http://localhost:3000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Ada","email":"ada@example.com","age":36}'
+
+# validation failure → 400 with per-field errors
+curl -i -X POST http://localhost:3000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"","email":"nope","age":200}'
+```

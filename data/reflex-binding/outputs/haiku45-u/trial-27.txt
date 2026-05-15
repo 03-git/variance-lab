@@ -1,0 +1,58 @@
+I'll show you a simple HTTP endpoint in Python that returns the current time as JSON.
+
+**Using Flask (lightweight and popular):**
+
+```python
+from flask import Flask
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    return {
+        'time': datetime.utcnow().isoformat() + 'Z'
+    }
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**To run it:**
+```bash
+pip install flask
+python app.py
+```
+
+Then visit `http://localhost:5000/time` in your browser or with curl:
+```bash
+curl http://localhost:5000/time
+```
+
+Response:
+```json
+{"time": "2026-05-10T14:32:45.123456Z"}
+```
+
+---
+
+**Alternative using Node.js/Express:**
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.get('/time', (req, res) => {
+  res.json({ time: new Date().toISOString() });
+});
+
+app.listen(5000, () => console.log('Server running on port 5000'));
+```
+
+**To run it:**
+```bash
+npm install express
+node app.js
+```
+
+Both will return ISO 8601 timestamps. The Flask version is more concise if you prefer Python.

@@ -1,0 +1,83 @@
+Here's a Python CLI tool that meets your requirements:
+
+```python
+#!/usr/bin/env python3
+import argparse
+import json
+import sys
+
+
+def validate_port(value):
+    """Validate that port is an integer between 1-65535."""
+    try:
+        port = int(value)
+        if not (1 <= port <= 65535):
+            raise ValueError(f"port must be between 1 and 65535, got {port}")
+        return port
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e))
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="CLI tool to parse and validate host/port configuration"
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="localhost",
+        help="Host address (default: localhost)"
+    )
+    parser.add_argument(
+        "--port",
+        type=validate_port,
+        default=8000,
+        help="Port number between 1-65535 (default: 8000)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+
+    args = parser.parse_args()
+
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Save and run (or just paste into a file called `cli_tool.py`)
+python3 cli_tool.py
+
+# With default values
+# Output: {"host": "localhost", "port": 8000, "verbose": false}
+
+# With custom host and port
+python3 cli_tool.py --host 192.168.1.1 --port 3000
+
+# With verbose flag
+python3 cli_tool.py --host example.com --port 9000 --verbose
+
+# Invalid port (shows error)
+python3 cli_tool.py --port 99999
+# ArgumentTypeError: port must be between 1 and 65535, got 99999
+```
+
+**Key features:**
+- Uses `argparse.ArgumentTypeError` for custom port validation in a reusable validator function
+- `action="store_true"` for the boolean `--verbose` flag
+- Default values provided for all arguments
+- Clean JSON output with 2-space indentation
+- Port validation happens at parse time, so invalid values are caught immediately

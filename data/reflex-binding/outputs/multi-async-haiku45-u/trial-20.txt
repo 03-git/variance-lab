@@ -1,0 +1,86 @@
+Here's an async TCP echo server using Python's `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line (up to b'\n')
+            data = await reader.readline()
+            
+            if not data:
+                # Client closed connection
+                break
+            
+            message = data.decode().strip()
+            print(f"[{addr}] Received: {message}")
+            
+            # Echo back the message
+            writer.write((message + '\n').encode())
+            await writer.drain()
+            print(f"[{addr}] Echoed: {message}")
+    
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+
+async def main():
+    """Start the TCP echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        9999
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**To run it:**
+
+```bash
+# Terminal 1: Start the server
+python echo_server.py
+
+# Terminal 2, 3, etc.: Connect clients using netcat or telnet
+nc 127.0.0.1 9999
+# or
+telnet 127.0.0.1 9999
+
+# Type a message and hit Enter - it echoes back
+```
+
+**Example session:**
+```
+$ nc 127.0.0.1 9999
+hello world
+hello world
+test message
+test message
+```
+
+**Key features:**
+- `asyncio.start_server()` handles accepting multiple concurrent connections
+- Each client runs in its own `handle_client()` coroutine
+- `reader.readline()` reads one line per client
+- `writer.drain()` ensures the response is flushed before continuing
+- Proper cleanup with `writer.close()` and `wait_closed()`
+- Server prints connection/disconnection events for monitoring
+
+The server handles arbitrary numbers of concurrent clients efficiently since asyncio uses cooperative multitasking rather than threads.

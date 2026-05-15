@@ -1,0 +1,18 @@
+```python
+import sys
+import urllib.request
+
+url = sys.argv[1]
+with urllib.request.urlopen(url) as r:
+    body = r.read(500).decode("utf-8", errors="replace")
+    print(f"Status: {r.status}")
+    print("Headers:")
+    for k, v in r.headers.items():
+        print(f"  {k}: {v}")
+    print("Body (first 500 chars):")
+    print(body)
+```
+
+Run: `python3 script.py https://example.com`
+
+`urllib.request.urlopen` follows HTTP 30x redirects by default via `HTTPRedirectHandler`. No external dependencies.

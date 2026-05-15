@@ -1,0 +1,42 @@
+I'll show you how to create this endpoint using Python and Flask. Here's the minimal code:
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_current_time():
+    current_time = datetime.utcnow().isoformat()
+    return jsonify({"time": current_time})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+To run this:
+
+1. Save as `app.py`
+2. Install requirements:
+```bash
+pip install flask
+```
+3. Run the server:
+```bash
+python app.py
+```
+
+The server will start on `http://127.0.0.1:5000/`. You can access the endpoint at `http://127.0.0.1:5000/time` which will return:
+
+```json
+{
+  "time": "2023-09-15T12:34:56.789Z"
+}
+```
+
+This implementation:
+- Uses UTC time per ISO 8601 standard
+- Returns proper Content-Type: application/json
+- Includes Flask's built-in development server
+- Automatically handles request parsing and response formatting

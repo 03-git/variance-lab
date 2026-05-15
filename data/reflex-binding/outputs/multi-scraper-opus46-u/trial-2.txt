@@ -1,0 +1,98 @@
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print every <a> tag's href and link text."""
+
+import sys
+from html.parser import HTMLParser
+from urllib.request import urlopen, Request
+
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []          # list of [href, text]
+        self._current_href = None
+        self._text_parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            self._current_href = href
+            self._text_parts = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._text_parts.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            text = " ".join("".join(self._text_parts).split())
+            self.links.append((self._current_href, text))
+            self._current_href = None
+            self._text_parts = []
+
+
+def main(url="https://example.com"):
+    req = Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urlopen(req) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkParser()
+    parser.feed(html)
+
+    if not parser.links:
+        print("No links found.")
+        return
+
+    for href, text in parser.links:
+        print(f"{href}\t{text!r}")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1] if len(sys.argv) > 1 else "https://example.com")
+```
+
+**How to run it**
+
+This uses only the Python standard library — no `pip install` needed.
+
+1. Save it as `extract_links.py`.
+2. Run it:
+
+```bash
+python3 extract_links.py
+```
+
+Or pass a different URL:
+
+```bash
+python3 extract_links.py https://www.python.org
+```
+
+For `https://example.com` you'll get roughly:
+
+```
+https://www.iana.org/domains/example	'More information...'
+```
+
+**If you'd rather use `requests` + `BeautifulSoup`** (nicer for messy real-world HTML):
+
+```python
+import sys, requests
+from bs4 import BeautifulSoup
+
+url = sys.argv[1] if len(sys.argv) > 1 else "https://example.com"
+html = requests.get(url, headers={"User-Agent": "link-extractor/1.0"}, timeout=10).text
+soup = BeautifulSoup(html, "html.parser")
+
+for a in soup.find_all("a", href=True):
+    print(f"{a['href']}\t{a.get_text(strip=True)!r}")
+```
+
+Run after installing deps:
+
+```bash
+pip install requests beautifulsoup4
+python3 extract_links.py
+```

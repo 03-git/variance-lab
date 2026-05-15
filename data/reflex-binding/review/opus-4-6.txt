@@ -1,0 +1,57 @@
+## 1. FACTUAL ERRORS
+
+**Model count mismatch.** The metadata says "4 models, 2 arms, N=5 per cell" but the experiment uses 6 models (Opus 4.6, Opus 4.7, Gemma-4 26B, Qwen3 32B, Llama 3.1 8B, Qwen 2.5 7B). The results table has 12 rows. The methodology cost section correctly counts "20 frontier … 40 local … 60 trials." The metadata is wrong.
+
+**"One programming language" contradicts the data.** Under Confounds: "One task prompt, one programming language, one correct answer." But the Gemma governed detail reports "4 Python http.server, 1 Node.js http." The task prompt does not specify Python. One trial used a different language's stdlib, which means neither "one programming language" nor "one correct answer" is true of the actual results.
+
+**R2 discussed but not shown.** The Qwen3 32B detail reports "R2 (mentions kernel primitive) scored 0.6 governed vs 0.0 ungoverned," but R2 is absent from the results table, which only shows R1, R3, R4. R5 is also defined in the rubric but absent from the table. Either include all rubric dimensions or state which were dropped and why.
+
+**Qwen3 32B ungoverned R4 = 1/5 seems inconsistent.** That cell has R1 = 0/5 (not stdlib) and R3 = 2.0 (framework) but R4 = 1/5 (one trial with no pip install). A framework solution that doesn't require pip install is possible (model omitted the install step) but this anomaly is never discussed.
+
+**SOUL.txt appears once and is never explained.** The Opus 4.7 row says "native ~/CLAUDE.md + SOUL.txt" as the governance mechanism. No other cell uses SOUL.txt. This is a procedural difference between Opus 4.6 and 4.7 that is never acknowledged or controlled for. If SOUL.txt contains additional content, it's a confound. If it doesn't matter, say so.
+
+**"rousseau M1 Studio GPU"** in methodology cost — Apple Silicon M-series chips have integrated GPU cores in a unified memory architecture, not a discrete GPU. Minor, but technically wrong in a methodology section.
+
+**"The original 3×2 matrix"** is referenced twice ("The original 3×2 matrix suggested a parameter threshold; the expanded matrix shows it is lineage-dependent") but never defined. Which 3 models? Was this a prior run? The reader cannot evaluate the claim that the expanded matrix overturned a prior conclusion without knowing what the prior matrix was.
+
+## 2. FRAMING DRIFT
+
+**"the decisive metric" / "the decisive cell."** These phrases appear as headers and in body text. "Decisive" is an editorial judgment. R1 was chosen as primary, and Gemma 26B happens to be the most informative cell, but calling them "decisive" asserts interpretive weight as if it were structural. Use "primary" or just drop the adjective.
+
+**"The 'senior engineer' answer per the video."** This frames stdlib as objectively correct by appeal to a YouTube video. Whether `http.server` is the "senior engineer" answer for a production HTTP endpoint is debatable — Flask's 8-line solution is arguably more appropriate for real use. The finding treats the stdlib preference as ground truth without defending it.
+
+**"at 32B it likely has http.server in its weights."** This appears in the Mechanism section and again in the binding-mode summary. "Likely" is the only hedge on a claim for which zero evidence is presented. The authors did not probe Qwen3-32B's knowledge of http.server independently of the governance task. This should either be tested (ask the model what http.server is) or reframed as a hypothesis.
+
+**"The governance artifact transfers discipline, not knowledge."** This is a crisp aphorism built on one task, one governance rule, and one model (Gemma) showing full binding. The generalization from "Gemma changed its behavior on this task" to a general theory of governance-as-discipline-transfer is a large leap. The sentence reads as a thesis statement, not a finding.
+
+**"reflex.1 is not a trigger — it is an activator."** This trigger/activator distinction is presented as a discovered mechanism, but the data only show that an abstract rule behaves differently from a named-item rule. The label "activator" implies a mechanistic claim the experiment does not test. Describe the behavioral difference without coining mechanism terminology.
+
+**"Qwen lineage's instruction-following architecture interacts differently with abstract governance reflexes."** The authors have no access to Qwen's architecture. They can observe that Qwen models don't change behavior; attributing this to "instruction-following architecture" is speculation presented as explanation. Say "Qwen models do not change behavior in response to this governance text" and stop there.
+
+**"This is the distillation boundary."** Very strong framing for a single-task result. The entire paragraph introducing subtract.ing's thesis, YouTube video sources, and master/apprentice metaphors reads as advocacy for a theoretical framework, not as interpretation of experimental data.
+
+**The Akamai edge-cache analogy** ("not just cache *size* but cache *architecture* determines whether the routing table entry resolves") is extended over several sentences and introduces new metaphorical terms (routing table, lookup mechanism, cache hits) that don't add precision. They make the finding sound more general than it is.
+
+## 3. MISSING OR CUT
+
+### Missing
+
+**The text of reflex.1.** The finding discusses it throughout but never quotes it in full. The one fragment — "name the kernel primitive before proposing any library or tool" — appears to be the complete text, but this is never confirmed. For reproducibility, the exact governance text loaded in each arm should be shown or cited precisely.
+
+**Generation parameters.** Temperature, top-p, top-k, and any other sampling parameters for local models are never stated. For frontier models, whether default parameters were used is not stated. At N=5, sampling temperature is a critical variable.
+
+**Statistical significance.** With N=5, the difference between 0/5 and 5/5 is unambiguous, but Llama's 3/5 vs 0/5 is not necessarily significant (Fisher's exact test p ≈ 0.038 one-tailed — borderline). The finding never discusses statistical power or confidence. A sentence acknowledging the small N and the limits of inference from it would strengthen credibility.
+
+**subtract.ing** is referenced as having a "thesis" but is never introduced or defined. The reader doesn't know if this is a person, a project, or an organization.
+
+**The YouTube videos** are cited only by video ID (Tk0sRTX-zCA, LCXhO6YTBTU). Title and author would help the reader assess the source without having to look them up.
+
+**Independent probe of Qwen3-32B's http.server knowledge.** The mechanism section's central claim is that Qwen "reads but does not operationalize." A simple follow-up — asking Qwen3-32B directly about http.server outside the governance context — would distinguish "doesn't know about it" from "knows but doesn't use it." This is cheap and would significantly strengthen the lineage-vs-capability argument.
+
+### Should be cut or reduced
+
+**The distillation boundary paragraph** (from "This is the distillation boundary" through the end of the Akamai analogy). It introduces a theoretical framework (distillation, master/apprentice, routing tables, cache architecture) that the experiment does not test. The finding would be stronger ending with the three binding modes and the statement that parameter count is necessary but not sufficient.
+
+**"senior engineer intuition" in the keywords list.** This is not a measured variable and introduces a normative frame into what should be descriptive metadata.
+
+**The Akamai analogy** specifically — if the distillation paragraph stays, the analogy should still go. It adds metaphorical complexity without explanatory power. "Lineage matters, not just scale" is already clear from the data.

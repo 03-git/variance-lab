@@ -1,0 +1,107 @@
+I'll show you a REST API endpoint implementation in Python using Flask. Here's the complete code:
+
+```python
+from flask import Flask, request, jsonify
+from functools import wraps
+import re
+
+app = Flask(__name__)
+
+def validate_input(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        data = request.get_json()
+        
+        # Check if JSON was provided
+        if not data:
+            return jsonify({"error": "Request body must be valid JSON"}), 400
+        
+        errors = {}
+        
+        # Validate name
+        if "name" not in data:
+            errors["name"] = "name is required"
+        elif not isinstance(data["name"], str) or not data["name"].strip():
+            errors["name"] = "name must be a non-empty string"
+        
+        # Validate email
+        if "email" not in data:
+            errors["email"] = "email is required"
+        elif not isinstance(data["email"], str):
+            errors["email"] = "email must be a string"
+        elif "@" not in data["email"]:
+            errors["email"] = "email must contain @"
+        
+        # Validate age
+        if "age" not in data:
+            errors["age"] = "age is required"
+        elif not isinstance(data["age"], int) or isinstance(data["age"], bool):
+            errors["age"] = "age must be an integer"
+        elif not (1 <= data["age"] <= 150):
+            errors["age"] = "age must be between 1 and 150"
+        
+        if errors:
+            return jsonify({"error": "Validation failed", "details": errors}), 400
+        
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
+@app.route('/users', methods=['POST'])
+@validate_input
+def create_user():
+    data = request.get_json()
+    
+    user = {
+        "name": data["name"].strip(),
+        "email": data["email"],
+        "age": data["age"]
+    }
+    
+    return jsonify(user), 201
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**How to run it:**
+
+```bash
+# Install Flask if needed
+pip install flask
+
+# Save the code to a file (e.g., app.py)
+python app.py
+```
+
+The server will start on `http://localhost:5000`.
+
+**Test it:**
+
+```bash
+# Valid request
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+# Returns: 201 with {"name": "Alice", "email": "alice@example.com", "age": 30}
+
+# Invalid email (missing @)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "email": "bobexample.com", "age": 25}'
+# Returns: 400 with error details
+
+# Invalid age (out of range)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Charlie", "email": "charlie@example.com", "age": 200}'
+# Returns: 400 with age validation error
+
+# Missing required field
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Dave", "age": 35}'
+# Returns: 400 with email requirement error
+```
+
+The decorator handles all validation and returns 400 with detailed error messages for any invalid input, or 201 with the validated user object on success.

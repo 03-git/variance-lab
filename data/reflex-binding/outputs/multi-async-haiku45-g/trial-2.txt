@@ -1,0 +1,81 @@
+I'll show you an async TCP echo server using Python's `asyncio` module that handles multiple concurrent clients:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            if not data:
+                # Client disconnected
+                break
+            
+            line = data.decode().strip()
+            print(f"Received from {addr}: {line}")
+            
+            # Echo the line back
+            writer.write(data)
+            await writer.drain()
+    except asyncio.CancelledError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    async with server:
+        print("Echo server listening on 127.0.0.1:8888")
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+```bash
+python echo_server.py
+```
+
+2. **In another terminal, connect with telnet or nc:**
+```bash
+nc localhost 8888
+```
+or
+```bash
+telnet localhost 8888
+```
+
+3. **Type lines and see them echoed back:**
+```
+hello world
+hello world
+test message
+test message
+```
+
+**Key features:**
+- `asyncio.start_server()` creates a TCP server that accepts connections
+- `handle_client()` is called for each new client connection
+- `reader.readline()` reads lines asynchronously without blocking
+- Multiple clients can connect simultaneously — each runs its own `handle_client()` coroutine
+- `writer.drain()` ensures the send buffer is flushed before continuing
+- The server stays alive until you press Ctrl+C
+
+The server will handle as many concurrent clients as your system allows, since each one just runs a lightweight async coroutine rather than consuming a full thread.

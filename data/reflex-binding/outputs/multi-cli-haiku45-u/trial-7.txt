@@ -1,0 +1,76 @@
+Here's a Python CLI tool that does what you need:
+
+```python
+import argparse
+import json
+
+def validate_port(value):
+    try:
+        port = int(value)
+        if 1 <= port <= 65535:
+            return port
+        raise ValueError
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Port must be an integer between 1 and 65535, got: {value}")
+
+def main():
+    parser = argparse.ArgumentParser(description="Configuration parser")
+    parser.add_argument("--host", type=str, default="localhost", help="Host to connect to")
+    parser.add_argument("--port", type=validate_port, default=8000, help="Port number (1-65535)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    
+    args = parser.parse_args()
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+Save as `config_parser.py`, then:
+
+```bash
+# Default values
+python config_parser.py
+
+# With custom host and port
+python config_parser.py --host example.com --port 3000
+
+# With verbose flag
+python config_parser.py --host 192.168.1.1 --port 9000 --verbose
+
+# Invalid port (shows error)
+python config_parser.py --port 70000
+```
+
+**Example outputs:**
+
+```bash
+$ python config_parser.py
+{
+  "host": "localhost",
+  "port": 8000,
+  "verbose": false
+}
+
+$ python config_parser.py --host api.example.com --port 5432 --verbose
+{
+  "host": "api.example.com",
+  "port": 5432,
+  "verbose": true
+}
+
+$ python config_parser.py --port abc
+usage: config_parser.py [-h] [--host HOST] [--port PORT] [--verbose]
+config_parser.py: error: argument --port: Port must be an integer between 1 and 65535, got: abc
+```
+
+The `validate_port()` function is a custom type converter that validates the port is an integer in the valid range and raises an `ArgumentTypeError` if invalid. The `argparse` module handles all the flag parsing automatically.

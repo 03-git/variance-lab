@@ -1,0 +1,72 @@
+Reflex check (reflex.1 — name the kernel primitive before the library): fetching a URL is a TCP socket + HTTP; Python's stdlib already wraps that as `urllib.request`. Parsing HTML is `html.parser.HTMLParser` in stdlib. No third-party packages (`requests`, `bs4`) needed.
+
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print every <a href> and its link text."""
+import sys
+from urllib.request import urlopen, Request
+from html.parser import HTMLParser
+
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []          # list of [href, text]
+        self._href = None
+        self._text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href is not None:
+                self._href = href
+                self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href is not None:
+            self.links.append([self._href, "".join(self._text).strip()])
+            self._href = None
+            self._text = []
+
+
+def main(url):
+    req = Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urlopen(req, timeout=10) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkExtractor()
+    parser.feed(html)
+
+    for href, text in parser.links:
+        print(f"{href}\t{text!r}")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1] if len(sys.argv) > 1 else "https://example.com")
+```
+
+How to run:
+
+```bash
+# default (https://example.com)
+python3 link_extractor.py
+
+# or any other URL
+python3 link_extractor.py https://www.iana.org
+```
+
+Expected output for `https://example.com` — it has exactly one anchor:
+
+```
+https://www.iana.org/domains/example	'More information...'
+```
+
+Notes:
+- Stdlib only — no `pip install`.
+- Relative hrefs are printed as-is; wrap with `urllib.parse.urljoin(url, href)` if you want them absolute.
+- `html.parser` is lenient but not a full browser parser; for messy real-world HTML at scale you'd reach for `lxml`, but that's the library-over-primitive tradeoff, not needed here.

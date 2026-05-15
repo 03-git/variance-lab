@@ -1,0 +1,61 @@
+id	arm	question	wall_ms	prompt_tokens	completion_tokens
+T01	M	What files are in the runtime/hosuni/ directory and what does each one do?	10424	3316	267
+T01	R	What files are in the runtime/hosuni/ directory and what does each one do?	9340	2890	274
+T02	M	What is parsimony.c and what role does it play in the subtract.ing runtime?	12052	4017	361
+T02	R	What is parsimony.c and what role does it play in the subtract.ing runtime?	12619	3838	447
+T03	M	List all .tsv files in the repository and describe the format of each.	10204	4987	340
+T03	R	List all .tsv files in the repository and describe the format of each.	15178	4654	439
+T04	M	What does the install.sh script do?	12931	3553	306
+T04	R	What does the install.sh script do?	9932	3443	275
+T05	M	What is in runtime/llms.txt and how does it differ from the root llms.txt?	12504	3069	387
+T05	R	What is in runtime/llms.txt and how does it differ from the root llms.txt?	12619	3811	344
+T06	M	What shell hooks exist in runtime/hooks/ and what do they intercept?	5911	2539	183
+T06	R	What shell hooks exist in runtime/hooks/ and what do they intercept?	8401	3753	217
+T07	M	What is kiosk.sh and what does it configure?	10754	3166	267
+T07	R	What is kiosk.sh and what does it configure?	10770	3077	250
+T08	M	What files define the lookdown system and how are they organized?	10036	5932	365
+T08	R	What files define the lookdown system and how are they organized?	12881	4443	416
+T09	M	What is squared.c and what does it compute?	10670	4768	264
+T09	R	What is squared.c and what does it compute?	15869	4052	333
+T10	M	List every file that contains a sha256 hash or references sha256 verification.	9008	4358	146
+T10	R	List every file that contains a sha256 hash or references sha256 verification.	13635	5535	364
+S01	M	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?	27200	3532	786
+S01	R	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?	19699	5930	964
+S02	M	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?	12939	4989	312
+S02	R	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?	10052	3897	344
+S03	M	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?	23089	2895	595
+S03	R	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?	21975	8388	851
+S04	M	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.	16679	5949	585
+S04	R	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.	24877	5103	714
+S05	M	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?	18068	4615	691
+S05	R	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?	13108	7506	598
+S06	M	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?	14842	3496	492
+S06	R	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?	17611	4784	432
+S07	M	Which files mention the concept of a "formation" and what does the term mean across them?	20239	1002	320
+S07	R	Which files mention the concept of a "formation" and what does the term mean across them?	12975	5999	403
+S08	M	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?	12647	5352	412
+S08	R	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?	19571	5417	577
+S09	M	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?	19278	3514	481
+S09	R	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?	17774	3271	647
+S10	M	What does lineage.txt credit and how do those credits connect to specific components in the codebase?	18496	3551	453
+S10	R	What does lineage.txt credit and how do those credits connect to specific components in the codebase?	10396	5040	397
+C01	M	What changed in hosuni.c between commit d4e860d and HEAD?	22739	3920	363
+C01	R	What changed in hosuni.c between commit d4e860d and HEAD?	18749	3675	335
+C02	M	What was the most recent change to variance-lab.txt and what confound did it resolve?	10623	3271	315
+C02	R	What was the most recent change to variance-lab.txt and what confound did it resolve?	7422	6703	318
+C03	M	Which files were modified in the commit that added CJK font fallback support?	5340	634	98
+C03	R	Which files were modified in the commit that added CJK font fallback support?	9000	4887	191
+C04	M	Has SOUL.txt been rewritten recently? What was the nature of the change?	12940	5052	307
+C04	R	Has SOUL.txt been rewritten recently? What was the nature of the change?	18062	5050	439
+C05	M	What is the most recent addition to the llms.txt index?	17789	4046	184
+C05	R	What is the most recent addition to the llms.txt index?	4040	4532	69
+M01	M	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?	15489	6053	454
+M01	R	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?	14972	4969	394
+M02	M	Find files related to the concept of signing and verification. Group them by function.	19574	4470	652
+M02	R	Find files related to the concept of signing and verification. Group them by function.	13972	5311	552
+M03	M	Which components share the pattern of reading a manifest or index file to decide what to do next?	14768	4295	325
+M03	R	Which components share the pattern of reading a manifest or index file to decide what to do next?	13867	4757	449
+M04	M	What files discuss the boundary between human authority and agent execution? How do they differ in framing?	9443	1218	336
+M04	R	What files discuss the boundary between human authority and agent execution? How do they differ in framing?	15886	6732	599
+M05	M	Find all components that use llama.cpp or local inference. How are they related?	18391	6173	605
+M05	R	Find all components that use llama.cpp or local inference. How are they related?	15945	5094	624

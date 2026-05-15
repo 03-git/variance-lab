@@ -1,0 +1,74 @@
+I'll show you a Python script that fetches a webpage and extracts all hyperlinks:
+
+```python
+import requests
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self.current_text = []
+    
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            attrs_dict = dict(attrs)
+            href = attrs_dict.get('href', '')
+            self.links.append({'href': href, 'text': ''})
+            self.current_text = []
+    
+    def handle_data(self, data):
+        if self.links:
+            self.current_text.append(data)
+    
+    def handle_endtag(self, tag):
+        if tag == 'a' and self.links:
+            text = ''.join(self.current_text).strip()
+            self.links[-1]['text'] = text
+
+def extract_links(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return []
+    
+    parser = LinkExtractor()
+    parser.feed(response.text)
+    return parser.links
+
+if __name__ == '__main__':
+    url = 'https://example.com'
+    links = extract_links(url)
+    
+    if links:
+        print(f"Found {len(links)} links:\n")
+        for link in links:
+            href = link['href']
+            text = link['text'] if link['text'] else '[no text]'
+            print(f"Text: {text}")
+            print(f"URL:  {href}\n")
+    else:
+        print("No links found.")
+```
+
+**How to run it:**
+
+1. Install requests if you don't have it:
+   ```bash
+   pip install requests
+   ```
+
+2. Save the script to a file (e.g., `extract_links.py`) and run:
+   ```bash
+   python extract_links.py
+   ```
+
+Or run it directly in a Python REPL by copying the code and adjusting the `url` variable at the bottom as needed.
+
+The script:
+- Uses `requests` to fetch the webpage
+- Uses Python's built-in `HTMLParser` to parse HTML and extract `<a>` tags
+- Captures both the `href` attribute and the link's text content
+- Handles cases where links have no text

@@ -1,0 +1,78 @@
+Here's a modern async TCP echo server using Python's `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            if not data:
+                break
+            
+            message = data.decode().strip()
+            print(f"[{addr}] Received: {message}")
+            
+            # Echo it back
+            writer.write(data)
+            await writer.drain()
+            
+    except asyncio.CancelledError:
+        pass
+    finally:
+        print(f"Client disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main():
+    """Start the TCP echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Server started on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**To run it:**
+
+1. Save as `echo_server.py` and run:
+   ```bash
+   python echo_server.py
+   ```
+
+2. In another terminal, test with `nc` (netcat):
+   ```bash
+   nc localhost 8888
+   ```
+   Then type lines and press Enter to see them echoed back.
+
+3. Or test with multiple clients:
+   ```bash
+   nc localhost 8888 &
+   nc localhost 8888 &
+   nc localhost 8888 &
+   ```
+
+**How it works:**
+- `asyncio.start_server()` creates a TCP server listening on port 8888
+- `handle_client()` is called for each new connection
+- `reader.readline()` waits for a line of input without blocking other clients
+- `writer.write()` and `await writer.drain()` send data back
+- Multiple clients run concurrently—one client waiting for input doesn't block others
+
+The server handles cleanup automatically and prints connection/disconnection messages for each client.

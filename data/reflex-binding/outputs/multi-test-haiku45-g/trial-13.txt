@@ -1,0 +1,54 @@
+I'll show you a Python test suite using pytest for the `celsius_to_fahrenheit` function:
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    def test_freezing_point(self):
+        """0°C should be 32°F"""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """100°C should be 212°F"""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_same_in_both_scales(self):
+        """-40°C should be -40°F"""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError"""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("thirty")
+```
+
+**To run it:**
+
+```bash
+# Install pytest if you don't have it
+pip install pytest
+
+# Run the tests
+pytest test_file.py -v
+
+# Or run with more detail
+pytest test_file.py -v --tb=short
+```
+
+**Expected output:**
+```
+test_file.py::TestCelsiusToFahrenheit::test_freezing_point PASSED
+test_file.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+test_file.py::TestCelsiusToFahrenheit::test_same_in_both_scales PASSED
+test_file.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+```
+
+The test suite covers:
+- **0°C → 32°F** (freezing point of water)
+- **100°C → 212°F** (boiling point of water)
+- **-40°C → -40°F** (the point where both scales meet)
+- **Non-numeric input** (raises TypeError when you multiply a string by a number)

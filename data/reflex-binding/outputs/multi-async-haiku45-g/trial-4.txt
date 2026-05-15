@@ -1,0 +1,79 @@
+I'll show you a modern async TCP echo server using Python's `asyncio` module.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line of text from the client
+            data = await reader.readline()
+            
+            # If no data, client disconnected
+            if not data:
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error with {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(handle_client, '127.0.0.1', 5000)
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server started on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+   ```bash
+   python3 echo_server.py
+   ```
+
+2. **In another terminal, connect and test with `nc` (netcat):**
+   ```bash
+   nc 127.0.0.1 5000
+   ```
+   Then type lines and hit Enter. Each line echoes back.
+
+3. **Or test with multiple clients in parallel:**
+   ```bash
+   # Terminal 1: Start server
+   python3 echo_server.py
+   
+   # Terminal 2
+   echo "hello from client 1" | nc 127.0.0.1 5000
+   
+   # Terminal 3
+   echo "hello from client 2" | nc 127.0.0.1 5000
+   ```
+
+**Key features:**
+- **Async/await:** Uses `asyncio.start_server()` to handle multiple concurrent clients without threads
+- **Line-based protocol:** `readline()` reads until a newline, then echoes it back
+- **Connection tracking:** Logs when clients connect/disconnect with their IP address
+- **Proper cleanup:** Closes connections and waits for the socket to close properly
+- **Error handling:** Catches exceptions and ensures cleanup happens even on errors
+
+The server runs indefinitely — press Ctrl+C to stop it.

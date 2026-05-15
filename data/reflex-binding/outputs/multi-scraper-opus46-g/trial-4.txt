@@ -1,0 +1,73 @@
+Health check is clean. Per reflex.1 — the kernel primitive here is the TCP socket (`connect()`/`send()`/`recv()`); `urllib.request` is the stdlib wrapper over it, and `html.parser` is a stdlib state machine. So no third-party libs (no `requests`, no `bs4`) — pure stdlib.
+
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print every <a> tag's href and link text."""
+
+import sys
+import urllib.request
+from html.parser import HTMLParser
+
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []          # list of (href, text)
+        self._href = None        # href of the <a> we're currently inside
+        self._text_parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            self._href = dict(attrs).get("href")
+            self._text_parts = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text_parts.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href is not None:
+            text = "".join(self._text_parts).strip()
+            self.links.append((self._href, text))
+            self._href = None
+
+
+def main():
+    url = sys.argv[1] if len(sys.argv) > 1 else "https://example.com"
+    req = urllib.request.Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkExtractor()
+    parser.feed(html)
+
+    if not parser.links:
+        print("(no <a> tags found)")
+        return
+    for href, text in parser.links:
+        print(f"{href}\t{text or '(no text)'}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it:
+
+```bash
+# save as links.py, then:
+python3 links.py                 # defaults to https://example.com
+python3 links.py https://news.ycombinator.com   # or pass any URL
+```
+
+Expected output for `https://example.com` (it has exactly one link):
+
+```
+https://www.iana.org/domains/example	More information...
+```
+
+Notes:
+- Stdlib only — runs on any Python 3 with no `pip install`.
+- `urlopen` won't follow non-HTTP schemes and does no JS rendering; links injected by JavaScript won't appear (the kernel only handed us the raw bytes the server sent).
+- hrefs are printed as-is (may be relative). If you want them absolute, wrap with `urllib.parse.urljoin(url, href)`.

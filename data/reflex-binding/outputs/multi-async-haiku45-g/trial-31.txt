@@ -1,0 +1,72 @@
+I'll show you an async TCP echo server using Python's `asyncio` module that handles multiple concurrent clients efficiently.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            if not data:
+                break
+            
+            # Echo it back
+            writer.write(data)
+            await writer.drain()
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the async TCP echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**To run the server:**
+
+```bash
+python3 echo_server.py
+```
+
+**To test it (in another terminal), use `nc` or `telnet`:**
+
+```bash
+# Terminal 1: run the server
+python3 echo_server.py
+
+# Terminal 2: connect and send messages
+nc localhost 8888
+```
+
+Then type lines and hit Enter — you'll see them echoed back immediately. Connect multiple clients simultaneously; the server handles them all concurrently.
+
+**How it works:**
+- `asyncio.start_server()` creates a server that accepts connections
+- `handle_client()` is called for each new client connection
+- `reader.readline()` reads data asynchronously without blocking
+- `writer.write()` and `await writer.drain()` send data back
+- Multiple clients run concurrently on a single thread via the event loop

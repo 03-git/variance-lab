@@ -1,0 +1,67 @@
+I'll write a Python CLI tool that handles argument parsing and validation:
+
+```python
+#!/usr/bin/env python3
+import argparse
+import json
+import sys
+
+def validate_port(value):
+    """Validate that port is an integer between 1-65535."""
+    try:
+        port = int(value)
+        if not (1 <= port <= 65535):
+            raise argparse.ArgumentTypeError(f"port must be between 1 and 65535, got {port}")
+        return port
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value}")
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Parse and validate host/port configuration",
+        prog="config-tool"
+    )
+    parser.add_argument("--host", required=True, help="Host address")
+    parser.add_argument("--port", type=validate_port, required=True, help="Port (1-65535)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    
+    args = parser.parse_args()
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage
+python3 tool.py --host localhost --port 8080
+
+# With verbose flag
+python3 tool.py --host 192.168.1.1 --port 3000 --verbose
+
+# Invalid port (too high) — will error
+python3 tool.py --host localhost --port 70000
+
+# Invalid port (not a number) — will error
+python3 tool.py --host localhost --port abc
+```
+
+**Example output:**
+```json
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": false
+}
+```
+
+The `validate_port` custom type function handles the validation, raising `ArgumentTypeError` if the port is outside the valid range or not an integer. argparse automatically displays helpful error messages when validation fails.

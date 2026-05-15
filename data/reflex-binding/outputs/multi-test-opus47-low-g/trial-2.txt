@@ -1,0 +1,43 @@
+Health audit clean. Here's the test suite using `unittest` (stdlib, no deps):
+
+```python
+# test_temp.py
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+import unittest
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_forty(self):
+        # -40 is the point where the two scales coincide
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_raises(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run it:
+
+```bash
+python3 -m unittest test_temp.py -v
+# or, since it has the __main__ guard:
+python3 test_temp.py -v
+```
+
+Note on the non-numeric case: `"hot" * 9` is actually valid in Python (string repetition), but the subsequent `/ 5` raises `TypeError: unsupported operand type(s) for /: 'str' and 'int'` — so the test passes. If you'd rather fail fast with an explicit check, add `if not isinstance(c, (int, float)): raise TypeError(...)` to the function and the test still holds.
+
+If you want it in `pytest` form instead, say so — it's a bit terser.

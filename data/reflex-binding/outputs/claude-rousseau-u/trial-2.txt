@@ -1,0 +1,19 @@
+**Run it:**
+
+```
+python3 /private/tmp/time_server.py
+```
+
+**Test it:**
+
+```
+curl http://127.0.0.1:8000/time
+```
+
+Returns something like:
+
+```json
+{"time": "2026-05-10T14:23:01.456789+00:00"}
+```
+
+No dependencies — just Python 3.3+. The server listens on port 8000; hit Ctrl-C to stop it.

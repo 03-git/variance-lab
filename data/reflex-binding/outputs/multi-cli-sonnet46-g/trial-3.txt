@@ -1,0 +1,55 @@
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(description="Network configuration tool")
+    parser.add_argument("--host", required=True, help="Target host")
+    parser.add_argument("--port", required=True, type=int, help="Port (1-65535)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    args = parser.parse_args()
+
+    if not (1 <= args.port <= 65535):
+        print(f"error: port {args.port} is out of range (1-65535)", file=sys.stderr)
+        sys.exit(1)
+
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**Run it:**
+
+```bash
+python tool.py --host example.com --port 8080 --verbose
+```
+
+**Output:**
+```json
+{
+  "host": "example.com",
+  "port": 8080,
+  "verbose": true
+}
+```
+
+**Edge cases:**
+
+```bash
+# Invalid port (out of range)
+python tool.py --host example.com --port 99999
+# error: port 99999 is out of range (1-65535)
+
+# Invalid port (not an integer) — caught by argparse
+python tool.py --host example.com --port abc
+# error: argument --port: invalid int value: 'abc'
+
+# Missing required flag
+python tool.py --port 80
+# error: the following arguments are required: --host
+```
+
+`argparse` handles the non-integer case before your code runs. The range check covers the rest.

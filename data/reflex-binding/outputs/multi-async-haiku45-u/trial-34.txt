@@ -1,0 +1,81 @@
+I'll show you how to build an async TCP echo server in Python using `asyncio`. Here's the complete code:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line of text from the client
+            data = await reader.readline()
+            
+            if not data:
+                # Client closed the connection
+                break
+            
+            # Echo the data back
+            message = data.decode().strip()
+            print(f"[{addr}] Received: {message}")
+            
+            writer.write(data)
+            await writer.drain()
+    
+    except asyncio.CancelledError:
+        print(f"Client {addr} cancelled")
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the TCP echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server running on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**To run it:**
+
+1. **Start the server** in one terminal:
+```bash
+python echo_server.py
+```
+
+2. **Connect clients** in other terminals:
+```bash
+# Simple netcat client
+nc localhost 8888
+
+# Or telnet
+telnet localhost 8888
+
+# Or Python client
+python3 -c "import socket; s=socket.socket(); s.connect(('localhost',8888)); s.send(b'Hello\n'); print(s.recv(1024).decode()); s.close()"
+```
+
+**How it works:**
+- `asyncio.start_server()` binds to port 8888 and listens for connections
+- Each client connection runs `handle_client()` concurrently
+- `reader.readline()` waits for a complete line (until newline)
+- The server echoes back the exact same data
+- Handles multiple clients simultaneously via async/await
+- Gracefully closes connections when clients disconnect
+
+Try connecting multiple clients at once—they'll all be handled concurrently without blocking each other.

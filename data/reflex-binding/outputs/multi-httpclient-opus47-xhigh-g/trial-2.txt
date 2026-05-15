@@ -1,0 +1,22 @@
+```python
+#!/usr/bin/env python3
+import sys
+import urllib.request
+
+url = sys.argv[1]
+with urllib.request.urlopen(url) as resp:
+    print(f"Status: {resp.status}")
+    print("Headers:")
+    for k, v in resp.headers.items():
+        print(f"  {k}: {v}")
+    body = resp.read().decode("utf-8", errors="replace")
+    print("Body (first 500 chars):")
+    print(body[:500])
+```
+
+Run:
+```
+python3 script.py https://example.com
+```
+
+`urllib.request.urlopen` follows HTTP 3xx redirects by default via `HTTPRedirectHandler`. No `requests`/`pip` needed — stdlib only.

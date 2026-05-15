@@ -1,0 +1,87 @@
+I'll show you a Python CLI tool with argument parsing, validation, and JSON output:
+
+```python
+import argparse
+import json
+import sys
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Network configuration tool",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--host",
+        default="localhost",
+        help="Host to connect to (default: localhost)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Port number (default: 8080)",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output",
+    )
+
+    args = parser.parse_args()
+
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        parser.error(f"Port must be between 1 and 65535, got {args.port}")
+
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose,
+    }
+
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage (uses defaults)
+python tool.py
+
+# With custom host and port
+python tool.py --host example.com --port 9000
+
+# With verbose flag
+python tool.py --host 0.0.0.0 --port 3000 --verbose
+
+# Invalid port (will error)
+python tool.py --port 70000
+
+# Show help
+python tool.py --help
+```
+
+**Example outputs:**
+
+```bash
+$ python tool.py
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": false
+}
+
+$ python tool.py --host api.example.com --port 443 --verbose
+{
+  "host": "api.example.com",
+  "port": 443,
+  "verbose": true
+}
+```
+
+The argparse library handles type validation automatically — if you pass a non-integer port, it errors before reaching your code. The manual range check (1-65535) happens after parsing, using `parser.error()` to exit cleanly with a user-friendly message.

@@ -1,0 +1,41 @@
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    addr = writer.get_extra_info("peername")
+    try:
+        while not reader.at_eof():
+            line = await reader.readline()
+            if not line:
+                break
+            writer.write(line)
+            await writer.drain()
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"closed {addr}")
+
+async def main(host="127.0.0.1", port=8888):
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"listening on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+Run:
+
+```
+python3 echo.py
+```
+
+Test from another terminal:
+
+```
+nc 127.0.0.1 8888
+```
+
+Type a line, get it back. Open more `nc` sessions in parallel — each is its own coroutine, all served by one thread.

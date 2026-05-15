@@ -1,0 +1,95 @@
+Here's a Python CLI tool with argument validation and JSON output:
+
+```python
+import argparse
+import json
+import sys
+
+
+def validate_port(value):
+    """Validate that port is an integer between 1-65535."""
+    try:
+        port = int(value)
+        if not (1 <= port <= 65535):
+            raise ValueError
+        return port
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"port must be an integer between 1 and 65535, got '{value}'"
+        )
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="CLI tool with host and port configuration"
+    )
+    parser.add_argument(
+        "--host",
+        required=True,
+        help="Host address"
+    )
+    parser.add_argument(
+        "--port",
+        required=True,
+        type=validate_port,
+        help="Port number (1-65535)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage
+python cli.py --host localhost --port 8080
+
+# Output:
+# {
+#   "host": "localhost",
+#   "port": 8080,
+#   "verbose": false
+# }
+
+# With verbose flag
+python cli.py --host 0.0.0.0 --port 3000 --verbose
+
+# Output:
+# {
+#   "host": "0.0.0.0",
+#   "port": 3000,
+#   "verbose": true
+# }
+
+# Invalid port (out of range)
+python cli.py --host localhost --port 70000
+# Error: usage: cli.py [-h] --host HOST --port PORT [--verbose]
+# cli.py: error: argument --port: port must be an integer between 1 and 65535, got '70000'
+
+# Invalid port (not an integer)
+python cli.py --host localhost --port abc
+# Error: argument --port: port must be an integer between 1 and 65535, got 'abc'
+```
+
+The key features:
+- **`validate_port()`** — Custom type converter that validates the port range and returns a helpful error message if validation fails
+- **`action="store_true"`** — Makes `--verbose` a boolean flag (defaults to `False`)
+- **`required=True`** — Makes `--host` and `--port` mandatory arguments
+- **JSON output** — Pretty-printed with `indent=2`

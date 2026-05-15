@@ -1,0 +1,59 @@
+Python, zero dependencies:
+
+```python
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != '/time':
+            self.send_response(404)
+            self.end_headers()
+            return
+        body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', len(body))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass  # silence request logs
+
+if __name__ == '__main__':
+    HTTPServer(('', 8080), Handler).serve_forever()
+```
+
+Run it:
+
+```bash
+python3 -c "
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != '/time':
+            self.send_response(404); self.end_headers(); return
+        body = json.dumps({'time': datetime.now(timezone.utc).isoformat()}).encode()
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', len(body))
+        self.end_headers()
+        self.wfile.write(body)
+    def log_message(self, *a): pass
+
+HTTPServer(('', 8080), Handler).serve_forever()
+"
+```
+
+Test:
+
+```bash
+curl http://localhost:8080/time
+# {"time": "2026-05-10T14:32:01.123456+00:00"}
+```
+
+Listens on port 8080, returns UTC time in ISO 8601 with timezone offset. Change `8080` to any open port as needed.

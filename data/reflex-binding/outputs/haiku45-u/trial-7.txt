@@ -1,0 +1,88 @@
+I'll show you a few simple implementations:
+
+## Python (using built-in `http.server`)
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            response = {'time': datetime.utcnow().isoformat() + 'Z'}
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+if __name__ == '__main__':
+    server = HTTPServer(('localhost', 8000), TimeHandler)
+    print('Server running on http://localhost:8000')
+    server.serve_forever()
+```
+
+**Run it:**
+```bash
+python3 script.py
+# Then visit: curl http://localhost:8000/time
+```
+
+---
+
+## Node.js (using built-in `http` module)
+
+```javascript
+const http = require('http');
+
+const server = http.createServer((req, res) => {
+  if (req.url === '/time' && req.method === 'GET') {
+    const response = { time: new Date().toISOString() };
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(response));
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+
+server.listen(8000, 'localhost', () => {
+  console.log('Server running on http://localhost:8000');
+});
+```
+
+**Run it:**
+```bash
+node script.js
+# Then visit: curl http://localhost:8000/time
+```
+
+---
+
+## Node.js + Express (if you prefer a framework)
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.get('/time', (req, res) => {
+  res.json({ time: new Date().toISOString() });
+});
+
+app.listen(8000, 'localhost', () => {
+  console.log('Server running on http://localhost:8000');
+});
+```
+
+**Run it:**
+```bash
+npm install express
+node script.js
+```
+
+---
+
+Pick whichever matches your preference. The **Python version** requires no dependencies; **Node.js built-in** also requires nothing; **Express** requires one npm install. All return ISO 8601 timestamps like `{"time": "2026-05-10T14:23:45.123Z"}`.

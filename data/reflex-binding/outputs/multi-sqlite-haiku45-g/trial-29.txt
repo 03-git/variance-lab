@@ -1,0 +1,62 @@
+Here's a Python script that creates a SQLite database with a notes table, inserts sample data, and queries it:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create an in-memory database (or use 'notes.db' for a file)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Morning standup', 'Discussed project timeline and blockers', datetime.now().isoformat()),
+    ('Python tips', 'Remember to use context managers for file I/O', datetime.now().isoformat()),
+    ('Meeting notes', 'Action items: follow up on budget, schedule review', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+notes = cursor.fetchall()
+
+# Print results
+print("All Notes:")
+print("-" * 80)
+for note_id, title, body, created_at in notes:
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 80)
+
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python3 script.py
+```
+
+Or if you want to use a persistent database file instead of in-memory, change the first line to:
+```python
+conn = sqlite3.connect('notes.db')
+```
+
+The script will output the 3 sample notes with all their fields formatted clearly.

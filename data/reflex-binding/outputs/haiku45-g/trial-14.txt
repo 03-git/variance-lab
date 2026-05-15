@@ -1,0 +1,62 @@
+I'll show you a simple HTTP endpoint in Python using Flask:
+
+```python
+from flask import Flask
+from datetime import datetime, timezone
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    current_time = datetime.now(timezone.utc).isoformat()
+    return {'time': current_time}
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**To run it:**
+
+```bash
+pip install flask
+python app.py
+```
+
+Then visit `http://localhost:5000/time` in your browser or curl it:
+
+```bash
+curl http://localhost:5000/time
+```
+
+You'll get a response like:
+```json
+{"time": "2026-05-10T14:23:45.123456+00:00"}
+```
+
+If you prefer a simpler option without Flask, here's one using Python's built-in `http.server`:
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime, timezone
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            response = {'time': datetime.now(timezone.utc).isoformat()}
+            self.wfile.write(json.dumps(response).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+if __name__ == '__main__':
+    server = HTTPServer(('localhost', 5000), TimeHandler)
+    server.serve_forever()
+```
+
+**To run:** `python app.py` (no dependencies needed)
+
+Both return ISO 8601 timestamps. The Flask version is cleaner; the built-in version needs no external packages.

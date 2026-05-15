@@ -1,0 +1,54 @@
+```python
+import argparse
+import json
+import sys
+
+
+def port_type(value):
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value!r}")
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError(f"port must be between 1 and 65535, got {port}")
+    return port
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Print parsed configuration as JSON.")
+    parser.add_argument("--host", required=True, help="Host name or IP address")
+    parser.add_argument("--port", required=True, type=port_type, help="Port (1-65535)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    args = parser.parse_args()
+
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    json.dump(config, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Save as cli.py, then:
+python cli.py --host localhost --port 8080
+python cli.py --host 0.0.0.0 --port 443 --verbose
+
+# Validation errors:
+python cli.py --host localhost --port 70000   # error: out of range
+python cli.py --host localhost --port abc     # error: not an integer
+python cli.py --help                          # show usage
+```
+
+**Example output** for `--host localhost --port 8080 --verbose`:
+
+```json
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": true
+}
+```

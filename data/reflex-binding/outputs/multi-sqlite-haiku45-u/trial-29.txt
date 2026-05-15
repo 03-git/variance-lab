@@ -1,0 +1,81 @@
+Here's a complete Python script that creates a SQLite database with a notes table, inserts sample data, and queries it:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create an in-memory database (or use a file like 'notes.db')
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Meeting Notes', 'Discussed Q2 roadmap and timeline', datetime.now().isoformat()),
+    ('Project Ideas', 'Consider implementing dark mode and accessibility improvements', datetime.now().isoformat()),
+    ('Learning', 'Started learning about database optimization and indexing', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+notes = cursor.fetchall()
+
+# Print the results
+print("All Notes:")
+print("-" * 80)
+for note_id, title, body, created_at in notes:
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 80)
+
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the script to a file (e.g., `notes.py`)
+2. Run it with: `python notes.py`
+
+**Output:**
+```
+All Notes:
+--------------------------------------------------------------------------------
+ID: 1
+Title: Meeting Notes
+Body: Discussed Q2 roadmap and timeline
+Created: 2026-05-10T14:23:45.123456
+--------------------------------------------------------------------------------
+ID: 2
+Title: Project Ideas
+Body: Consider implementing dark mode and accessibility improvements
+Created: 2026-05-10T14:23:45.123457
+--------------------------------------------------------------------------------
+ID: 3
+Title: Learning
+Body: Started learning about database optimization and indexing
+Created: 2026-05-10T14:23:45.123458
+--------------------------------------------------------------------------------
+```
+
+**Key points:**
+- Uses `:memory:` for an in-memory database (change to `'notes.db'` to persist to a file)
+- Uses parameterized queries (`?` placeholders) to prevent SQL injection
+- Commits the transaction after inserting data
+- Closes the connection when done

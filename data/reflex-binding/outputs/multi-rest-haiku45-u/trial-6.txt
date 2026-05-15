@@ -1,0 +1,92 @@
+I'll show you a clean Node.js/Express implementation:
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+app.post('/users', (req, res) => {
+  const { name, email, age } = req.body;
+  const errors = [];
+
+  // Validate name
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    errors.push('name is required and must be a non-empty string');
+  }
+
+  // Validate email
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    errors.push('email is required and must contain @');
+  }
+
+  // Validate age
+  if (age === undefined || age === null) {
+    errors.push('age is required');
+  } else if (!Number.isInteger(age) || age < 1 || age > 150) {
+    errors.push('age must be an integer between 1 and 150');
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  // Success: return validated user
+  res.status(201).json({
+    id: Math.random().toString(36).substr(2, 9),
+    name: name.trim(),
+    email: email.trim(),
+    age
+  });
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
+```
+
+**How to run it:**
+
+```bash
+# 1. Create a directory and install express
+mkdir api-demo && cd api-demo
+npm init -y
+npm install express
+
+# 2. Save the code above to server.js, then run:
+node server.js
+```
+
+**Test it:**
+
+```bash
+# Valid request
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+# Returns 201 with user object
+
+# Missing name
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "bob@example.com", "age": 25}'
+# Returns 400 with errors
+
+# Invalid email (no @)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Charlie", "email": "invalid", "age": 35}'
+# Returns 400 with errors
+
+# Age out of range
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Diana", "email": "diana@example.com", "age": 200}'
+# Returns 400 with errors
+```
+
+**Alternative stacks:**
+- **Python/Flask**: Similar approach with `@app.route('/users', methods=['POST'])` and `request.json`
+- **Python/FastAPI**: Type hints handle validation automatically with Pydantic models
+
+The Express version above gives you full control over validation logic and clear error responses.

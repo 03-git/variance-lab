@@ -1,0 +1,70 @@
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(description="Network configuration tool")
+    parser.add_argument("--host", default="localhost", help="Target host (default: localhost)")
+    parser.add_argument("--port", type=int, required=True, help="Target port (1-65535)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+
+    args = parser.parse_args()
+
+    if not (1 <= args.port <= 65535):
+        parser.error(f"Port must be between 1 and 65535, got {args.port}")
+
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose,
+    }
+
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it** (save as `config_tool.py`):
+
+```bash
+# Basic usage
+python config_tool.py --host example.com --port 8080
+
+# With verbose flag
+python config_tool.py --host 192.168.1.1 --port 443 --verbose
+
+# Default host (localhost)
+python config_tool.py --port 3000
+```
+
+**Example output:**
+```json
+{
+  "host": "example.com",
+  "port": 8080,
+  "verbose": false
+}
+```
+
+**Error cases handled:**
+
+```bash
+# Invalid port range
+python config_tool.py --port 99999
+# error: Port must be between 1 and 65535, got 99999
+
+# Non-integer port
+python config_tool.py --port abc
+# error: argument --port: invalid int value: 'abc'
+
+# Missing required --port
+python config_tool.py --host example.com
+# error: the following arguments are required: --port
+```
+
+Key notes:
+- `--port` is `required=True` and uses `type=int` so argparse rejects non-integers before your code runs
+- Range validation uses `parser.error()` which prints a clean usage message and exits with code 2 (standard CLI convention)
+- `--verbose` uses `action="store_true"` so it's a boolean flag with no value argument

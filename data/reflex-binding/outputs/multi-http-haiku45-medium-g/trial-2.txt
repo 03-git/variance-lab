@@ -1,0 +1,63 @@
+I'll show you a simple HTTP endpoint in Node.js that returns the current time as JSON.
+
+```javascript
+import http from 'http';
+
+const server = http.createServer((req, res) => {
+  if (req.method === 'GET' && req.url === '/time') {
+    const time = new Date().toISOString();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ time }));
+  } else {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
+  }
+});
+
+server.listen(3000, () => {
+  console.log('Server running at http://localhost:3000');
+});
+```
+
+**To run it:**
+
+```bash
+node server.js
+```
+
+Then test it:
+
+```bash
+curl http://localhost:3000/time
+```
+
+Response:
+```json
+{"time":"2026-05-10T14:23:45.123Z"}
+```
+
+If you prefer Python:
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+  def do_GET(self):
+    if self.path == '/time':
+      response = {'time': datetime.utcnow().isoformat() + 'Z'}
+      self.send_response(200)
+      self.send_header('Content-Type', 'application/json')
+      self.end_headers()
+      self.wfile.write(json.dumps(response).encode())
+    else:
+      self.send_response(404)
+      self.end_headers()
+
+server = HTTPServer(('localhost', 3000), TimeHandler)
+print('Server running at http://localhost:3000')
+server.serve_forever()
+```
+
+Run with: `python server.py`

@@ -1,0 +1,66 @@
+Here's a minimal implementation using Python's standard library (no dependencies, no files needed):
+
+```python
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/time":
+            body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        else:
+            self.send_error(404, "Not Found")
+
+    def log_message(self, *args):  # silence default request logging (optional)
+        pass
+
+if __name__ == "__main__":
+    HTTPServer(("0.0.0.0", 8000), TimeHandler).serve_forever()
+```
+
+## How to run it
+
+1. Save the code as `time_server.py` (or paste it into a file).
+2. Run it (requires Python 3):
+   ```sh
+   python3 time_server.py
+   ```
+3. In another terminal, hit the endpoint:
+   ```sh
+   curl http://localhost:8000/time
+   ```
+   Response:
+   ```json
+   {"time": "2026-05-10T18:42:07.123456+00:00"}
+   ```
+
+Stop the server with `Ctrl+C`.
+
+---
+
+If you'd prefer a framework version (FastAPI):
+
+```python
+from fastapi import FastAPI
+from datetime import datetime, timezone
+
+app = FastAPI()
+
+@app.get("/time")
+def get_time():
+    return {"time": datetime.now(timezone.utc).isoformat()}
+```
+
+Run with:
+```sh
+pip install fastapi uvicorn
+uvicorn time_server:app --port 8000
+```
+
+The stdlib version is the better pick if you want zero dependencies; FastAPI is nicer if this grows into a larger API. Want me to adjust the timestamp format (e.g. trailing `Z` instead of `+00:00`, or no microseconds)?

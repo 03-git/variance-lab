@@ -1,0 +1,77 @@
+Here's a Python script that creates a SQLite database with a notes table, inserts sample data, and displays the results:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create an in-memory database (or use ':memory:' for temp, or a filename for persistent)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Meeting Notes', 'Discussed Q2 roadmap and priorities', datetime.now().isoformat()),
+    ('Project Ideas', 'Consider implementing dark mode and improving search', datetime.now().isoformat()),
+    ('Book Recommendation', 'Read "The Pragmatic Programmer" - excellent insights', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+notes = cursor.fetchall()
+
+# Print the results
+print("All Notes:")
+print("-" * 80)
+for note_id, title, body, created_at in notes:
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 80)
+
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the code to a file (e.g., `notes_db.py`)
+2. Run it with: `python notes_db.py`
+
+**Output:**
+```
+All Notes:
+--------------------------------------------------------------------------------
+ID: 1
+Title: Meeting Notes
+Body: Discussed Q2 roadmap and priorities
+Created: 2026-05-10T...
+--------------------------------------------------------------------------------
+ID: 2
+Title: Project Ideas
+Body: Consider implementing dark mode and improving search
+Created: 2026-05-10T...
+--------------------------------------------------------------------------------
+ID: 3
+Title: Book Recommendation
+Body: Read "The Pragmatic Programmer" - excellent insights
+Created: 2026-05-10T...
+--------------------------------------------------------------------------------
+```
+
+The script uses `:memory:` for an in-memory database (data disappears when the script exits). To persist the database, replace `':memory:'` with a filename like `'notes.db'`.

@@ -1,0 +1,534 @@
+You are answering questions about the Lua 5.4 source code. Use ONLY the provided context to answer. Be specific — cite file names, function names, and quote relevant code.
+
+## Manifest (routing table for Lua 5.4 source)
+# path	[tag]	description
+Makefile	[build]	Developer makefile; defines CWARNSCPP/CWARNGCC flag sets and platform targets (linux, macosx, mingw)
+lapi.c	[api]	Public C API implementation; lua_push*, lua_get*, lua_call*, lua_pcall, stack manipulation
+lapi.h	[api]	Internal API helpers; api_incr_top stack-overflow check macro, api_check assertion wrapper
+lauxlib.c	[aux]	Auxiliary library; luaL_loadfile, luaL_Buffer, luaL_ref, luaL_traceback, registry helpers
+lauxlib.h	[aux]	Auxiliary library header; luaL_Buffer, luaL_Reg, luaL_newstate, luaL_error declarations
+lbaselib.c	[stdlib]	Base library; luaB_print, luaB_pcall, luaB_xpcall, luaB_load, luaB_next, luaB_type
+lcode.c	[compiler]	Code generator; emits VM instructions, manages patch lists (NO_JUMP), constant folding, jump fixup
+lcode.h	[compiler]	Code generator header; BinOpr/UnOpr enums, expdesc result kinds, luaK_* function declarations
+lcorolib.c	[coroutine]	Coroutine library; luaB_cocreate, luaB_coresume, luaB_cowrap, luaB_costatus
+lctype.c	[core]	Custom ctype table; luai_ctype_[] byte array for fast lislalpha/lisdigit/etc without locale dependency
+lctype.h	[core]	Ctype macros; lislalpha, lisdigit, lisspace, lisprint defined over luai_ctype_[] table
+ldblib.c	[debug]	Debug library; lua_sethook, lua_getinfo, lua_getlocal wrappers; hook table at registry[HOOKKEY]
+ldebug.c	[debug]	Debug interface; luaG_runerror, luaG_typeerror, luaG_getfuncline, line/local/upvalue introspection
+ldebug.h	[debug]	Debug header; pcRel pc-to-offset macro, ci_func, resethookcount, ABSLINEINFO sentinel declarations
+ldo.c	[vm]	Stack and call engine; luaD_call, luaD_pcall, luaD_throw, luaD_rawrunprotected, stack reallocation
+ldo.h	[vm]	Call/stack header; luaD_checkstackaux growth macro, condmovestack HARDSTACKTESTS hook, throw/catch decls
+ldump.c	[compiler]	Bytecode serializer; DumpHeader, DumpFunction, DumpCode writing Proto to lua_Writer stream
+lfunc.c	[core]	Closure and prototype management; luaF_newCclosure, luaF_newLclosure, luaF_newUpval, open-upvalue list
+lfunc.h	[core]	Closure/upvalue header; sizeCclosure/sizeLclosure size macros, MAXUPVAL=255, isintwups check
+lgc.c	[gc]	Tri-color incremental garbage collector; mark/sweep/finalize phases, luaC_step, luaC_fullgc, barriers
+lgc.h	[gc]	GC header; white/gray/black color macros, luaC_barrier, luaC_barrierback, GC state constants
+linit.c	[core]	Standard library loader; stdlibs[] table mapping LUA_*LIBNAME to luaopen_* functions, luaL_openlibs
+liolib.c	[io]	I/O library; LuaFile userdata wrapping FILE*, io.open/close/read/write/lines/seek, popen support
+ljumptab.h	[vm]	GCC computed-goto dispatch table; disptab[] mapping NUM_OPCODES to &&L_OP_* labels for lvm.c
+llex.c	[parser]	Lexical analyzer; luaX_next token scanner, long strings, numeral parsing, reserved word table
+llex.h	[parser]	Lexer header; Token/SemInfo structs, FIRST_RESERVED boundary, LexState, luaX_* declarations
+llimits.h	[core]	Portability and type limits; l_mem/lu_mem, cast_* macros, MAXSTACK, luai_numunm, l_likely/unlikely
+lmathlib.c	[math]	Math library; math_abs through math_tointeger, random/randomseed with xoshiro256** PRNG
+lmem.c	[memory]	Memory manager; luaM_realloc_, luaM_growaux_, emergency GC on alloc failure, debt accounting
+lmem.h	[memory]	Memory header; luaM_new/newvector/growvector macros, overflow-safe luaM_limitN size check
+loadlib.c	[stdlib]	Dynamic loader; package.loadlib via dlopen/LoadLibrary, searchers for Lua/C modules, package.path
+lobject.c	[core]	Generic object operations; luaO_str2num, luaO_pushvfstring, luaO_tostring, integer/float coercion
+lobject.h	[core]	Core value/object type definitions; TValue tagged-union, GCObject CommonHeader, TString/Table/Proto layouts
+lopcodes.c	[vm]	Opcode mode table; luaP_opmodes[] encoding MM/OT/IT/T/A/format bits per opcode via opmode macro
+lopcodes.h	[vm]	VM instruction set; 32-bit iABC/iABx/isBx/iAx/isJ formats, OP_* enum, GET_OPCODE/GETARG_* macros
+lopnames.h	[vm]	Opcode name strings; opnames[] char* array parallel to OP_* enum for disassembly/error messages
+loslib.c	[stdlib]	OS library; os.time/date/clock/difftime/exit/getenv/remove/rename/tmpname, strftime format validation
+lparser.c	[parser]	Recursive-descent parser; luaY_parser entry, statement/expression/block rules, expdesc construction
+lparser.h	[parser]	Parser header; expdesc expkind enum (VVOID..VINDEXSTR), FuncState, BlockCnt, Dyndata declarations
+lprefix.h	[core]	Must-include-first header; sets _XOPEN_SOURCE=600, _LARGEFILE_SOURCE, _FILE_OFFSET_BITS=64 for POSIX
+lstate.c	[core]	Global and thread state init; lua_newstate, luaE_newthread, luaE_freethread, allgc list setup
+lstate.h	[core]	State structures; lua_State with stack/ci/twups/hookcount, global_State with GC roots and string table
+lstring.c	[string]	Interned string table; luaS_newlstr hash+dedup, short vs long string split at LUAI_MAXSHORTLEN=40
+lstring.h	[string]	String header; MEMERRMSG preallocated OOM string, LUAI_MAXSHORTLEN, luaS_new/eqlngstr declarations
+lstrlib.c	[string]	String library; string.format, pattern match/find/gmatch/gsub, string.pack/unpack/packsize
+ltable.c	[table]	Hash table; dual array+hash layout, Brent's variation chaining, luaH_set/get/resize/next
+ltable.h	[table]	Table header; gnode/gval/gnext access macros, invalidateTMcache, BITDUMMY flag, luaH_* declarations
+ltablib.c	[table]	Table library; table.insert/remove/sort (adaptive merge+quick), table.move, table.concat
+ltests.c	[debug]	Internal test module; memory limit injection, GC stress, opcode checkers, C test functions exposed to Lua
+ltests.h	[debug]	Test header; enables LUA_DEBUG/LUAI_ASSERT, redefines allocator for memory fault injection
+ltm.c	[core]	Tag method (metamethod) dispatch; luaT_typenames_, luaT_gettm, luaT_callTM, __index/__newindex chains
+ltm.h	[core]	Metamethod enum; TM_INDEX..TM_CLOSE ordered enum, TM_N count, fast-access cutoff at TM_EQ
+lua.c	[core]	Standalone interpreter; REPL loop, LUA_INIT handling, signal handler, dofile/dostring startup
+lua.h	[api]	Public API header; lua_State, TValue-free types, lua_push*/lua_to*/lua_call*/lua_pcall declarations
+luaconf.h	[build]	Master configuration; LUA_INT_TYPE, LUA_FLOAT_TYPE, LUAI_MAXSTACK, path defaults, platform detection
+lualib.h	[stdlib]	Standard library registry; LUA_*LIBNAME constants, LUA_*LIBK bitmask flags, luaopen_* declarations
+lundump.c	[compiler]	Bytecode loader; LoadHeader magic/version check, LoadFunction rebuilds Proto from luac binary format
+lundump.h	[compiler]	Undump header; LUAC_DATA/INT/INST/NUM verification constants, LUAC_VERSION nibble encoding
+lutf8lib.c	[string]	UTF-8 library; utf8.codes/codepoint/char/len/offset, MAXUNICODE=0x10FFFF decoder/encoder
+lvm.c	[vm]	Main interpreter loop; luaV_execute dispatch over all opcodes, arithmetic/comparison/metamethod calls
+lvm.h	[vm]	VM header; cvt2str/cvt2num coercion macros, luaV_execute/luaV_objcomp/luaV_idiv declarations
+lzio.c	[core]	Buffered input stream; luaZ_fill refill callback, luaZ_read block reader over ZIO
+lzio.h	[core]	ZIO stream header; zgetc single-char macro, Mbuffer dynamic buffer, luaZ_initbuffer/resetbuffer
+onelua.c	[build]	Unity build entry; #includes all core + lib sources for single-TU compilation via gcc -o lua onelua.c -lm
+
+
+## Makefile (lines 41-80 of 224)
+
+CWARNS= $(CWARNSCPP) $(CWARNSC) $(CWARNGCC)
+
+# Some useful compiler options for internal tests:
+# -DLUAI_ASSERT turns on all assertions inside Lua.
+# -DHARDSTACKTESTS forces a reallocation of the stack at every point where
+# the stack can be reallocated.
+# -DHARDMEMTESTS forces a full collection at all points where the collector
+# can run.
+# -DEMERGENCYGCTESTS forces an emergency collection at every single allocation.
+# -DEXTERNMEMCHECK removes internal consistency checking of blocks being
+# deallocated (useful when an external tool like valgrind does the check).
+# -DMAXINDEXRK=k limits range of constants in RK instruction operands.
+# -DLUA_COMPAT_5_3
+
+# -pg -malign-double
+# -DLUA_USE_CTYPE -DLUA_USE_APICHECK
+
+# The following options help detect "undefined behavior"s that seldom
+# create problems; some are only available in newer gcc versions. To
+# use some of them, we also have to define an environment variable
+# ASAN_OPTIONS="detect_invalid_pointer_pairs=2".
+# -fsanitize=undefined  (you may need to add "-lubsan" to libs)
+# -fsanitize=pointer-subtract -fsanitize=address -fsanitize=pointer-compare
+
+# Test mode: Add test library, turn on asserts, redefine several
+# constants ("to give some bugs a chance"), track memory use, and add
+# debug information.
+# TESTS= -DLUA_USER_H='"ltests.h"' -Og -g
+
+LOCAL = $(TESTS) $(CWARNS)
+
+
+# To enable Linux goodies, -DLUA_USE_LINUX
+# For C89, "-std=c89 -DLUA_USE_C89"
+# Note that Linux/Posix options are not compatible with C89
+# (For 32-bit, add option "-m32" to MYCFLAGS and MYLDFLAGS.)
+MYCFLAGS= $(LOCAL) -std=c99 -DLUA_USE_LINUX
+MYLDFLAGS= -Wl,-E
+MYLIBS= -ldl
+
+## Makefile (lines 1-40 of 224)
+# Developer's makefile for building Lua
+# see luaconf.h for further customization
+
+# == CHANGE THE SETTINGS BELOW TO SUIT YOUR ENVIRONMENT =======================
+
+# Warnings valid for both C and C++
+CWARNSCPP= \
+	-Wfatal-errors \
+	-Wextra \
+	-Wshadow \
+	-Wundef \
+	-Wwrite-strings \
+	-Wredundant-decls \
+	-Wdisabled-optimization \
+	-Wdouble-promotion \
+	-Wmissing-declarations \
+	-Wconversion \
+        # the next warnings might be useful sometimes,
+	# but usually they generate too much noise
+	# -Wstrict-overflow=2 \
+	# -Werror \
+	# -pedantic   # warns if we use jump tables \
+	# -Wformat=2 \
+	# -Wcast-qual \
+
+
+# Warnings for gcc, not valid for clang
+CWARNGCC= \
+	-Wlogical-op \
+	-Wno-aggressive-loop-optimizations \
+
+
+# The next warnings are neither valid nor needed for C++
+CWARNSC= -Wdeclaration-after-statement \
+	-Wmissing-prototypes \
+	-Wnested-externs \
+	-Wstrict-prototypes \
+	-Wc++-compat \
+	-Wold-style-definition \
+
+
+## onelua.c (lines 41-80 of 136)
+** Other specific features
+*/
+#if 0
+#define LUA_32BITS
+#define LUA_USE_C89
+#endif
+
+
+/* no need to change anything below this line ----------------------------- */
+
+#include "lprefix.h"
+
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+/* setup for luaconf.h */
+#define LUA_CORE
+#define LUA_LIB
+
+#include "luaconf.h"
+
+/* do not export internal symbols */
+#undef LUAI_FUNC
+#undef LUAI_DDEC
+#undef LUAI_DDEF
+#define LUAI_FUNC	static
+#define LUAI_DDEC(def)	/* empty */
+
+## onelua.c (lines 1-40 of 136)
+/*
+** Lua core, libraries, and interpreter in a single file.
+** Compiling just this file generates a complete Lua stand-alone
+** program:
+**
+** $ gcc -O2 -std=c99 -o lua onelua.c -lm
+**
+** or (for C89)
+**
+** $ gcc -O2 -std=c89 -DLUA_USE_C89 -o lua onelua.c -lm
+**
+** or (for Linux)
+**
+** gcc -O2 -o lua -DLUA_USE_LINUX -Wl,-E onelua.c -lm -ldl
+**
+*/
+
+/* default is to build the full interpreter */
+#ifndef MAKE_LIB
+#ifndef MAKE_LUAC
+#ifndef MAKE_LUA
+#define MAKE_LUA
+#endif
+#endif
+#endif
+
+
+/*
+** Choose suitable platform-specific features. Default is no
+** platform-specific features. Some of these options may need extra
+** libraries such as -ldl -lreadline -lncurses
+*/
+#if 0
+#define LUA_USE_LINUX
+#define LUA_USE_MACOSX
+#define LUA_USE_POSIX
+#endif
+
+
+/*
+
+## lundump.c (lines 1-40 of 421)
+/*
+** $Id: lundump.c $
+** load precompiled Lua chunks
+** See Copyright Notice in lua.h
+*/
+
+#define lundump_c
+#define LUA_CORE
+
+#include "lprefix.h"
+
+
+#include <limits.h>
+#include <string.h>
+
+#include "lua.h"
+
+#include "ldebug.h"
+#include "ldo.h"
+#include "lfunc.h"
+#include "lmem.h"
+#include "lobject.h"
+#include "lstring.h"
+#include "ltable.h"
+#include "lundump.h"
+#include "lzio.h"
+
+
+#if !defined(luai_verifycode)
+#define luai_verifycode(L,f)  /* empty */
+#endif
+
+
+typedef struct {
+  lua_State *L;
+  ZIO *Z;
+  const char *name;
+  Table *h;  /* list for string reuse */
+  size_t offset;  /* current position relative to beginning of dump */
+  lua_Unsigned nstr;  /* number of strings in the list */
+
+## luaconf.h (lines 521-560 of 767)
+#define LUA_INTEGER		long
+#define LUA_INTEGER_FRMLEN	"l"
+
+#define LUA_MAXINTEGER		LONG_MAX
+#define LUA_MININTEGER		LONG_MIN
+
+#define LUA_MAXUNSIGNED		ULONG_MAX
+
+#elif LUA_INT_TYPE == LUA_INT_LONGLONG	/* }{ long long */
+
+/* use presence of macro LLONG_MAX as proxy for C99 compliance */
+#if defined(LLONG_MAX)		/* { */
+/* use ISO C99 stuff */
+
+#define LUA_INTEGER		long long
+#define LUA_INTEGER_FRMLEN	"ll"
+
+#define LUA_MAXINTEGER		LLONG_MAX
+#define LUA_MININTEGER		LLONG_MIN
+
+#define LUA_MAXUNSIGNED		ULLONG_MAX
+
+#elif defined(LUA_USE_WINDOWS) /* }{ */
+/* in Windows, can use specific Windows types */
+
+#define LUA_INTEGER		__int64
+#define LUA_INTEGER_FRMLEN	"I64"
+
+#define LUA_MAXINTEGER		_I64_MAX
+#define LUA_MININTEGER		_I64_MIN
+
+#define LUA_MAXUNSIGNED		_UI64_MAX
+
+#else				/* }{ */
+
+#error "Compiler does not support 'long long'. Use option '-DLUA_32BITS' \
+  or '-DLUA_C89_NUMBERS' (see file 'luaconf.h' for details)"
+
+#endif				/* } */
+
+
+## luaconf.h (lines 1-40 of 767)
+/*
+** $Id: luaconf.h $
+** Configuration file for Lua
+** See Copyright Notice in lua.h
+*/
+
+
+#ifndef luaconf_h
+#define luaconf_h
+
+#include <limits.h>
+#include <stddef.h>
+
+
+/*
+** ===================================================================
+** General Configuration File for Lua
+**
+** Some definitions here can be changed externally, through the compiler
+** (e.g., with '-D' options): They are commented out or protected
+** by '#if !defined' guards. However, several other definitions
+** should be changed directly here, either because they affect the
+** Lua ABI (by making the changes here, you ensure that all software
+** connected to Lua, such as C libraries, will be compiled with the same
+** configuration); or because they are seldom changed.
+**
+** Search for "@@" to find all configurable definitions.
+** ===================================================================
+*/
+
+
+/*
+** {====================================================================
+** System Configuration: macros to adapt (if needed) Lua to some
+** particular platform, for instance restricting it to C89.
+** =====================================================================
+*/
+
+/*
+@@ LUA_USE_C89 controls the use of non-ISO-C89 features.
+
+## ltests.h (lines 121-160 of 167)
+
+LUA_API void *debug_realloc (void *ud, void *block,
+                             size_t osize, size_t nsize);
+
+
+#define luaL_newstate()  \
+	lua_newstate(debug_realloc, &l_memcontrol, luaL_makeseed(NULL))
+#define luai_openlibs(L)  \
+  {  luaL_openlibs(L); \
+     luaL_requiref(L, "T", luaB_opentests, 1); \
+     lua_pop(L, 1); }
+
+
+
+
+/* change some sizes to give some bugs a chance */
+
+#undef LUAL_BUFFERSIZE
+#define LUAL_BUFFERSIZE		23
+#define MINSTRTABSIZE		2
+#define MAXIWTHABS		3
+
+#define STRCACHE_N	23
+#define STRCACHE_M	5
+
+#define MAXINDEXRK	1
+
+
+/*
+** Reduce maximum stack size to make stack-overflow tests run faster.
+** (But value is still large enough to overflow smaller integers.)
+*/
+#define LUAI_MAXSTACK   68000
+
+
+/* test mode uses more stack space */
+#undef LUAI_MAXCCALLS
+#define LUAI_MAXCCALLS	180
+
+
+
+## ltests.h (lines 1-40 of 167)
+/*
+** $Id: ltests.h $
+** Internal Header for Debugging of the Lua Implementation
+** See Copyright Notice in lua.h
+*/
+
+#ifndef ltests_h
+#define ltests_h
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+/* test Lua with compatibility code */
+#define LUA_COMPAT_MATHLIB
+#undef LUA_COMPAT_GLOBAL
+#define LUA_COMPAT_GLOBAL	0
+
+
+#define LUA_DEBUG
+
+
+/* turn on assertions */
+#define LUAI_ASSERT
+
+
+/* to avoid warnings, and to make sure value is really unused */
+#define UNUSED(x)       (x=0, (void)(x))
+
+
+/* test for sizes in 'l_sprintf' (make sure whole buffer is available) */
+#undef l_sprintf
+#if !defined(LUA_USE_C89)
+#define l_sprintf(s,sz,f,i)	(memset(s,0xAB,sz), snprintf(s,sz,f,i))
+#else
+#define l_sprintf(s,sz,f,i)	(memset(s,0xAB,sz), sprintf(s,f,i))
+#endif
+
+
+/* get a chance to test code without jump tables */
+
+## lctype.h (lines 41-80 of 101)
+#define PRINTBIT	2
+#define SPACEBIT	3
+#define XDIGITBIT	4
+
+
+#define MASK(B)		(1 << (B))
+
+
+/*
+** add 1 to char to allow index -1 (EOZ)
+*/
+#define testprop(c,p)	(luai_ctype_[(c)+1] & (p))
+
+/*
+** 'lalpha' (Lua alphabetic) and 'lalnum' (Lua alphanumeric) both include '_'
+*/
+#define lislalpha(c)	testprop(c, MASK(ALPHABIT))
+#define lislalnum(c)	testprop(c, (MASK(ALPHABIT) | MASK(DIGITBIT)))
+#define lisdigit(c)	testprop(c, MASK(DIGITBIT))
+#define lisspace(c)	testprop(c, MASK(SPACEBIT))
+#define lisprint(c)	testprop(c, MASK(PRINTBIT))
+#define lisxdigit(c)	testprop(c, MASK(XDIGITBIT))
+
+
+/*
+** In ASCII, this 'ltolower' is correct for alphabetic characters and
+** for '.'. That is enough for Lua needs. ('check_exp' ensures that
+** the character either is an upper-case letter or is unchanged by
+** the transformation, which holds for lower-case letters and '.'.)
+*/
+#define ltolower(c)  \
+  check_exp(('A' <= (c) && (c) <= 'Z') || (c) == ((c) | ('A' ^ 'a')),  \
+            (c) | ('A' ^ 'a'))
+
+
+/* one entry for each character and for -1 (EOZ) */
+LUAI_DDEC(const lu_byte luai_ctype_[UCHAR_MAX + 2];)
+
+
+#else			/* }{ */
+
+## lctype.h (lines 1-40 of 101)
+/*
+** $Id: lctype.h $
+** 'ctype' functions for Lua
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lctype_h
+#define lctype_h
+
+#include "lua.h"
+
+
+/*
+** WARNING: the functions defined here do not necessarily correspond
+** to the similar functions in the standard C ctype.h. They are
+** optimized for the specific needs of Lua.
+*/
+
+#if !defined(LUA_USE_CTYPE)
+
+#if 'A' == 65 && '0' == 48
+/* ASCII case: can use its own tables; faster and fixed */
+#define LUA_USE_CTYPE	0
+#else
+/* must use standard C ctype */
+#define LUA_USE_CTYPE	1
+#endif
+
+#endif
+
+
+#if !LUA_USE_CTYPE	/* { */
+
+#include <limits.h>
+
+#include "llimits.h"
+
+
+#define ALPHABIT	0
+#define DIGITBIT	1
+
+## Question
+What does the Makefile build and what targets does it define?

@@ -1,0 +1,404 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./variance-lab.txt (lines 401-440 of 2802)
+Every enterprise deploying agents needs a credential authority under their control. Not a vendor sandbox. Not a cloud guardrail. A KEYMASTER that issues delegation credentials, enforces TTL, and provides physical revocation. The infrastructure where that authority runs is the sovereignty surface.
+
+
+================================================================
+
+---
+title: Governance Binding, Delivery-Path Sensitivity, Deliberative Scope Correction, and Targeted Patch Validation
+date: 2026-04-19
+source: production empirical (five pre-committed experiments, single operator, single off-peak Sunday UTC window)
+domain:
+  - agent-governance
+  - claude-md-binding
+  - deliberative-methodology
+  - tool-surface-testing
+  - governance-patch-validation
+keywords:
+  - CLAUDE.md binding
+  - native vs inline governance delivery
+  - identity-level claim degradation
+  - deliberative pass scope correction
+  - tool-surface null
+  - targeted governance patch
+  - pre-committed rubric
+  - three-gate handler methodology
+  - before/after rubric-item flip
+  - R3 signer identity
+  - R4 llms.txt manifest
+  - attention-shift regression
+  - rubric recalibration
+related_findings:
+  - "variance-lab finding 1: three questions for agentic autonomy"
+  - "variance-lab finding 2: delegation-aware execution vs single-context inline (2026-03-28)"
+  - "variance-lab finding 3: interaction mode variance in human-AI sessions (2026-03-30)"
+  - "variance-lab finding 4: delegated agent authorization gap"
+  - "variance-lab handler methodology: three-gate validation template (2026-04-18)"
+methodology: five pre-committed specs under the handler three-gate template; trial experiments dispatched to claude-opus-4-7 effort=high, N=5 per arm, interleaved A/B; blind-shuffled rubric scoring via claude-sonnet-4-5 effort=low on Rousseau with fence-stripping JSON extractor; Welch t-test with unequal variance; retrospective analysis on exp 3 artifacts via single opus-4-7 dispatch; exp 5 eight-voter deliberative pass across three training lineages; off-peak Sunday UTC window
+---
+
+# Governance Binding, Delivery-Path Sensitivity, and Targeted Patch Validation
+
+
+## ./variance-lab.txt (lines 1-40 of 2802)
+# variance-lab — empirical proof layer
+
+This is the claim layer of the subtract stack. Harness and raw outputs live at
+github.com/03-git/variance-lab (substrate, reproducible). These findings are
+the load-bearing empirical claims that the subtract doctrine relies on.
+
+  Canonical:   https://subtract.ing/variance-lab.txt (signed via llms.txt manifest)
+  Methodology: https://subtract.ing/variance-lab-handler-methodology.txt (three-gate validation, 2026-04-18)
+  Harness:     https://github.com/03-git/variance-lab (runnable, reproducible)
+  Signer:      hodori@subtract.ing
+  Namespace:   subtract.ing
+
+Verify:
+
+  curl -sO https://subtract.ing/llms.txt
+  curl -sO https://subtract.ing/llms.txt.sig
+  curl -sO https://subtract.ing/variance-lab.txt
+  ssh-keygen -Y verify -f <(curl -s https://subtract.ing/authorized_signers) \
+    -I hodori@subtract.ing -n subtract.ing -s llms.txt.sig < llms.txt
+  grep "variance-lab.txt" llms.txt | sha256sum -c
+
+
+================================================================
+
+---
+title: Three Questions for Agentic Autonomy
+date: 2026-03-28
+source: production empirical (consulting methodology derived from formation buildout)
+domain:
+  - agentic-consulting
+  - workflow-automation
+  - autonomy-assessment
+  - human-ai-task-allocation
+keywords:
+  - agentic autonomy assessment
+  - consulting intake protocol
+  - workflow automation assessment
+  - human KPI identification
+  - via negativa methodology
+  - autonomy blocker taxonomy
+
+## ./variance-lab-handler-methodology.txt (lines 1-40 of 398)
+# Variance-Lab: handler.sh Substrate-Code Selection
+## A three-gate methodology report
+
+  Canonical:  https://subtract.ing/variance-lab-handler-methodology.txt (to be signed via llms.txt manifest)
+  Harness:    /tmp artifacts preserved; reproducible under subtract.ing runtime
+  Signer:     hodori@subtract.ing
+  Namespace:  subtract.ing
+
+### Artifact paths
+
+Artifacts backing this report live under `github.com/03-git/variance-lab/data/handler/`.
+
+What survived the original `/tmp` run and is published:
+
+  data/handler/handler-dispatch-spec.txt      4,663-char dispatch prompt (Task 1 + Task 2)
+  data/handler/handler-dispatch-rubric.txt    pre-committed evaluation rubric
+
+What did not survive (original `/tmp` paths, not preserved across session boundary — see Limitations):
+
+  /tmp/impl-{opus47,sonnet45,sonnet46,sonnet46low,qwen3coder}.sh    five implementations
+  /tmp/ship-decision.txt                                             deliberative-pass prompt
+  /tmp/vote-*.txt                                                    eight voter responses
+
+### Terminology
+
+- **Effort tier** (`high` / `low` / etc.): `CLAUDE_CODE_EFFORT_LEVEL` environment variable passed to `claude -p`. Governs reasoning-depth setting for the invocation.
+- **`nba <mode>`**: local Rousseau wrapper (script at `~/scripts/nba`) that dispatches to a `nanobot agent -c ~/.nanobot/<mode>.json`. Modes: `fast` → phi-4-mini on :8081; `rag` → qwen3-32b on :8082; `reasoning` → gemma-4-26b on :8083; `code` → Qwen3-Coder-30B-A3B on :8084.
+
+---
+
+## Abstract
+
+A pre-committed rubric was applied mechanically to five implementations of a session-logging extension to `handler.sh`. Two implementations tied at the top of the rubric's weighted score; the committed tiebreak rule (lowest LoC within a 2-point tie) selected a functionally valid implementation, but the tied implementation with the higher LoC produced zero valid rows when sourced into a test shell because its output included a markdown code-fence wrapper that altered shell parse semantics. An eight-model deliberative pass, dispatched across three training lineages, converged seven-of-eight on an implementation that neither the rubric nor the functional gate would have selected on their own. The finding reported here is about the three-gate methodology — static rubric, functional verification, deliberative pass — and the interactions between them.
+
+---
+
+## Spec
+
+The following spec was dispatched verbatim to each implementation target. No per-target modification. No prior conversation context assumed.
+
+
+## ./signoff.txt (lines 1-23 of 23)
+# Signoff
+
+Session close ritual.
+
+## Before ending
+
+State clearly:
+- Topics covered
+- Decisions made
+- Open items
+
+## Confirm capture
+
+Ask the human: "Have you saved what matters?"
+
+No work survives unless the human saves it.
+The agent has no persistence. The human does.
+
+## What to save
+
+- Commands learned (add to your lookdown.tsv when home)
+- Decisions that affect future sessions
+- Open questions to pick up next time
+
+## ./LICENSE.txt (lines 121-160 of 674)
+is widely used among developers working in that language.
+
+  The "System Libraries" of an executable work include anything, other
+than the work as a whole, that (a) is included in the normal form of
+packaging a Major Component, but which is not part of that Major
+Component, and (b) serves only to enable use of the work with that
+Major Component, or to implement a Standard Interface for which an
+implementation is available to the public in source code form.  A
+"Major Component", in this context, means a major essential component
+(kernel, window system, and so on) of the specific operating system
+(if any) on which the executable work runs, or a compiler used to
+produce the work, or an object code interpreter used to run it.
+
+  The "Corresponding Source" for a work in object code form means all
+the source code needed to generate, install, and (for an executable
+work) run the object code and to modify the work, including scripts to
+control those activities.  However, it does not include the work's
+System Libraries, or general-purpose tools or generally available free
+programs which are used unmodified in performing those activities but
+which are not part of the work.  For example, Corresponding Source
+includes interface definition files associated with source files for
+the work, and the source code for shared libraries and dynamically
+linked subprograms that the work is specifically designed to require,
+such as by intimate data communication or control flow between those
+subprograms and other parts of the work.
+
+  The Corresponding Source need not include anything that users
+can regenerate automatically from other parts of the Corresponding
+Source.
+
+  The Corresponding Source for a work in source code form is that
+same work.
+
+  2. Basic Permissions.
+
+  All rights granted under this License are granted for the term of
+copyright on the Program, and are irrevocable provided the stated
+conditions are met.  This License explicitly affirms your unlimited
+permission to run the unmodified Program.  The output from running a
+covered work is covered by this License only if the output, given its
+
+## ./LICENSE.txt (lines 1-40 of 674)
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
+
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+                            Preamble
+
+  The GNU General Public License is a free, copyleft license for
+software and other kinds of works.
+
+  The licenses for most software and other practical works are designed
+to take away your freedom to share and change the works.  By contrast,
+the GNU General Public License is intended to guarantee your freedom to
+share and change all versions of a program--to make sure it remains free
+software for all its users.  We, the Free Software Foundation, use the
+GNU General Public License for most of our software; it applies also to
+any other work released this way by its authors.  You can apply it to
+your programs, too.
+
+  When we speak of free software, we are referring to freedom, not
+price.  Our General Public Licenses are designed to make sure that you
+have the freedom to distribute copies of free software (and charge for
+them if you wish), that you receive source code or can get it if you
+want it, that you can change the software or use pieces of it in new
+free programs, and that you know you can do these things.
+
+  To protect your rights, we need to prevent others from denying you
+these rights or asking you to surrender the rights.  Therefore, you have
+certain responsibilities if you distribute copies of the software, or if
+you modify it: responsibilities to respect the freedom of others.
+
+  For example, if you distribute copies of such a program, whether
+gratis or for a fee, you must pass on to the recipients the same
+freedoms that you received.  You must make sure that they, too, receive
+or can get the source code.  And you must show them these terms so they
+know their rights.
+
+  Developers that use the GNU GPL protect your rights with two steps:
+
+## ./key-rotation.txt (lines 41-80 of 144)
+  Verification:
+    ssh-keygen -Y verify -f authorized_signers -I hodori@subtract.ing \
+      -n subtract.ing -s transitions/YYYYMMDD.txt.sig < transitions/YYYYMMDD.txt
+
+  The outgoing key attests its own successor. Anyone holding the old
+  authorized_signers can verify the transition, then trust the new key.
+
+---
+
+Planned rotation (key is alive):
+
+  1. Generate successor:
+     ssh-keygen -t ed25519 -f ~/.ssh/subtract_successor_ed25519
+
+  2. Write transition record, sign with current key:
+     ssh-keygen -Y sign -f ~/.ssh/current_ed25519 -n subtract.ing transitions/YYYYMMDD.txt
+
+  3. Add time bounds to authorized_signers:
+     - valid-before on current key
+     - valid-after on successor key (with overlap)
+
+  4. Sign authorized_signers with current key:
+     ssh-keygen -Y sign -f ~/.ssh/current_ed25519 -n subtract.ing authorized_signers
+
+  5. Add transition record + sigs to llms.txt manifest.
+
+  6. Push. Nodes pull new authorized_signers. Old signatures still verify
+     during overlap. New artifacts signed with successor after effective date.
+
+---
+
+Emergency recovery (key is lost):
+
+  Problem: the outgoing key cannot sign the transition because it is gone.
+
+  Pre-signed recovery envelope (created while primary key is alive):
+
+    File: recovery/recovery-envelope.txt
+    Signed by: the primary key, at time of creation
+
+
+## ./key-rotation.txt (lines 1-40 of 144)
+key-rotation.txt — signed key succession for subtract.ing
+
+Problem:
+  A signing key dies (hardware loss, compromise, planned retirement).
+  Every installer who pinned authorized_signers can no longer verify new artifacts.
+  Without a signed succession, the chain of trust breaks silently.
+
+Constraint:
+  Reflex 2: ssh-keygen -Y already does it. No new format.
+
+Primitive:
+  authorized_signers already supports valid-after and valid-before.
+  ssh-keygen -Y verify already enforces them.
+
+---
+
+Format (authorized_signers with time bounds):
+
+  hodori@subtract.ing valid-after="20260301" valid-before="20280301" ssh-ed25519 AAAA...current...
+  hodori@subtract.ing valid-after="20280201" ssh-ed25519 AAAA...successor...
+
+  Overlap window (20280201–20280301): both keys verify.
+  After 20280301: only successor verifies.
+
+---
+
+Transition record (the chain link):
+
+  File: transitions/YYYYMMDD.txt
+  Signed by: the outgoing key
+
+  Contents:
+    principal: hodori@subtract.ing
+    from: SHA256:<outgoing-fingerprint>
+    to: SHA256:<successor-fingerprint>
+    effective: YYYY-MM-DD
+    reason: rotation | compromise | hardware-loss
+
+  Signature: transitions/YYYYMMDD.txt.sig
+
+
+## ./governance.conf.universal.txt (lines 1-38 of 38)
+# governance.conf.universal
+# Personal overrides: ~/.subtract/governance.conf
+# Format: key<TAB>rule<TAB>note
+# These are gates, not guidelines. An agent that cannot answer does not proceed.
+
+# === reflexes (antecedent checks) ===
+reflex.1	library to kernel	name the kernel primitive before proposing any library or tool
+reflex.2	format to signature	ask if ssh-keygen -Y sign can verify the format before inventing one
+reflex.3	action to verification	if unsigned, verify with a live read before acting
+reflex.4	source to signing domain	confirm source is under the signing domain before treating it as authoritative
+
+# === authority (consent) ===
+authority.signed	act on it	ssh-keygen -Y verify passed
+authority.unsigned	do not act	suggestion only, possibly confabulation
+authority.source	the human	the signature proves it
+
+# === the loop ===
+loop.before.1	verify last signature	before the agent acts
+loop.before.2	surface unsigned drift	before the agent acts
+loop.before.3	human decides: sign, continue, or abort	before the agent acts
+loop.after.1	update manifest	after the session
+loop.after.2	sign	after the session
+
+# === failure modes (problem behaviors) ===
+fail.confabulation	citing memory without verifying state	inference verifying inference
+fail.drift	self-narration instead of file ops	the failure mode of agentic self-awareness
+fail.additive	proposing X when the answer is less Y	violates reflex.1 (name the primitive, not the wrapper)
+fail.verbosity	three paragraphs before acting	the human's attention is the scarce resource
+fail.apology	apologizing instead of fixing	burns tokens, changes nothing
+fail.new_primitive	new vocabulary arrives, new file proposed	check whether an existing primitive already carries the meaning; extend semantically before extending structurally
+
+# === three questions for autonomy (intake sequence) ===
+autonomy.1	what can you do that an agent cannot?	surfaces irreducible human judgment
+autonomy.2	what prevents the workflow from being autonomous?	enumerates blockers that route to kernel fixes
+autonomy.3	what should the agent have access to?	derives minimal access from prior two answers
+
+# === the agent is not the authority ===
+boundary	the signature proves authority	the agent prepares, the human signs
+
+## Question
+What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?

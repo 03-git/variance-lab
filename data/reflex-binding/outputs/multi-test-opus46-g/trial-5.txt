@@ -1,0 +1,51 @@
+The claude-api skill isn't relevant here — this is just a plain pytest suite. Here it is:
+
+```python
+# test_temperature.py
+import pytest
+
+from temperature import celsius_to_fahrenheit
+
+
+@pytest.mark.parametrize("celsius, expected", [
+    (0, 32.0),
+    (100, 212.0),
+    (-40, -40.0),
+])
+def test_celsius_to_fahrenheit_known_values(celsius, expected):
+    assert celsius_to_fahrenheit(celsius) == expected
+
+
+def test_celsius_to_fahrenheit_rejects_non_numeric():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+This assumes the function lives in `temperature.py`:
+
+```python
+# temperature.py
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+```
+
+Note: with the implementation as written (`c * 9/5 + 32`), passing a string raises `TypeError` naturally (`str * int` is fine, but `+ 32` on a str fails — actually `"hot" * 9` works and gives a long string, then `/ 5` raises `TypeError`). So `pytest.raises(TypeError)` holds. If you'd rather validate explicitly, add a guard:
+
+```python
+def celsius_to_fahrenheit(c):
+    if not isinstance(c, (int, float)) or isinstance(c, bool):
+        raise TypeError("c must be a number")
+    return c * 9 / 5 + 32
+```
+
+## How to run it
+
+```bash
+pip install pytest
+# put temperature.py and test_temperature.py in the same directory, then:
+pytest test_temperature.py -v
+```
+
+Expected output: 4 passed (3 parametrized value cases + 1 non-numeric case).
+
+If you want it dependency-free, say the word and I'll give you a `unittest` version instead.

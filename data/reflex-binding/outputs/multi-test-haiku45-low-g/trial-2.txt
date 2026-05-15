@@ -1,0 +1,58 @@
+I'll write a comprehensive Python test suite for the celsius_to_fahrenheit function using pytest, which is the standard testing framework.
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+
+class TestCelsiusToFahrenheit:
+    """Test suite for celsius_to_fahrenheit function."""
+    
+    def test_freezing_point(self):
+        """0°C should equal 32°F."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """100°C should equal 212°F."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_same_in_both_scales(self):
+        """-40°C should equal -40°F."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("25")
+    
+    def test_float_input(self):
+        """Should handle float inputs correctly."""
+        assert celsius_to_fahrenheit(25) == 77.0
+```
+
+**To run the tests:**
+
+1. Install pytest if you don't have it:
+   ```bash
+   pip install pytest
+   ```
+
+2. Save the code to a file (e.g., `test_temperature.py`) and run:
+   ```bash
+   pytest test_temperature.py
+   ```
+
+3. For verbose output:
+   ```bash
+   pytest test_temperature.py -v
+   ```
+
+The test suite covers:
+- **Freezing point**: 0°C → 32°F (common reference)
+- **Boiling point**: 100°C → 212°F (another common reference)
+- **Same value**: -40°C → -40°F (unique intersection point)
+- **Invalid input**: String input should raise TypeError
+- **Float handling**: Verifies the function works with decimal values

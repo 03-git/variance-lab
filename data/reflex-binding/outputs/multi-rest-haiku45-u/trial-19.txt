@@ -1,0 +1,82 @@
+I'll show you a Node.js/Express implementation with full validation:
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+app.post('/users', (req, res) => {
+  const { name, email, age } = req.body;
+  const errors = [];
+
+  // Validate name
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    errors.push('name is required and must be a non-empty string');
+  }
+
+  // Validate email
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    errors.push('email is required and must contain @ symbol');
+  }
+
+  // Validate age
+  if (age === undefined || age === null || typeof age !== 'number' || 
+      !Number.isInteger(age) || age < 1 || age > 150) {
+    errors.push('age must be an integer between 1 and 150');
+  }
+
+  // Return 400 if any validation fails
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  // Return 201 with the validated user
+  const user = { id: Date.now(), name: name.trim(), email, age };
+  res.status(201).json(user);
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
+```
+
+**How to run it:**
+
+```bash
+# 1. Create a directory and initialize
+mkdir my-api && cd my-api
+npm init -y
+
+# 2. Install Express
+npm install express
+
+# 3. Save the code above as server.js, then run
+node server.js
+```
+
+**Test it with curl:**
+
+```bash
+# ✅ Valid request (returns 201)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","email":"john@example.com","age":30}'
+
+# ❌ Missing name (returns 400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","age":30}'
+
+# ❌ Invalid email (returns 400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John","email":"invalid-email","age":30}'
+
+# ❌ Age out of range (returns 400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John","email":"john@example.com","age":200}'
+```
+
+The validation catches all required fields, email format (@ symbol), and age range (1-150 inclusive), returning clear error messages for each validation failure.

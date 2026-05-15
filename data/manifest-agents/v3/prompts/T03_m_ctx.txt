@@ -1,0 +1,188 @@
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./lookdown.example.tsv (lines 1-28 of 28)
+# lookdown.<hostname>.tsv — host-specific overrides
+# copy to ~/.subtract/lookdown.<hostname>.tsv
+# these entries are checked BEFORE lookdown.universal.tsv
+# first match wins. use this for:
+#   - machine-specific commands (services, hardware, paths)
+#   - personal shortcuts
+#   - child-specific or user-specific content
+#
+# format: glob_pattern<TAB>command
+#   or:   glob_pattern<TAB>[tag]<TAB>command
+
+# --- host-specific services ---
+start*jellyfin	sudo systemctl start jellyfin
+stop*jellyfin	sudo systemctl stop jellyfin
+restart*jellyfin	sudo systemctl restart jellyfin
+*jellyfin*status*	systemctl is-active jellyfin && echo "running" || echo "stopped"
+
+# --- hardware this machine has ---
+*gpu*status*	nvidia-smi 2>/dev/null || echo "no nvidia gpu found"
+*temperature*	sensors 2>/dev/null || echo "install lm-sensors: sudo apt install lm-sensors"
+
+# --- personal shortcuts ---
+*my*projects*	ls ~/repos/
+*work*notes*	cat ~/human/via-negativa/notes.txt 2>/dev/null || echo "no notes yet"
+
+# --- note on children's entries ---
+# children's entries go in lookdown.universal.tsv, not here.
+# every node should answer a child's question. the village helps.
+
+## ./runtime/lookdown.m2mini.tsv (lines 1-32 of 32)
+# lookdown.m2mini.tsv — emile node-specific entries
+# kids' media lives on acer1660ti:/mnt/media/kids/
+# adult media on m1studio — not routed from this node
+
+# --- media (kids, via acer) ---
+*smurfs*	mpv sftp://media@acer1660ti/mnt/media/kids/movies/Smurfs\ -\ The\ Lost\ Village\ \(2017\)/Smurfs.The.Lost.Village.2017.1080p.HULU.WEB-DL.DDP.5.1.H.264-PiRaTeS.mkv </dev/null >/dev/null 2>&1 & echo "playing smurfs"
+*happy*fun*time*	echo "playing happy fun time"; mpv sftp://media@acer1660ti/mnt/media/kids/misc/Home\ Arcade\ Walkthrough!\ July\ 2023\ \(2023\).mp4 </dev/null >/dev/null 2>&1 &
+*arcade*classic*	mpv sftp://media@acer1660ti/mnt/media/kids/misc/Basic\ Fun\ Arcade\ Classics\ Complete\ Collection\ 1-19.mp4 </dev/null >/dev/null 2>&1 & echo "playing arcade classics"
+*cosmic*cottage*	mpv sftp://media@acer1660ti/mnt/media/kids/misc/Home\ Arcade\ Walkthrough!\ July\ 2023\ \(2023\).mp4 </dev/null >/dev/null 2>&1 & echo "playing cosmic cottage arcade"
+*monsters*university*	f=$(ssh acer1660ti "find /mnt/media/kids/movies -maxdepth 2 -iname '*monsters*university*' -name '*.mkv' -print -quit" 2>/dev/null); [ -n "$f" ] && mpv "sftp://media@acer1660ti$f" </dev/null >/dev/null 2>&1 & echo "playing monsters university" || echo "monsters university not downloaded yet"
+watch*	f=$(ssh acer1660ti "find /mnt/media/kids -maxdepth 4 -iname '*${input#*watch }*' -print -quit" 2>/dev/null); [ -n "$f" ] && echo "playing $(basename "$f")" && mpv "sftp://media@acer1660ti$f" </dev/null >/dev/null 2>&1 & || echo "not found: ${input#*watch }"
+*what*movies*	ssh acer1660ti "ls /mnt/media/kids/movies/" 2>/dev/null
+*what*shows*	ssh acer1660ti "ls /mnt/media/kids/tv/" 2>/dev/null
+*what*videos*	ssh acer1660ti "ls /mnt/media/kids/misc/" 2>/dev/null
+list*movies	ssh acer1660ti "ls /mnt/media/kids/movies/" 2>/dev/null
+list*tv*shows	ssh acer1660ti "ls /mnt/media/kids/tv/" 2>/dev/null
+list*tv	ssh acer1660ti "ls /mnt/media/kids/tv/" 2>/dev/null
+stop*music*	pkill mpv 2>/dev/null; echo "stopped"
+*music*stop*	pkill mpv 2>/dev/null; echo "stopped"
+*stop*play*	pkill mpv 2>/dev/null; echo "stopped"
+
+# --- clinical ---
+*yes*no*	~/.subtract/bin/subtract-program yes-no
+*questions*	~/.subtract/bin/subtract-program wh-flashcards
+*words*	~/.subtract/bin/subtract-program sight-words-spanish
+*follow*	~/.subtract/bin/subtract-program one-step
+*practicar*	~/.subtract/bin/subtract-program yes-no --lang es
+
+# --- system ---
+*more*computer*	tmux split-window -h
+search*for*	echo "{\"input\":\"web search: ${input#*search for }\",\"channel\":\"terminal\"}" | ssh m1studio "bash ~/subtract.ing/runtime/hosuni.sh" 2>/dev/null | jq -r ".response // empty"
+search*	echo "{\"input\":\"web search: ${input#*search }\",\"channel\":\"terminal\"}" | ssh m1studio "bash ~/subtract.ing/runtime/hosuni.sh" 2>/dev/null | jq -r ".response // empty"
+
+## ./lookdown.universal.tsv (lines 1641-1680 of 2624)
+how*sign*file*	echo "ssh-keygen -Y sign -f ~/.ssh/YOURKEY_ed25519 -n namespace FILENAME.txt — creates FILENAME.txt.sig. Default key: ~/.ssh/id_ed25519"
+how*sign*	echo "ssh-keygen -Y sign -f ~/.ssh/YOURKEY_ed25519 -n namespace FILENAME.txt — creates FILENAME.txt.sig. Default key: ~/.ssh/id_ed25519"
+how*create*key*	echo "ssh-keygen -t ed25519 — creates ~/.ssh/id_ed25519 (private) and ~/.ssh/id_ed25519.pub (public). It will ask for a filename and passphrase. Press enter for defaults."
+how*make*key*	echo "ssh-keygen -t ed25519 — creates ~/.ssh/id_ed25519 (private) and ~/.ssh/id_ed25519.pub (public). It will ask for a filename and passphrase. Press enter for defaults."
+how*generate*key*	echo "ssh-keygen -t ed25519 — creates ~/.ssh/id_ed25519 (private) and ~/.ssh/id_ed25519.pub (public). It will ask for a filename and passphrase. Press enter for defaults."
+what*is*signing*namespace*	echo "The -n flag in ssh-keygen -Y sign scopes what a signature means. A signature with -n subtract.ing only verifies under that namespace. Prevents a signature for one domain being replayed as proof for another."
+what*is*namespace*sign*	echo "The -n flag in ssh-keygen -Y sign scopes what a signature means. A signature with -n subtract.ing only verifies under that namespace. Prevents cross-domain signature replay."
+why*sign*	echo "Signing proves who authored a file and that it hasn't changed. Without it, any file could be modified in transit or by another process. ssh-keygen -Y verify checks the signature against authorized_signers — if it passes, the file is what the signer intended."
+*what*is*authorized*signers*	echo "A file listing trusted signing keys: 'email@domain ssh-ed25519 AAAA...'. Used by ssh-keygen -Y verify to decide whose signatures to trust. subtract ships one at subtract.ing/authorized_signers."
+*what*is*ssh*agent*	echo "Daemon that holds your private keys in memory so you don't type passphrases repeatedly. eval \$(ssh-agent) starts it. ssh-add loads a key. ssh-add -l lists loaded keys. Forwarding: ssh -A."
+*what*is*ssh*config*	echo "~/.ssh/config — aliases, per-host settings, key selection. Host myserver / HostName 10.0.0.5 / User admin / IdentityFile ~/.ssh/mykey. Then: ssh myserver."
+*what*is*known*hosts*	echo "~/.ssh/known_hosts — fingerprints of servers you've connected to. Prevents MITM attacks. ssh-keygen -R host removes an entry after a server rebuild."
+# === SCHEDULING AND DAEMONS ===
+*what*is*crontab*	echo "crontab -e edits your cron jobs. crontab -l lists them. crontab -r removes all. Each line: minute hour day month weekday command. Use absolute paths — cron has a minimal PATH."
+*what*is*cron*	echo "Time-based job scheduler. crontab -e to edit. Format: min hour day month weekday command. */5 * * * * = every 5 minutes. @reboot = on boot. Runs as the user who owns the crontab."
+what is at	echo "Run a command once at a future time. echo 'backup.sh' | at 2am. at now + 1 hour. atq lists pending jobs. atrm removes one. One-shot alternative to cron."
+*what*is*systemctl*	echo "Controls systemd services. systemctl status nginx, systemctl restart sshd, systemctl enable --now service (start + auto-start on boot). systemctl list-units --type=service."
+*what*is*launchd*	echo "macOS init system and service manager. Replaces cron, init, inetd. Plist files in ~/Library/LaunchAgents (user) or /Library/LaunchDaemons (system). launchctl load/unload/list."
+*what*is*launchctl*	echo "Controls launchd services on macOS. launchctl list shows loaded jobs. launchctl load ~/Library/LaunchAgents/com.foo.plist. bootstrap/bootout for modern syntax. disable gui/uid/label persists across reboots."
+*what*is*a*plist*	echo "Property list — XML or binary config file on macOS. LaunchAgents use them to define daemons: Label, ProgramArguments, RunAtLoad, KeepAlive, StandardOutPath. plutil to validate."
+# === DATA FORMATS ===
+*what*is*jsonl*	echo "JSON Lines — one JSON object per line. Easy to append (>>), stream (tail -f), and process line-by-line. grep works on it. subtract's session logs use JSONL."
+*what*is*tsv*	echo "Tab-separated values. Like CSV but tabs instead of commas — no quoting hell. cut -f2 extracts column 2. awk -F'\\t' processes it. lookdown.tsv is a TSV file."
+*what*is*jq*	echo "Command-line JSON processor. jq '.key' extracts a field. jq '.[] | .name' iterates arrays. jq -r for raw strings. jq -c for compact. Pipe curl output through it: curl -s url | jq ."
+*what*is*toml*	echo "Tom's Obvious Minimal Language — config format. [sections], key = \"value\", arrays = [1, 2, 3]. Used by Cargo (Rust), pyproject.toml (Python). Less surprising than YAML."
+# === MONITORING AND LOGS ===
+*what*is*inotify*	echo "Linux kernel subsystem that reports filesystem events — create, modify, delete, move. inotifywait is the CLI tool. Programs use inotify_init/inotify_add_watch syscalls. macOS equivalent: fswatch (kqueue)."
+*what*is*log*rotation*	echo "Prevents logs from filling disk. logrotate runs daily via cron — rotates, compresses, deletes old logs. Config in /etc/logrotate.d/. size 100M, rotate 7, compress, daily."
+# === LOCAL INFERENCE STACK ===
+*what*is*a*model*file*	echo "A file containing a neural network's weights — the numbers the model learned during training. GGUF format for llama.cpp, safetensors for PyTorch/HuggingFace. Ranges from 1GB (3B) to 140GB (70B)."
+# === TOOLS (configured and in use) ===
+*what*is*tmux*	echo "Terminal multiplexer — multiple shells in one window. tmux new -s name, Ctrl-b d to detach, tmux attach -t name to reattach. Survives SSH disconnects. Ctrl-b % splits vertical, Ctrl-b \" splits horizontal."
+*what*is*adb*	echo "Android Debug Bridge — CLI tool to control Android devices over USB or network. adb shell opens a shell. adb push/pull copies files. adb install installs APKs. adb connect IP:5555 for wireless."
+*what*is*chromecast*	echo "Google Cast protocol. Devices listen on ports 8008/8009. catt is the CLI tool: catt cast url, catt cast_site url. Cast V2 protocol uses protobuf over TLS."
+*what*is*sonarr*	echo "TV show manager — monitors for new episodes, sends downloads to a client, renames and organizes files. API on port 8989. Pairs with a download client (SABnzbd, qBittorrent)."
+*what*is*radarr*	echo "Movie manager — same pattern as Sonarr but for films. Monitors wanted list, grabs releases, renames to library format. API on port 7878."
+*what*is*prowlarr*	echo "Indexer manager for Sonarr/Radarr. Aggregates search across indexers, syncs them to the *arr stack. One place to manage all sources. API on port 9696."
+*what*is*sabnzbd*	echo "Usenet download client. Receives NZB files from Sonarr/Radarr, downloads, verifies, extracts. Web UI on port 8080. Config: server, username, connections."
+*what*is*fastmail*	echo "Email provider with JMAP API. No Google, no Microsoft. Custom domains, aliases, calendar, contacts. JMAP is the modern replacement for IMAP — JSON over HTTP, stateful, batch operations."
+*what*is*jmap*	echo "JSON Meta Application Protocol — modern email API replacing IMAP. Stateful, efficient, JSON-based. One HTTP POST can query, fetch, and send. Fastmail is the reference implementation."
+
+## ./lookdown.universal.tsv (lines 1-40 of 2624)
+# subtract -- intent lookup table
+# format: glob_pattern<TAB>[tag]<TAB>command
+#   tags: [stdout] (default), [player]
+#   two-column lines (no tag) default to [stdout] for backwards compat
+# first match wins. specific before general.
+
+# children — these entries go first
+godzilla minus one	echo "Post-war Japan faces a terrifying new threat from the deep. It's a powerful story of survival and redemption."
+godzilla	echo "Godzilla is a giant monster from Japan, first appearing in a 1954 movie. The name comes from the Japanese word Gojira, combining gorilla and whale. Godzilla has fought over 30 legendary opponents including King Ghidorah, Mothra, Mechagodzilla, and King Kong across more than 35 films — the longest-running film franchise in history."
+*what*dinosaur*	echo "Dinosaurs were reptiles that lived millions of years ago. Some were huge like T-Rex, others small as chickens. They went extinct about 66 million years ago when an asteroid hit Earth."
+what*is*caterpillar*	echo "A caterpillar is the larva stage of a butterfly or moth. It hatches from an egg and eats leaves to grow bigger. Caterpillars have soft bodies with many segments and tiny legs. When it is big enough, it builds a cocoon or chrysalis and transforms inside."
+what*caterpillar	echo "A caterpillar is the larva stage of a butterfly or moth. It hatches from an egg and eats leaves to grow bigger. Caterpillars have soft bodies with many segments and tiny legs. When it is big enough, it builds a cocoon or chrysalis and transforms inside."
+what*is*cocoon*	echo "A cocoon is a silk covering that a caterpillar spins around itself. Inside the cocoon, the caterpillar changes into a moth. Butterflies make a chrysalis instead of a cocoon, but people use the word cocoon for both. The change inside is called metamorphosis."
+what*cocoon	echo "A cocoon is a silk covering that a caterpillar spins around itself. Inside the cocoon, the caterpillar changes into a moth. Butterflies make a chrysalis instead of a cocoon, but people use the word cocoon for both. The change inside is called metamorphosis."
+what*is*chrysalis*	echo "A chrysalis is the hard shell a butterfly caterpillar makes when it is ready to transform. Inside, the caterpillar's body breaks down and rebuilds into a butterfly. It takes about 10 to 14 days. When it opens, a butterfly comes out with wet wings that need to dry."
+what*chrysalis	echo "A chrysalis is the hard shell a butterfly caterpillar makes when it is ready to transform. Inside, the caterpillar's body breaks down and rebuilds into a butterfly. It takes about 10 to 14 days. When it opens, a butterfly comes out with wet wings that need to dry."
+what*is*butterfly*	echo "A butterfly is an insect with large colorful wings. It starts as an egg, becomes a caterpillar, forms a chrysalis, and emerges as a butterfly. Butterflies drink nectar from flowers through a long curled tongue called a proboscis. Monarch butterflies migrate thousands of miles."
+what*butterfly	echo "A butterfly is an insect with large colorful wings. It starts as an egg, becomes a caterpillar, forms a chrysalis, and emerges as a butterfly. Butterflies drink nectar from flowers through a long curled tongue called a proboscis. Monarch butterflies migrate thousands of miles."
+what*is*a*moth	echo "A moth is an insect closely related to a butterfly. Most moths fly at night and are attracted to light. A moth caterpillar spins a cocoon made of silk. Moths have feathery antennae and usually duller colors than butterflies. Some moths, like the luna moth, are very large and beautiful."
+tell*me*about*moth*	echo "A moth is an insect closely related to a butterfly. Most moths fly at night and are attracted to light. A moth caterpillar spins a cocoon made of silk. Moths have feathery antennae and usually duller colors than butterflies. Some moths, like the luna moth, are very large and beautiful."
+what*is*metamorphosis*	echo "Metamorphosis is the process where an animal completely changes its body shape as it grows. A caterpillar becoming a butterfly is metamorphosis. A tadpole becoming a frog is metamorphosis. The word comes from Greek and means 'change of form.'"
+what*metamorphosis	echo "Metamorphosis is the process where an animal completely changes its body shape as it grows. A caterpillar becoming a butterfly is metamorphosis. A tadpole becoming a frog is metamorphosis. The word comes from Greek and means 'change of form.'"
+what*is*larva*	echo "A larva is the young form of an animal that looks very different from the adult. A caterpillar is the larva of a butterfly. A tadpole is the larva of a frog. A maggot is the larva of a fly. Larvae eat and grow until they are ready to change into their adult form."
+what*larva	echo "A larva is the young form of an animal that looks very different from the adult. A caterpillar is the larva of a butterfly. A tadpole is the larva of a frog. A maggot is the larva of a fly. Larvae eat and grow until they are ready to change into their adult form."
+what*is*pupa*	echo "A pupa is the stage between larva and adult in insects that undergo metamorphosis. The caterpillar stops eating, attaches to something, and its outer skin hardens into a protective case. Inside, the body completely reorganizes. The pupa does not eat or move. When the transformation is complete, the adult insect emerges."
+what*pupa	echo "A pupa is the stage between larva and adult in insects that undergo metamorphosis. The caterpillar stops eating, attaches to something, and its outer skin hardens into a protective case. Inside, the body completely reorganizes. The pupa does not eat or move. When the transformation is complete, the adult insect emerges."
+# edit this file to teach your machine new intents.
+# languages: add a section. translate the intents, keep the commands.
+#
+# --- files ---
+what*in*this*directory	ls .
+what*in*current*directory	ls .
+what*files*are*here	ls .
+list*files	ls .
+show*hidden*files	ls -la
+show*all*files	ls -la
+show*file*sizes	ls -lh
+show*largest*files	ls -lhS | head -20
+show*files	ls .
+list*home	ls ~/

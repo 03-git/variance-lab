@@ -1,0 +1,72 @@
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print all hyperlinks (href + link text)."""
+
+import sys
+from html.parser import HTMLParser
+from urllib.request import urlopen, Request
+
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._text_parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href is not None:
+                self._current_href = href
+                self._text_parts = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._text_parts.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            text = " ".join("".join(self._text_parts).split())
+            self.links.append((self._current_href, text))
+            self._current_href = None
+            self._text_parts = []
+
+
+def main():
+    url = sys.argv[1] if len(sys.argv) > 1 else "https://example.com"
+    req = Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urlopen(req) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkExtractor()
+    parser.feed(html)
+
+    if not parser.links:
+        print("No hyperlinks found.")
+        return
+
+    for href, text in parser.links:
+        print(f"{href}\t{text or '(no text)'}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it:
+
+```bash
+# Save the code as links.py, then:
+python3 links.py
+
+# Or pass a different URL:
+python3 links.py https://www.python.org
+```
+
+Notes:
+- Uses only the Python standard library (`urllib`, `html.parser`) — no `pip install` needed.
+- Output is `href<TAB>link text`, one link per line.
+- For `https://example.com` you'll get a single link to `https://www.iana.org/domains/example` with text "More information...".
+- If you'd rather use `requests` + `beautifulsoup4` (more robust for messy real-world HTML), I can show that version too — just say the word.

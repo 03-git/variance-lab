@@ -1,0 +1,67 @@
+Kernel primitive first (reflex.1): this is a TCP socket + TLS handshake to port 443, write an HTTP GET, read the response — then parse bytes. Python's stdlib `urllib.request` is the thin wrapper over that syscall path, and `html.parser.HTMLParser` covers parsing. No third-party packages needed.
+
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print every <a> tag's href and link text."""
+import sys
+from urllib.request import urlopen, Request
+from urllib.parse import urljoin
+from html.parser import HTMLParser
+
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []          # list of [href, text]
+        self._in_a = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href is not None:
+                self.links.append([urljoin(self.base_url, href), ""])
+                self._in_a = True
+
+    def handle_endtag(self, tag):
+        if tag == "a":
+            self._in_a = False
+
+    def handle_data(self, data):
+        if self._in_a and self.links:
+            self.links[-1][1] += data.strip()
+
+
+def main():
+    url = sys.argv[1] if len(sys.argv) > 1 else "https://example.com"
+    req = Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urlopen(req, timeout=10) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkExtractor(url)
+    parser.feed(html)
+
+    if not parser.links:
+        print("(no links found)")
+    for href, text in parser.links:
+        print(f"{href}\t{text or '(no text)'}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it:
+
+```bash
+# default target (https://example.com)
+python3 extract_links.py
+
+# or pass any URL
+python3 extract_links.py https://news.ycombinator.com
+```
+
+For `https://example.com` you'll get one link — the "More information..." anchor pointing at `https://www.iana.org/domains/example`. Relative hrefs are resolved against the page URL via `urljoin`. No `pip install` required; everything is stdlib.
+
+If you want it as a file on rousseau, say the word and I'll write it — you asked for inline only, so I haven't.

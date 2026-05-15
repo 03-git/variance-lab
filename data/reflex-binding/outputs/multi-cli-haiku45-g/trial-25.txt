@@ -1,0 +1,80 @@
+Here's a Python CLI tool that meets your requirements:
+
+```python
+#!/usr/bin/env python3
+
+import argparse
+import json
+import sys
+
+def validate_port(value):
+    try:
+        port = int(value)
+        if not (1 <= port <= 65535):
+            raise argparse.ArgumentTypeError(f"port must be between 1 and 65535, got {port}")
+        return port
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got '{value}'")
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Parse and display network configuration as JSON"
+    )
+    parser.add_argument(
+        "--host",
+        default="localhost",
+        help="hostname or IP address (default: localhost)"
+    )
+    parser.add_argument(
+        "--port",
+        type=validate_port,
+        default=8080,
+        help="port number 1-65535 (default: 8080)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage (uses defaults)
+python3 script.py
+# Output: {"host": "localhost", "port": 8080, "verbose": false}
+
+# With custom host and port
+python3 script.py --host 192.168.1.1 --port 3000
+# Output: {"host": "192.168.1.1", "port": 3000, "verbose": false}
+
+# With verbose flag
+python3 script.py --host example.com --port 443 --verbose
+# Output: {"host": "example.com", "port": 443, "verbose": true}
+
+# Invalid port (demonstrates validation)
+python3 script.py --port 99999
+# Error: usage: script.py [-h] [--host HOST] [--port PORT] [--verbose]
+# script.py: error: argument --port: port must be between 1 and 65535, got 99999
+
+# Invalid port type
+python3 script.py --port abc
+# Error: usage: script.py [-h] [--host HOST] [--port PORT] [--verbose]
+# script.py: error: argument --port: port must be an integer, got 'abc'
+```
+
+The `validate_port()` function handles both type conversion and range validation using argparse's custom type system, so invalid inputs are caught immediately with helpful error messages.

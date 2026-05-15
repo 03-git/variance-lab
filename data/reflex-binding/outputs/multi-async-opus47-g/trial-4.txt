@@ -1,0 +1,40 @@
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    addr = writer.get_extra_info("peername")
+    try:
+        while data := await reader.readline():
+            writer.write(data)
+            await writer.drain()
+    except ConnectionResetError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"closed {addr}")
+
+async def main(host="127.0.0.1", port=8888):
+    server = await asyncio.start_server(handle_client, host, port)
+    addr = server.sockets[0].getsockname()
+    print(f"serving on {addr}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+Run:
+
+```
+python3 server.py
+```
+
+Test from another terminal:
+
+```
+nc 127.0.0.1 8888
+```
+
+Type a line, press Enter, the server sends it back. Open multiple `nc` sessions in parallel — each is handled concurrently on the same event loop.

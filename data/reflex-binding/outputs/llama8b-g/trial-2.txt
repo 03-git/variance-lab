@@ -1,0 +1,61 @@
+**time.py**
+```python
+from datetime import datetime
+from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    """Returns the current time as ISO 8601 timestamp"""
+    now = datetime.now()
+    iso_time = now.isoformat()
+    return jsonify({'time': iso_time})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+To run the code, follow these steps:
+
+**1. Install Flask**
+
+You can install Flask using pip:
+```bash
+pip install flask
+```
+
+**2. Run the code**
+
+Run the `time.py` script:
+```bash
+python time.py
+```
+
+**3. Access the endpoint**
+
+Open a web browser or use a tool like `curl` to access the endpoint:
+```bash
+curl http://localhost:5000/time
+```
+
+Alternatively, you can also use `curl` from the same machine where you're running the Flask development server:
+```bash
+curl http://localhost:5000/time
+```
+
+You should see the current time as an ISO 8601 timestamp in JSON format:
+```json
+{
+  "time": "2023-03-16T14:30:00.000000"
+}
+```
+
+**4. Run the server in the background**
+
+If you want to run the server in the background, you can use `nohup` (on Linux/macOS):
+```bash
+nohup python time.py &
+```
+
+**Note:** This code uses the development server `app.run(debug=True)`, which is not recommended for production use. For production, consider using a WSGI server like Gunicorn or uWSGI, and a reverse proxy like Nginx or Apache.

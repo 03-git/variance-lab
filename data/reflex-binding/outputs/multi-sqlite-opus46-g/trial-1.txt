@@ -1,0 +1,47 @@
+```python
+#!/usr/bin/env python3
+import sqlite3
+from datetime import datetime, timezone
+
+DB = "notes.db"
+
+conn = sqlite3.connect(DB)
+cur = conn.cursor()
+
+cur.execute("""
+CREATE TABLE IF NOT EXISTS notes (
+    id INTEGER PRIMARY KEY,
+    title TEXT,
+    body TEXT,
+    created_at TEXT
+)
+""")
+
+now = datetime.now(timezone.utc).isoformat()
+samples = [
+    ("Groceries", "Milk, eggs, coffee, bread", now),
+    ("Ideas", "Sketch out the formation memory diagram", now),
+    ("Reminder", "Call back about the M5 Max delivery window", now),
+]
+cur.executemany(
+    "INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+    samples,
+)
+conn.commit()
+
+for row in cur.execute("SELECT id, title, body, created_at FROM notes ORDER BY id"):
+    print(f"[{row[0]}] {row[1]} — {row[2]} ({row[3]})")
+
+conn.close()
+```
+
+Run it:
+
+```bash
+python3 notes_demo.py
+```
+
+Notes:
+- Writes a `notes.db` file in the current directory; delete it between runs if you don't want the sample rows to accumulate (`INSERT` runs every time).
+- `created_at` is stored as an ISO‑8601 UTC string, matching the `TEXT` column type.
+- Use `python3` (system Python on macOS ARM is fine here — no third‑party deps, `sqlite3` is in the stdlib).

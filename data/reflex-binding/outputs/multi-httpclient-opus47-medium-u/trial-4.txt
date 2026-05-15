@@ -1,0 +1,72 @@
+```python
+#!/usr/bin/env python3
+"""Fetch a URL via GET, follow redirects, and print status, headers, and a body preview."""
+
+import sys
+import urllib.request
+import urllib.error
+
+
+def fetch(url: str) -> None:
+    req = urllib.request.Request(url, headers={"User-Agent": "url-fetch/1.0"})
+    try:
+        # urllib follows redirects by default for GET requests.
+        with urllib.request.urlopen(req) as resp:
+            status = resp.status
+            headers = resp.headers
+            body = resp.read(500).decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        # Still useful to see the response details on a 4xx/5xx.
+        status = e.code
+        headers = e.headers
+        body = e.read(500).decode("utf-8", errors="replace")
+    except urllib.error.URLError as e:
+        print(f"Request failed: {e.reason}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Status: {status}\n")
+    print("Headers:")
+    for key, value in headers.items():
+        print(f"  {key}: {value}")
+    print("\nBody (first 500 chars):")
+    print(body)
+
+
+def main() -> None:
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <url>", file=sys.stderr)
+        sys.exit(2)
+    fetch(sys.argv[1])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+Save it as, say, `fetch.py`, then:
+
+```bash
+python3 fetch.py https://example.com
+```
+
+Notes:
+- Uses only the standard library — no `pip install` needed.
+- `urllib.request.urlopen` follows HTTP redirects automatically.
+- HTTP errors (4xx/5xx) are caught so you still see the status, headers, and body instead of a traceback.
+
+If you'd rather use the `requests` library (cleaner API), the equivalent core is:
+
+```python
+import sys, requests
+r = requests.get(sys.argv[1], allow_redirects=True, headers={"User-Agent": "url-fetch/1.0"})
+print(f"Status: {r.status_code}\n")
+print("Headers:")
+for k, v in r.headers.items():
+    print(f"  {k}: {v}")
+print("\nBody (first 500 chars):")
+print(r.text[:500])
+```
+
+Run after `pip install requests`, same way: `python3 fetch.py https://example.com`.

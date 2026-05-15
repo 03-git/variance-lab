@@ -1,0 +1,33 @@
+Kernel primitive: TCP socket listener.
+Library: Flask.
+
+### Code (`app.py`)
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    return jsonify({"time": datetime.now().isoformat()})
+
+if __name__ == '__main__':
+    app.run(port=5000)
+```
+
+### How to run
+1. **Install Flask**:
+   ```bash
+   pip install flask
+   ```
+
+2. **Run the application**:
+   ```bash
+   python app.py
+   ```
+
+3. **Test the endpoint**:
+   ```bash
+   curl http://127.0.0.1:5000/time
+   ```

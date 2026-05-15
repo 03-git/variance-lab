@@ -1,0 +1,85 @@
+I'll show you a couple of simple implementations:
+
+## Python (using Flask)
+
+```python
+from flask import Flask
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    return {"time": datetime.utcnow().isoformat() + "Z"}
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**Run it:**
+```bash
+pip install flask
+python app.py
+```
+
+Then visit: `http://localhost:5000/time`
+
+---
+
+## Python (built-in library, no dependencies)
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            response = {"time": datetime.utcnow().isoformat() + "Z"}
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+if __name__ == '__main__':
+    server = HTTPServer(('localhost', 5000), TimeHandler)
+    print('Server running at http://localhost:5000/time')
+    server.serve_forever()
+```
+
+**Run it:**
+```bash
+python server.py
+```
+
+---
+
+## Node.js (Express)
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.get('/time', (req, res) => {
+  res.json({ time: new Date().toISOString() });
+});
+
+app.listen(5000, () => {
+  console.log('Server running at http://localhost:5000/time');
+});
+```
+
+**Run it:**
+```bash
+npm init -y
+npm install express
+node app.js
+```
+
+---
+
+All three return ISO 8601 timestamps like `{"time": "2026-05-10T12:34:56.789Z"}`. Which language would you prefer?

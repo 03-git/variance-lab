@@ -1,0 +1,514 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from runtime/hosuni/hosuni.c)
+            "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+            "/usr/share/fonts/TTF/LiberationMono-Regular.ttf",
+            "/System/Library/Fonts/Menlo.ttc",
+            "/System/Library/Fonts/SFMono-Regular.otf",
+            "/Library/Fonts/SF-Mono-Regular.otf",
+            NULL
+        };
+        for (int i = 0; search[i]; i++) {
+            if (access(search[i], R_OK) == 0) { font_path = search[i]; break; }
+        }
+    }
+    if (!font_path) {
+        fprintf(stderr, "hosuni: no font found. use -f path/to/font.ttf\n");
+        return 1;
+    }
+
+    if (platform_init(&app.surface) < 0) return 1;
+
+    if (hosuni_font_init(&app.font, font_path, font_size) < 0) {
+        fprintf(stderr, "hosuni: failed to load font: %s\n", font_path);
+        platform_cleanup();
+        return 1;
+    }
+    /* load CJK fallback font */
+    {
+        static const char *cjk_search[] = {
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/google-noto-sans-cjk-vf-fonts/NotoSansCJK-VF.ttc",
+            "/usr/share/fonts/google-noto-sans-cjk-ttc/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+            NULL
+        };
+        for (int i = 0; cjk_search[i]; i++) {
+            if (access(cjk_search[i], R_OK) == 0) {
+                hosuni_font_load_fallback(&app.font, cjk_search[i]);
+                break;
+            }
+        }
+    }
+
+
+
+### Chunk 2 (from runtime/hosuni/hosuni.h)
+
+/* --- modes --- */
+
+typedef enum {
+    MODE_READ,
+    MODE_RUN,
+    MODE_TEACH,
+    MODE_COUNT
+} hosuni_mode;
+
+/* --- colors --- */
+
+#define COL_BG        0xFF000000
+#define COL_FG        0xFFFFFFFF
+#define COL_GREEN     0xFF50FA7B
+#define COL_YELLOW    0xFFFFB86C
+#define COL_DIM       0xFF666666
+#define COL_CURSOR    0xFFFF79C6
+#define COL_INPUT_BG  0xFF111111
+
+/* --- font --- */
+
+typedef struct {
+    unsigned char *bitmap;
+    int w, h;
+    float scale;
+    int ascent, descent, linegap;
+    void *info; /* stbtt_fontinfo* */
+    void *fallback_info; /* stbtt_fontinfo* for CJK fallback */
+    unsigned char *fallback_data;
+} hosuni_font;
+
+int  hosuni_font_init(hosuni_font *f, const char *ttf_path, float px);
+void hosuni_font_free(hosuni_font *f);
+void hosuni_draw_char(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   uint32_t cp, uint32_t color);
+int  hosuni_draw_text(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   const char *text, uint32_t color);
+int  hosuni_char_width(hosuni_font *f, uint32_t cp);
+int  hosuni_line_height(hosuni_font *f);
+
+
+### Chunk 3 (from runtime/hosuni/hosuni.c)
+
+int hosuni_font_load_fallback(hosuni_font *f, const char *ttf_path) {
+    FILE *fp = fopen(ttf_path, "rb");
+    if (!fp) return -1;
+    fseek(fp, 0, SEEK_END);
+    long sz = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    unsigned char *data = malloc(sz);
+    if (!data) { fclose(fp); return -1; }
+    if ((long)fread(data, 1, sz, fp) != sz) {
+        free(data); fclose(fp); return -1;
+    }
+    fclose(fp);
+
+    f->fallback_info = malloc(sizeof(stbtt_fontinfo));
+    int offset = stbtt_GetFontOffsetForIndex(data, 0);
+    if (offset < 0) offset = 0;
+    if (!stbtt_InitFont((stbtt_fontinfo *)f->fallback_info, data, offset)) {
+        free(data); free(f->fallback_info);
+        f->fallback_info = NULL;
+        return -1;
+    }
+    f->fallback_data = data;
+    return 0;
+}
+
+void hosuni_font_free(hosuni_font *f) {
+    free(f->bitmap);
+    free(f->info);
+    if (f->fallback_data) free(f->fallback_data);
+    if (f->fallback_info) free(f->fallback_info);
+    memset(f, 0, sizeof(*f));
+}
+
+int hosuni_char_width(hosuni_font *f, uint32_t cp) {
+    int ax, lsb;
+    if (f->fallback_info && stbtt_FindGlyphIndex((stbtt_fontinfo *)f->info, cp) == 0) {
+        float fb_scale = stbtt_ScaleForPixelHeight((stbtt_fontinfo *)f->fallback_info,
+                                                    (float)(f->ascent - f->descent));
+        stbtt_GetCodepointHMetrics((stbtt_fontinfo *)f->fallback_info, cp, &ax, &lsb);
+
+
+### Chunk 4 (from runtime/hosuni/hosuni.c)
+    int ax, lsb;
+    if (f->fallback_info && stbtt_FindGlyphIndex((stbtt_fontinfo *)f->info, cp) == 0) {
+        float fb_scale = stbtt_ScaleForPixelHeight((stbtt_fontinfo *)f->fallback_info,
+                                                    (float)(f->ascent - f->descent));
+        stbtt_GetCodepointHMetrics((stbtt_fontinfo *)f->fallback_info, cp, &ax, &lsb);
+        return (int)(ax * fb_scale);
+    }
+    stbtt_GetCodepointHMetrics((stbtt_fontinfo *)f->info, cp, &ax, &lsb);
+    return (int)(ax * f->scale);
+}
+
+int hosuni_line_height(hosuni_font *f) {
+    return f->h;
+}
+
+void hosuni_draw_char(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   uint32_t cp, uint32_t color) {
+    int w, h, xoff, yoff;
+    unsigned char *bmp = NULL;
+    float use_scale = f->scale;
+    stbtt_fontinfo *use_font = (stbtt_fontinfo *)f->info;
+
+    if (f->fallback_info && stbtt_FindGlyphIndex((stbtt_fontinfo *)f->info, cp) == 0) {
+        use_font = (stbtt_fontinfo *)f->fallback_info;
+        use_scale = stbtt_ScaleForPixelHeight(use_font, (float)(f->ascent - f->descent));
+    }
+
+    gcache_entry *ce = gcache_lookup(cp, f->scale);
+    if (ce && ce->occupied && ce->codepoint == cp && ce->scale == f->scale) {
+        bmp = ce->bitmap; w = ce->w; h = ce->h; xoff = ce->xoff; yoff = ce->yoff;
+    } else {
+        bmp = stbtt_GetCodepointBitmap(use_font, 0, use_scale, cp, &w, &h, &xoff, &yoff);
+        if (!bmp) return;
+        if (ce) gcache_insert(ce, cp, f->scale, bmp, w, h, xoff, yoff);
+        stbtt_FreeBitmap(bmp, NULL);
+        if (ce && ce->bitmap) bmp = ce->bitmap;
+        else return;
+    }
+
+    int baseline = y + f->ascent;
+
+
+### Chunk 5 (from runtime/hosuni/hosuni.c)
+                break;
+            }
+        }
+    }
+
+    if (hosuni_font_init(&app.font_small, font_path, font_size * 0.7f) < 0)
+        memcpy(&app.font_small, &app.font, sizeof(hosuni_font));
+    int font_large_shared = 0;
+    if (hosuni_font_init(&app.font_large, font_path, font_large_size) < 0) {
+        memcpy(&app.font_large, &app.font, sizeof(hosuni_font));
+        font_large_shared = 1;
+    }
+
+    vi_init(&app.vi);
+    if (edit_file) {
+        vi_load(&app.vi, edit_file);
+        app.mode = MODE_TEACH;
+    }
+
+    /* main loop */
+    int needs_redraw = 1;
+    while (app.running) {
+        if (needs_redraw) {
+        clear(&app.surface);
+
+        switch (app.mode) {
+        case MODE_READ:      draw_ask(&app); break;
+        case MODE_TEACH:     if (app.focused.active) draw_focused(&app); else draw_edit(&app); break;
+        case MODE_RUN:       draw_run(&app); break;
+        default: break;
+        }
+
+        draw_status(&app);
+        platform_flip(&app.surface);
+        needs_redraw = 0;
+        }
+
+        /* handle deferred query — pre-fetch then stream */
+        if (app.ask.pending) {
+            app.ask.pending = 0;
+
+
+### Chunk 6 (from runtime/hosuni/hosuni.c)
+    chat_msg history[MAX_HIST_MSGS];
+    int history_count;
+} ask_ctx;
+
+/* ================================================================
+   main application
+   ================================================================ */
+
+typedef struct {
+    int sel;
+    int scroll;
+    int count;
+    char filter[64];
+    int filter_len;
+    int show_all;
+} run_ctx;
+
+typedef struct {
+    hosuni_surface surface;
+    hosuni_font font;
+    hosuni_font font_large;
+    hosuni_font font_small;
+    hosuni_mode mode;
+    vi_ctx vi;
+    ask_ctx ask;
+    run_ctx run;
+    int running;
+    int shift;
+    int ctrl;
+    char infer_host[64];
+    int infer_port;
+    int margin;
+    char soul[16384];
+    int starred;
+    focused_ctx focused;
+} hosuni_app;
+
+/* ================================================================
+   conversation history + message building
+   ================================================================ */
+
+
+### Chunk 7 (from runtime/hosuni/hosuni.c)
+        else if (strcmp(argv[i], "-S") == 0 && i + 1 < argc) font_large_size = atof(argv[++i]);
+        else if (strcmp(argv[i], "-h") == 0 && i + 1 < argc) strncpy(app.infer_host, argv[++i], 63);
+        else if (strcmp(argv[i], "-p") == 0 && i + 1 < argc) app.infer_port = atoi(argv[++i]);
+        else if (strcmp(argv[i], "--soul") == 0 && i + 1 < argc) soul_path = argv[++i];
+        else if (argv[i][0] != '-') edit_file = argv[i];
+        else usage();
+    }
+
+    /* load lookdown tables */
+    char *home = getenv("HOME");
+    lookdown_reload(&app);
+    hosuni_log_init("hosuni");
+
+    /* load SOUL (system prompt) */
+    app.soul[0] = '\0';
+    if (!soul_path && home) {
+        static char default_soul[512];
+        snprintf(default_soul, sizeof(default_soul),
+                 "%s/subtract.ing/SOUL.txt", home);
+        if (access(default_soul, R_OK) == 0) soul_path = default_soul;
+    }
+    if (soul_path) {
+        FILE *sf = fopen(soul_path, "r");
+        if (sf) {
+            int n = fread(app.soul, 1, sizeof(app.soul) - 1, sf);
+            app.soul[n] = '\0';
+            fclose(sf);
+        }
+    }
+
+    /* find a font if none specified */
+    if (!font_path) {
+        static const char *search[] = {
+            "/usr/share/fonts/liberation-mono/LiberationMono-Regular.ttf",
+            "/usr/share/fonts/liberation-mono-fonts/LiberationMono-Regular.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+            "/usr/share/fonts/TTF/LiberationMono-Regular.ttf",
+            "/System/Library/Fonts/Menlo.ttc",
+            "/System/Library/Fonts/SFMono-Regular.otf",
+            "/Library/Fonts/SF-Mono-Regular.otf",
+
+
+### Chunk 8 (from variance-lab/data/manifest-agents/rubric.txt)
+# Manifest-agents evaluation rubric
+# Pre-committed before any experimental dispatch
+# Signed: ssh-keygen -Y sign -f ~/.ssh/jnous -n subtract.ing
+# Date: 2026-05-10
+
+## Corpus
+
+Primary: subtract.ing git repo (canonical, versioned, signed via llms.txt manifest)
+Secondary: one public corpus (Wikipedia subset or open-source GitHub project —
+named at dispatch time, before any scoring begins)
+
+## Question set (30 questions, stratified)
+
+Filed at: variance-lab/data/manifest-agents/questions.tsv
+Signed before dispatch. Not modified after arms begin.
+
+- 10 traversal ("what's in this directory", "what does this file do",
+  "list the files that define hosuni's platform layer")
+- 10 cross-file synthesis ("which findings cite local inference throughput",
+  "trace the delegation architecture from CLAUDE.md to handler.sh",
+  "what is the relationship between SOUL.txt and hosuni-prefetch")
+- 5 change detection ("what changed in hosuni.c since commit d4e860d",
+  "which files were modified in the last signed manifest update")
+- 5 similarity ("find files related to delegation",
+  "which parts of the codebase are architecturally similar to lookdown")
+
+## Arms
+
+Arm M (manifest): filesystem traversal + signed manifests + per-directory
+  llms.md summaries + claude -p with manifest context as prompt
+Arm R (RAG): chunk corpus + embed + vector retrieval (top-k) + claude -p
+  with retrieved chunks as prompt
+
+Same model for inference in both arms. Same prompt structure
+(system prompt + context + question). Only the context-gathering
+method differs.
+
+## Metrics
+
+A: Answer quality
+
+
+### Chunk 9 (from runtime/hosuni/hosuni.c)
+        hosuni_draw_text(&app->surface, &app->font, cx_pixel, cy_line, tmp, col);
+        cx_pixel += cw;
+    }
+    if (active && cursor == len)
+        fill_rect(&app->surface, cx_pixel, cy_line, 2, lh, COL_CURSOR);
+}
+
+static void draw_focused(hosuni_app *app) {
+    focused_ctx *f = &app->focused;
+    int lh = hosuni_line_height(&app->font);
+    int m = app->margin;
+    int y = lh;
+
+    hosuni_draw_text(&app->surface, &app->font, m, y, "EDIT LOOKDOWN", COL_YELLOW);
+    y += lh;
+
+    char label[512];
+    snprintf(label, sizeof(label), "source:   %s:%d",
+             lookdown_table[f->ld_idx].source_file, lookdown_table[f->ld_idx].source_line);
+    hosuni_draw_text(&app->surface, &app->font, m, y, label, COL_DIM);
+    y += lh * 2;
+
+    hosuni_draw_text(&app->surface, &app->font, m, y, "pattern:", f->field == 0 ? COL_FG : COL_DIM);
+    y += lh;
+    draw_focused_field(app, y, f->pat, f->pat_len, f->pat_cursor, f->field == 0);
+    y += lh * 2;
+
+    hosuni_draw_text(&app->surface, &app->font, m, y, "command:", f->field == 1 ? COL_FG : COL_DIM);
+    y += lh;
+    draw_focused_field(app, y, f->cmd, f->cmd_len, f->cmd_cursor, f->field == 1);
+
+    int footer_y = app->surface.height - lh * 2;
+    hosuni_draw_text(&app->surface, &app->font, m, footer_y, "Tab: switch field    Enter: save    Esc: cancel", COL_DIM);
+}
+
+static void draw_edit(hosuni_app *app) {
+    int lh = hosuni_line_height(&app->font);
+    int m = app->margin;
+    int lines_visible = (app->surface.height - lh - 8) / lh;
+    int total = vi_line_count(&app->vi);
+
+
+### Chunk 10 (from variance-lab/data/manifest-agents/questions.tsv)
+id	type	question
+T01	traversal	What files are in the runtime/hosuni/ directory and what does each one do?
+T02	traversal	What is parsimony.c and what role does it play in the subtract.ing runtime?
+T03	traversal	List all .tsv files in the repository and describe the format of each.
+T04	traversal	What does the install.sh script do?
+T05	traversal	What is in runtime/llms.txt and how does it differ from the root llms.txt?
+T06	traversal	What shell hooks exist in runtime/hooks/ and what do they intercept?
+T07	traversal	What is kiosk.sh and what does it configure?
+T08	traversal	What files define the lookdown system and how are they organized?
+T09	traversal	What is squared.c and what does it compute?
+T10	traversal	List every file that contains a sha256 hash or references sha256 verification.
+S01	synthesis	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?
+S02	synthesis	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?
+S03	synthesis	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?
+S04	synthesis	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.
+S05	synthesis	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?
+S06	synthesis	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?
+S07	synthesis	Which files mention the concept of a "formation" and what does the term mean across them?
+S08	synthesis	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?
+S09	synthesis	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?
+S10	synthesis	What does lineage.txt credit and how do those credits connect to specific components in the codebase?
+C01	change	What changed in hosuni.c between commit d4e860d and HEAD?
+C02	change	What was the most recent change to variance-lab.txt and what confound did it resolve?
+C03	change	Which files were modified in the commit that added CJK font fallback support?
+C04	change	Has SOUL.txt been rewritten recently? What was the nature of the change?
+C05	change	What is the most recent addition to the llms.txt index?
+M01	similarity	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?
+M02	similarity	Find files related to the concept of signing and verification. Group them by function.
+M03	similarity	Which components share the pattern of reading a manifest or index file to decide what to do next?
+M04	similarity	What files discuss the boundary between human authority and agent execution? How do they differ in framing?
+M05	similarity	Find all components that use llama.cpp or local inference. How are they related?
+
+
+### Chunk 11 (from runtime/hosuni/hosuni.c)
+        if (*p == ' ') { x += hosuni_char_width(f, ' '); p++; }
+    }
+    return line + 1;
+}
+
+static void draw_ask(hosuni_app *app) {
+    int lh = hosuni_line_height(&app->font);
+    int m = app->margin;
+    int max_x = app->surface.width - m;
+
+    /* header at top */
+    hosuni_draw_text(&app->surface, &app->font_large, m, m, "hosuni.c", COL_FG);
+    hosuni_draw_text(&app->surface, &app->font, m, m + hosuni_line_height(&app->font_large) + 4,
+                  "subtract your questions, ask about anything", COL_DIM);
+
+    /* input at bottom, above status bar */
+    int status_h = lh + 4;
+    int input_y = app->surface.height - status_h - lh - 16;
+    int prompt_w = hosuni_draw_text(&app->surface, &app->font, 0, input_y + 4, "> ", COL_DIM);
+    int input_x0 = prompt_w + 4;
+    int input_area_w = app->surface.width - input_x0 - m;
+    fill_rect(&app->surface, prompt_w, input_y, app->surface.width - prompt_w - m, lh + 8, COL_INPUT_BG);
+    if (app->ask.input_len > 0) {
+        int total_w = 0;
+        for (int i = 0; i < app->ask.input_len; i++)
+            total_w += hosuni_char_width(&app->font, app->ask.input[i]);
+        int skip = 0;
+        if (total_w > input_area_w - 4) {
+            int excess = total_w - input_area_w + 4;
+            int w = 0;
+            for (skip = 0; skip < app->ask.input_len && w < excess; skip++)
+                w += hosuni_char_width(&app->font, app->ask.input[skip]);
+        }
+        hosuni_draw_text(&app->surface, &app->font, input_x0, input_y + 4,
+                      app->ask.input + skip, COL_FG);
+        int vis_w = 0;
+        for (int i = skip; i < app->ask.input_len; i++)
+            vis_w += hosuni_char_width(&app->font, app->ask.input[i]);
+        if (!app->ask.streaming)
+            fill_rect(&app->surface, input_x0 + vis_w, input_y + 4, 2, lh, COL_CURSOR);
+
+
+### Chunk 12 (from runtime/hosuni/hosuni.c)
+    e->w = w; e->h = h;
+    e->xoff = xoff; e->yoff = yoff;
+    e->occupied = 1;
+    e->bitmap = malloc(w * h);
+    if (e->bitmap) memcpy(e->bitmap, bmp, w * h);
+}
+
+int hosuni_font_init(hosuni_font *f, const char *ttf_path, float px) {
+    FILE *fp = fopen(ttf_path, "rb");
+    if (!fp) return -1;
+    fseek(fp, 0, SEEK_END);
+    long sz = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    unsigned char *data = malloc(sz);
+    if (!data) { fclose(fp); return -1; }
+    if ((long)fread(data, 1, sz, fp) != sz) {
+        free(data); fclose(fp); return -1;
+    }
+    fclose(fp);
+
+    f->info = malloc(sizeof(stbtt_fontinfo));
+    if (!stbtt_InitFont((stbtt_fontinfo *)f->info, data, 0)) {
+        free(data); free(f->info); return -1;
+    }
+    f->scale = stbtt_ScaleForPixelHeight((stbtt_fontinfo *)f->info, px);
+    stbtt_GetFontVMetrics((stbtt_fontinfo *)f->info,
+                          &f->ascent, &f->descent, &f->linegap);
+    f->ascent = (int)(f->ascent * f->scale);
+    f->descent = (int)(f->descent * f->scale);
+    f->linegap = (int)(f->linegap * f->scale);
+    f->bitmap = data; /* keep the ttf data alive */
+    f->h = f->ascent - f->descent + f->linegap;
+    f->w = 0; /* variable width */
+    return 0;
+}
+
+int hosuni_font_load_fallback(hosuni_font *f, const char *ttf_path) {
+    FILE *fp = fopen(ttf_path, "rb");
+    if (!fp) return -1;
+    fseek(fp, 0, SEEK_END);
+
+
+
+## Question
+Which files were modified in the commit that added CJK font fallback support?

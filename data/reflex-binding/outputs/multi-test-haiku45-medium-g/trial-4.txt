@@ -1,0 +1,72 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using the `pytest` framework.
+
+```python
+# test_celsius_to_fahrenheit.py
+
+import pytest
+
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+
+class TestCelsiusToFahrenheit:
+    """Test suite for celsius_to_fahrenheit function."""
+    
+    def test_freezing_point(self):
+        """0°C should equal 32°F."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """100°C should equal 212°F."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty(self):
+        """−40°C should equal −40°F (the crossover point)."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("32")
+        
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit(None)
+        
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit([0])
+```
+
+**To run the tests:**
+
+```bash
+# Install pytest if you don't have it
+pip install pytest
+
+# Run all tests with verbose output
+pytest test_celsius_to_fahrenheit.py -v
+
+# Run a specific test
+pytest test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_freezing_point -v
+
+# Run with more details (show print statements, etc.)
+pytest test_celsius_to_fahrenheit.py -vv
+```
+
+**Expected output:**
+
+```
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_freezing_point PASSED
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_negative_forty PASSED
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+
+====== 4 passed in 0.05s ======
+```
+
+The test suite covers:
+- **0°C → 32°F**: the freezing point of water
+- **100°C → 212°F**: the boiling point of water  
+- **−40°C → −40°F**: where Celsius and Fahrenheit are equal
+- **Non-numeric input**: strings, None, and lists raise `TypeError` when you try to multiply them

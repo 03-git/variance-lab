@@ -1,0 +1,69 @@
+I'll show you a Python CLI tool that validates those parameters and outputs JSON:
+
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(description="Host and port configuration tool")
+    parser.add_argument("--host", required=True, help="Host address")
+    parser.add_argument("--port", type=int, required=True, help="Port number")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    
+    try:
+        args = parser.parse_args()
+    except SystemExit as e:
+        if e.code != 0:
+            sys.exit(e.code)
+        sys.exit(0)
+    
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        print(json.dumps({
+            "error": f"Port must be between 1 and 65535, got {args.port}"
+        }), file=sys.stderr)
+        sys.exit(1)
+    
+    # Build output
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Valid example
+python cli_tool.py --host localhost --port 8080 --verbose
+
+# Output:
+# {
+#   "host": "localhost",
+#   "port": 8080,
+#   "verbose": true
+# }
+
+# Invalid port (out of range)
+python cli_tool.py --host localhost --port 99999
+
+# Invalid port (not an integer)
+python cli_tool.py --host localhost --port abc
+
+# Missing required arguments
+python cli_tool.py --host localhost
+```
+
+The tool uses `argparse` to:
+- Enforce `--host` and `--port` as required arguments
+- Automatically parse `--port` as an integer (fails with error if non-numeric)
+- Add `--verbose` as a boolean flag
+- Validate the port is in range [1, 65535] with a JSON error message to stderr
+- Output the parsed config as formatted JSON to stdout

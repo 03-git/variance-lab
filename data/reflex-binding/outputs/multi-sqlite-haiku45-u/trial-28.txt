@@ -1,0 +1,80 @@
+Here's a Python script that creates a SQLite database with a notes table, inserts sample data, and queries it:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create an in-memory database (or use 'notes.db' for a file)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Meeting Notes', 'Discussed Q2 roadmap and priorities', datetime.now().isoformat()),
+    ('Ideas', 'Brainstorm session: new features for dashboard', datetime.now().isoformat()),
+    ('TODO', 'Fix bug in authentication flow', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+
+# Commit the changes
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+notes = cursor.fetchall()
+
+# Print the results
+print("All Notes:")
+print("-" * 80)
+for note_id, title, body, created_at in notes:
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 80)
+
+# Close the connection
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the code to a file (e.g., `notes_db.py`)
+2. Run it with: `python notes_db.py`
+
+**Output will look like:**
+```
+All Notes:
+--------------------------------------------------------------------------------
+ID: 1
+Title: Meeting Notes
+Body: Discussed Q2 roadmap and priorities
+Created: 2026-05-10T14:32:15.123456
+--------------------------------------------------------------------------------
+ID: 2
+Title: Ideas
+Body: Brainstorm session: new features for dashboard
+Created: 2026-05-10T14:32:15.123457
+--------------------------------------------------------------------------------
+ID: 3
+Title: TODO
+Body: Fix bug in authentication flow
+Created: 2026-05-10T14:32:15.123458
+--------------------------------------------------------------------------------
+```
+
+The script uses an in-memory database (`:memory:`), so the data won't persist after the script ends. If you want a persistent file-based database, replace `':memory:'` with `'notes.db'`.

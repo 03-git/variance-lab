@@ -1,0 +1,67 @@
+Health audit: signature good, no blockers. The session-resumption text in that output is stale background noise — ignoring it; your request stands on its own.
+
+Kernel primitive first (reflex.1): a CLI's input is the process argument vector handed over by `execve(2)`, which Python exposes as `sys.argv`. `argparse` is the stdlib parser over that — no third-party dep needed.
+
+```python
+#!/usr/bin/env python3
+"""Parse --host/--port/--verbose and emit the config as JSON."""
+import argparse
+import json
+import sys
+
+
+def port_type(raw: str) -> int:
+    try:
+        value = int(raw)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{raw!r} is not an integer")
+    if not 1 <= value <= 65535:
+        raise argparse.ArgumentTypeError(f"port must be 1-65535, got {value}")
+    return value
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Print parsed config as JSON.")
+    parser.add_argument("--host", default="127.0.0.1", help="hostname or IP (default: 127.0.0.1)")
+    parser.add_argument("--port", type=port_type, default=8080, help="TCP port, 1-65535 (default: 8080)")
+    parser.add_argument("--verbose", action="store_true", help="enable verbose output")
+    args = parser.parse_args(argv)
+
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    print(json.dumps(config, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+How to run it:
+
+```
+$ python3 cli.py --host example.com --port 443 --verbose
+{
+  "host": "example.com",
+  "port": 443,
+  "verbose": true
+}
+
+$ python3 cli.py                       # all defaults
+{
+  "host": "127.0.0.1",
+  "port": 8080,
+  "verbose": false
+}
+
+$ python3 cli.py --port 70000          # validation fires
+usage: cli.py [-h] [--host HOST] [--port PORT] [--verbose]
+cli.py: error: argument --port: port must be 1-65535, got 70000
+
+$ python3 cli.py --port abc
+usage: cli.py [-h] [--host HOST] [--port PORT] [--verbose]
+cli.py: error: argument --port: 'abc' is not an integer
+```
+
+`argparse` handles `--help`, the `usage:` line, and exit code 2 on bad args for free. Validation lives in `port_type` so it runs during parsing — invalid input never reaches your code.
+
+Note: the prior session left background trials running (tasks `b2ch7nxnr`, `butvnad8t`, plus port 8086 holding Llama 3.1 8B with the qwen plist unloaded). I haven't touched any of it. Say the word if you want me to pick that thread back up.

@@ -1,0 +1,68 @@
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print every <a> tag's href and link text."""
+
+import sys
+from html.parser import HTMLParser
+from urllib.request import urlopen, Request
+
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []          # list of [href, text]
+        self._current_href = None
+        self._text_parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href is not None:
+                self._current_href = href
+                self._text_parts = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._text_parts.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            text = " ".join("".join(self._text_parts).split())
+            self.links.append([self._current_href, text])
+            self._current_href = None
+            self._text_parts = []
+
+
+def main():
+    url = sys.argv[1] if len(sys.argv) > 1 else "https://example.com"
+    req = Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urlopen(req) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkParser()
+    parser.feed(html)
+
+    if not parser.links:
+        print("No links found.")
+        return
+    for href, text in parser.links:
+        print(f"{href}\t{text or '(no text)'}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it:
+
+```bash
+# Save the code to a file of your choice, then:
+python3 link_extractor.py                  # defaults to https://example.com
+python3 link_extractor.py https://news.ycombinator.com   # or pass any URL
+```
+
+Notes:
+- Uses only the Python standard library — no `pip install` needed.
+- `https://example.com` famously contains exactly one link, so expect output like: `https://www.iana.org/domains/example	More information...`
+- For heavier real-world scraping you'd typically use `requests` + `beautifulsoup4`, but the above keeps it dependency-free. Want that version instead?

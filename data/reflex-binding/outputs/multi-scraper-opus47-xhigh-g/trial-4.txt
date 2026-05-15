@@ -1,0 +1,50 @@
+Reflex check: kernel primitive for "fetch URL + parse HTML" is the socket and a parser. Python stdlib has both — `urllib.request` for the fetch, `html.parser` for the parse. No third-party dependency needed.
+
+```python
+#!/usr/bin/env python3
+import sys
+from urllib.request import urlopen, Request
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._href = None
+        self._text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            self._href = dict(attrs).get("href")
+            self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href is not None:
+            self.links.append((self._href, "".join(self._text).strip()))
+            self._href = None
+            self._text = []
+
+url = "https://example.com"
+req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+with urlopen(req, timeout=10) as r:
+    html = r.read().decode(r.headers.get_content_charset() or "utf-8", errors="replace")
+
+p = LinkExtractor()
+p.feed(html)
+for href, text in p.links:
+    print(f"{href}\t{text}")
+```
+
+Run it:
+
+```
+python3 - <<'EOF'
+[paste script above]
+EOF
+```
+
+Or save to a file and `python3 links.py`. Stdlib only — no `pip install` needed.

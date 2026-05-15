@@ -1,0 +1,84 @@
+I'll show you a Python CLI tool using argparse that validates the inputs and outputs JSON:
+
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="CLI tool to parse and validate host and port configuration"
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        required=True,
+        help="Host address"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        required=True,
+        help="Port number (1-65535)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        parser.error(f"Port must be between 1 and 65535, got {args.port}")
+    
+    # Build configuration dict
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    # Print as JSON
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage
+python cli.py --host localhost --port 8080
+
+# With verbose flag
+python cli.py --host 0.0.0.0 --port 3000 --verbose
+
+# Invalid port (will error)
+python cli.py --host localhost --port 99999
+
+# Non-integer port (will error)
+python cli.py --host localhost --port abc
+```
+
+**Example outputs:**
+
+```json
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": false
+}
+```
+
+```json
+{
+  "host": "0.0.0.0",
+  "port": 3000,
+  "verbose": true
+}
+```
+
+The argparse library handles the type validation (converting to int) and the custom error handling validates the port range. Non-integer ports and out-of-range values will produce clear error messages.

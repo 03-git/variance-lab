@@ -1,0 +1,88 @@
+Here's a clean implementation using **FastAPI** (Python), which handles validation declaratively:
+
+```python
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, field_validator, EmailStr
+from typing import Annotated
+from pydantic import Field
+
+app = FastAPI()
+
+class UserCreate(BaseModel):
+    name: str
+    email: str
+    age: int = Field(..., ge=1, le=150)
+
+    @field_validator("name")
+    @classmethod
+    def name_not_empty(cls, v):
+        if not v.strip():
+            raise ValueError("name must not be empty")
+        return v.strip()
+
+    @field_validator("email")
+    @classmethod
+    def email_contains_at(cls, v):
+        if "@" not in v:
+            raise ValueError("email must contain @")
+        return v
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = [
+        {"field": ".".join(str(loc) for loc in e["loc"][1:]), "message": e["msg"]}
+        for e in exc.errors()
+    ]
+    return JSONResponse(status_code=400, content={"errors": errors})
+
+@app.post("/users", status_code=201)
+async def create_user(user: UserCreate):
+    return user.model_dump()
+```
+
+**To run it:**
+
+```bash
+pip install fastapi uvicorn pydantic
+
+# save the above as main.py, then:
+uvicorn main:app --reload
+```
+
+**Test it:**
+
+```bash
+# Valid — expect 201
+curl -s -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}' | jq
+
+# Invalid email — expect 400
+curl -s -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "email": "notanemail", "age": 25}' | jq
+
+# Age out of range — expect 400
+curl -s -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Carol", "email": "carol@x.com", "age": 200}' | jq
+
+# Missing name — expect 400
+curl -s -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "x@y.com", "age": 40}' | jq
+```
+
+**Example responses:**
+
+```json
+// 201
+{"name": "Alice", "email": "alice@example.com", "age": 30}
+
+// 400
+{"errors": [{"field": "email", "message": "Value error, email must contain @"}]}
+```
+
+Key decisions: `Field(ge=1, le=150)` handles age bounds at the schema level; the custom `exception_handler` converts FastAPI's default 422 to 400 as required; `name_not_empty` catches whitespace-only strings that would otherwise pass the `str` type check.

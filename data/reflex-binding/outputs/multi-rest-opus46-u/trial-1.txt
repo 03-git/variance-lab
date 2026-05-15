@@ -1,0 +1,96 @@
+Here's a minimal implementation using **Node.js + Express** (no external validation library, just plain checks):
+
+```javascript
+// server.js
+const express = require('express');
+
+const app = express();
+app.use(express.json());
+
+function validateUser(body) {
+  const errors = [];
+  const { name, email, age } = body ?? {};
+
+  if (typeof name !== 'string' || name.trim() === '') {
+    errors.push({ field: 'name', message: 'name is required and must be a non-empty string' });
+  }
+
+  if (typeof email !== 'string' || !email.includes('@')) {
+    errors.push({ field: 'email', message: 'email is required and must contain "@"' });
+  }
+
+  if (typeof age !== 'number' || !Number.isInteger(age) || age < 1 || age > 150) {
+    errors.push({ field: 'age', message: 'age is required and must be an integer between 1 and 150' });
+  }
+
+  return errors;
+}
+
+app.post('/users', (req, res) => {
+  const errors = validateUser(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({ error: 'Invalid input', details: errors });
+  }
+
+  const user = {
+    name: req.body.name.trim(),
+    email: req.body.email,
+    age: req.body.age,
+  };
+
+  // (persist user here if you had a database)
+  return res.status(201).json(user);
+});
+
+// Handle malformed JSON bodies
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Invalid input', details: [{ message: 'Request body must be valid JSON' }] });
+  }
+  next(err);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Listening on http://localhost:${PORT}`));
+```
+
+## How to run it
+
+```bash
+mkdir user-api && cd user-api
+npm init -y
+npm install express
+# save the code above as server.js
+node server.js
+```
+
+## Try it
+
+```bash
+# Success → 201
+curl -i -X POST http://localhost:3000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Ada Lovelace","email":"ada@example.com","age":36}'
+
+# Invalid → 400 with details
+curl -i -X POST http://localhost:3000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"","email":"nope","age":999}'
+```
+
+The second request returns:
+
+```json
+{
+  "error": "Invalid input",
+  "details": [
+    { "field": "name", "message": "name is required and must be a non-empty string" },
+    { "field": "email", "message": "email is required and must contain \"@\"" },
+    { "field": "age", "message": "age is required and must be an integer between 1 and 150" }
+  ]
+}
+```
+
+---
+
+Want a different stack instead? I can give you the same thing in **Python (Flask or FastAPI)**, **Go**, or with a schema library like **Zod**/**Joi** — just say the word.

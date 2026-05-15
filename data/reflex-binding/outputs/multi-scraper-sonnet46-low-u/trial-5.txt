@@ -1,0 +1,66 @@
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._current_text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            attrs_dict = dict(attrs)
+            self._current_href = attrs_dict.get("href")
+            self._current_text = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._current_text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            self.links.append((self._current_href, "".join(self._current_text).strip()))
+            self._current_href = None
+            self._current_text = []
+
+with urllib.request.urlopen("https://example.com") as response:
+    html = response.read().decode("utf-8")
+
+parser = LinkParser()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"[{text}] -> {href}")
+```
+
+**How to run** — no third-party dependencies needed, just Python 3:
+
+```bash
+python3 script.py
+```
+
+The script uses only the standard library (`urllib.request` for the HTTP fetch, `html.parser` for parsing). For `https://example.com` specifically you'll likely see one link:
+
+```
+[More information...] -> https://www.iana.org/domains/reserved
+```
+
+If you want to use `requests` + `BeautifulSoup` instead (more robust for real-world sites), here's that version:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+soup = BeautifulSoup(requests.get("https://example.com").text, "html.parser")
+
+for a in soup.find_all("a", href=True):
+    print(f"[{a.get_text(strip=True)}] -> {a['href']}")
+```
+
+Run after installing deps:
+```bash
+pip install requests beautifulsoup4
+python3 script.py
+```

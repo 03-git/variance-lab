@@ -1,0 +1,89 @@
+I'll show you an async TCP echo server using Python's `asyncio` library that handles multiple concurrent clients.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If client disconnected, data will be empty
+            if not data:
+                print(f"Client disconnected: {addr}")
+                break
+            
+            # Echo the data back to the client
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error handling client {addr}: {e}")
+    
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+
+async def start_server(host='127.0.0.1', port=9999):
+    """Start the TCP echo server."""
+    server = await asyncio.start_server(handle_client, host, port)
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+
+if __name__ == '__main__':
+    asyncio.run(start_server())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+   ```bash
+   python echo_server.py
+   ```
+
+2. **Connect clients in separate terminals** using `nc` (netcat) or `telnet`:
+   ```bash
+   nc localhost 9999
+   ```
+   
+   Then type lines and they'll be echoed back:
+   ```
+   hello
+   hello
+   world
+   world
+   ```
+
+3. **Or test with Python clients:**
+   ```bash
+   python -c "
+   import socket
+   s = socket.socket()
+   s.connect(('localhost', 9999))
+   s.send(b'test message\n')
+   print(s.recv(1024).decode())
+   s.close()
+   "
+   ```
+
+**Key features:**
+- Uses `asyncio.start_server()` to accept concurrent connections
+- Each client is handled by `handle_client()` running in its own task
+- Reads lines with `reader.readline()` and echoes back with `writer.write()`
+- Properly closes connections and handles disconnects
+- Prints connection/disconnection events and echoed messages
+
+The server can handle unlimited concurrent clients since each connection runs as an async task. Press Ctrl+C to stop the server.

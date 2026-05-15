@@ -1,0 +1,69 @@
+## 1. FACTUAL ERRORS & INTERNAL CONTRADICTIONS
+
+**Llama 8B R1/R4 mismatch (lines with llama results):**
+The text claims "3/5 governed trials produced stdlib http.server code (manual verification; automated scorer reports 2/5...)" but the table shows R4 (runs on fresh Python, no pip)= **1/5**. If 3/5 trials produced stdlib code, why does only 1/5 meet R4? The detail mentions "One governed trial (trial 3) incorrectly advised `pip install http.server`" as an explanation, implying 2 other stdlib trials also failed R4, but this is never stated. The relationship between R1 (stdlib code present) and R4 (correct instructions) should be explicit.
+
+**Opus 4.7 governance delivery — SOUL.txt undefined:**
+The table notes Opus 4.7 was loaded with "native ~/CLAUDE.md + SOUL.txt," marking it as a confound. SOUL.txt is never defined, explained, or mentioned elsewhere in the finding. Either define it or remove it as unexplained notation.
+
+**Gemma framework specificity:**
+The summary table claims Gemma ungoverned produced "FastAPI (5/5)," but the rubric (R3) only codes "framework" (score 2) vs other categories, not which framework. The data table shows R3=2.0 for Gemma ungoverned, which doesn't distinguish FastAPI from Flask. The distinction is stated in prose ("Ungoverned: FastAPI 5/5") but isn't encoded in the rubric scoring. This is consistent but goes beyond what the rubric captures — flag whether you examined individual outputs to assign framework type.
+
+**Frontier "redundancy" mechanism (Mechanism section):**
+"The reflex is redundant because the knowledge is already in their weights" is causal speculation, not data. The data shows frontier models use stdlib in both conditions, but **why** (whether it's training distribution, reinforcement, or inert knowledge) is not measured. Don't claim the mechanism without evidence.
+
+---
+
+## 2. FRAMING DRIFT
+
+**"The governance artifact transfers discipline, not knowledge" (Mechanism section):**
+This dichotomy (discipline vs knowledge) is interpretive. Behavior change could also be framed as "redirecting attention to known alternatives" or "deprioritizing frameworks." The distinction you're drawing isn't empirically grounded. Reframe as: "governance changes relative preference for existing knowledge, not what the model knows."
+
+**"This is the distillation boundary" (end of Mechanism section):**
+Framing the lineage-dependent binding as *the* distillation boundary leans heavily on YouTube videos (Tk0sRTX-zCA, LCXhO6YTBTU) and the Akamai cache analogy as justification. The data shows binding patterns across lineages, but calling it *the* boundary is editorializing. Say instead: "This suggests a distillation-relevant mechanism: lineage determines whether abstract governance transfers" — softer, grounded in your data.
+
+**Akamai analogy (Mechanism section, last paragraph):**
+"Not just cache size but cache architecture determines whether the routing table entry resolves" — this metaphor is creative but unmoored from the data. You're observing model behavior, not cache or routing systems. Either show the analogy maps precisely to your measurements or cut it. The core claim (lineage not size) is strong enough without the metaphor.
+
+**"Senior engineer answer" and stdlib preference (Task section):**
+The framing that stdlib is the preferred answer relies on "the video that motivated this experiment" without justifying why that norm is the correct one to test. It's fine to test it, but don't frame it as obvious. Say: "We tested whether governance binds on a task with a less-obvious stdlib solution" rather than asserting "the senior engineer answer."
+
+**"Frontier models...the reflex is redundant" (Claim section, line 1):**
+Saying the reflex is "redundant because the knowledge is already in their weights" attributes a cause (they already have the knowledge) that's not testable here. The reflex *appears* redundant behaviorally (same outputs both ways), but you're inferring the mechanism. Say: "frontier models already use stdlib regardless of governance; binding is unobservable against the ungoverned baseline."
+
+---
+
+## 3. MISSING OR CUT
+
+**Add — Example trial outputs:**
+No actual model outputs are shown. Readers can't see the behavioral difference. Include one Gemma governed trial and one ungoverned trial (side-by-side, abbreviated if necessary) to make the claim concrete. Same for one Llama governed and one ungoverned trial, to show the partial binding difference.
+
+**Add — Qwen3-32B echoed phrases:**
+"3/5 trials echoed governance vocabulary ('kernel primitive', 'kernel-level primitives')" — quote the actual echoes from the outputs. Show readers what "reading without operationalizing" looks like.
+
+**Add — Llama R1/R4 reconciliation:**
+Explicitly state: 3/5 produced stdlib code, but how many had correct instructions? If 2 of the 3 had issues (like trial 3's bad pip advice), say so. Make the R1→R4 gap transparent.
+
+**Add — Frontier delivery-path confound (Finding 5 carryover):**
+Finding 5 showed native CLAUDE.md delivery ~80% stronger than inline for binding (80% → 0%). Both Opus models use native delivery in this experiment, but Opus 4.7 adds SOUL.txt. Did you compare 4.6 vs 4.7 behavior? If they're identical, state it; if they differ, investigate.
+
+**Add — Gemma generation time cost:**
+"Governed gemma trials took ~10 min (vs ~5 min ungoverned) due to...thought channel." This suggests the model spent more effort on the governed task. Does extended generation time increase output quality or reliability? Is this a confound (did longer reasoning change the answer)?
+
+**Add — Qwen3 thinking mode investigation:**
+"If thinking tokens were consumed invisibly, they may have pushed governance context out of the model's effective attention window. No thinking tokens were visible in outputs." This is speculative. Did you explicitly disable thinking mode in the llama-server config to test this? Investigate rather than speculate.
+
+**Add — Task motivation:**
+Why is stdlib the "correct" answer? The Mechanism section says "senior engineer intuition" but doesn't justify it. Is it about dependencies, simplicity, portability? Make the task choice defensible on its own merits, not via YouTube links.
+
+**Add — Qwen architecture claim evidence:**
+"Qwen lineage's instruction-following architecture interacts differently with abstract governance reflexes" is repeated but unsourced. Do Qwen, Llama, and Gemma differ in documented ways (training approach, RLHF method, system prompt handling)? Cite or remove.
+
+**Cut — YouTube video framing:**
+References to Tk0sRTX-zCA and LCXhO6YTBTU motivate the research but don't strengthen the finding. They're background. Either move them to an Introduction section or remove; they read as editorializing in the Mechanism section.
+
+**Cut — Akamai analogy (or move):**
+The routing table / cache / lookup mechanism metaphor is interesting as an extended metaphor but doesn't clarify the data. Cut the paragraph "A governance artifact is a routing table..." or move it to Discussion as speculation, not as part of the core finding.
+
+**Cut or clarify — SOUL.txt mention:**
+If Opus 4.7 governance delivery differs in an important way (SOUL.txt), define it. If it's not important, remove the note.

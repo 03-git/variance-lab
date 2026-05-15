@@ -1,0 +1,75 @@
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print status, headers, and a body preview."""
+import sys
+import urllib.request
+import urllib.error
+
+
+def fetch(url: str) -> None:
+    req = urllib.request.Request(url, headers={"User-Agent": "fetch-script/1.0"})
+    try:
+        # urllib follows HTTP redirects (301/302/303/307) by default.
+        with urllib.request.urlopen(req) as resp:
+            status = resp.status
+            headers = resp.headers
+            body = resp.read(500).decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        # An HTTP error response (4xx/5xx) is still something we can report on.
+        status = e.code
+        headers = e.headers
+        body = e.read(500).decode("utf-8", errors="replace")
+
+    print(f"Status: {status}\n")
+    print("Headers:")
+    for name, value in headers.items():
+        print(f"  {name}: {value}")
+    print("\nBody (first 500 chars):")
+    print(body)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <url>", file=sys.stderr)
+        sys.exit(1)
+    fetch(sys.argv[1])
+```
+
+If you'd rather use the `requests` library (cleaner, but a third-party dependency):
+
+```python
+#!/usr/bin/env python3
+import sys
+import requests
+
+if len(sys.argv) != 2:
+    sys.exit(f"Usage: {sys.argv[0]} <url>")
+
+resp = requests.get(sys.argv[1], allow_redirects=True, timeout=30)
+print(f"Status: {resp.status_code}\n")
+print("Headers:")
+for name, value in resp.headers.items():
+    print(f"  {name}: {value}")
+print("\nBody (first 500 chars):")
+print(resp.text[:500])
+```
+
+## How to run it
+
+1. Save either version to a file, e.g. `fetch_url.py`.
+2. Run it with a URL argument:
+
+```bash
+python3 fetch_url.py https://example.com
+```
+
+For the `requests` version, install the dependency first:
+
+```bash
+pip install requests
+python3 fetch_url.py https://httpbin.org/redirect/2
+```
+
+Notes:
+- The stdlib version follows redirects automatically and also handles 4xx/5xx responses gracefully (printing their status/headers/body instead of crashing).
+- `resp.read(500)` reads at most 500 bytes; for multi-byte UTF-8 that could be slightly fewer than 500 characters. Swap to `resp.read().decode(...)[:500]` if you need exactly 500 characters and don't mind downloading the whole body.

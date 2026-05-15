@@ -1,0 +1,61 @@
+```python
+# notes_demo.py
+import sqlite3
+from datetime import datetime, timezone
+
+def main():
+    conn = sqlite3.connect("notes.db")
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS notes (
+            id INTEGER PRIMARY KEY,
+            title TEXT,
+            body TEXT,
+            created_at TEXT
+        )
+    """)
+
+    now = datetime.now(timezone.utc).isoformat()
+    sample_notes = [
+        ("Groceries", "Eggs, milk, coffee, bread", now),
+        ("Ideas", "Write a SQLite demo script", now),
+        ("Reminder", "Call the dentist on Monday", now),
+    ]
+    cur.executemany(
+        "INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+        sample_notes,
+    )
+    conn.commit()
+
+    cur.execute("SELECT id, title, body, created_at FROM notes ORDER BY id")
+    for row in cur.fetchall():
+        note_id, title, body, created_at = row
+        print(f"[{note_id}] {title} ({created_at})")
+        print(f"    {body}")
+
+    conn.close()
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it:
+
+```bash
+python3 notes_demo.py
+```
+
+Notes:
+- Uses only the standard library (`sqlite3`), so no installs needed.
+- It creates `notes.db` in the current directory. Re-running appends another 3 rows each time — delete the file (`rm notes.db`) for a clean start, or change the insert to run only once.
+- Expected output looks like:
+
+```
+[1] Groceries (2026-05-10T...)
+    Eggs, milk, coffee, bread
+[2] Ideas (2026-05-10T...)
+    Write a SQLite demo script
+[3] Reminder (2026-05-10T...)
+    Call the dentist on Monday
+```

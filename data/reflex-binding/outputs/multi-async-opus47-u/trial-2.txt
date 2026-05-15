@@ -1,0 +1,56 @@
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    print(f"connected: {addr}")
+    try:
+        while data := await reader.readline():
+            writer.write(data)
+            await writer.drain()
+    except ConnectionResetError:
+        pass
+    finally:
+        print(f"disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"serving on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+```
+
+**How to run**
+
+Save as `echo_server.py`, then:
+
+```
+python3 echo_server.py
+```
+
+**Test it** (in another terminal):
+
+```
+nc 127.0.0.1 8888
+```
+
+Type a line, press Enter, and the server echoes it back. Open multiple `nc` sessions to confirm concurrent clients work — each runs as its own coroutine on the single event loop.
+
+For a scripted test of concurrency:
+
+```
+( echo "hello from A"; sleep 1 ) | nc 127.0.0.1 8888 &
+( echo "hello from B"; sleep 1 ) | nc 127.0.0.1 8888 &
+wait
+```
+
+Stop the server with Ctrl-C.

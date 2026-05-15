@@ -1,0 +1,76 @@
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print every <a> tag's href and link text."""
+
+import sys
+from html.parser import HTMLParser
+from urllib.request import Request, urlopen
+from urllib.parse import urljoin
+
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []          # list of [href, text]
+        self._in_anchor = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href is not None:
+                self.links.append([urljoin(self.base_url, href), ""])
+                self._in_anchor = True
+
+    def handle_endtag(self, tag):
+        if tag == "a":
+            self._in_anchor = False
+
+    def handle_data(self, data):
+        if self._in_anchor and self.links:
+            self.links[-1][1] += data.strip()
+
+
+def main():
+    url = sys.argv[1] if len(sys.argv) > 1 else "https://example.com"
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0 (link-extractor)"})
+    with urlopen(req, timeout=10) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkExtractor(url)
+    parser.feed(html)
+
+    if not parser.links:
+        print("No links found.")
+        return
+
+    for href, text in parser.links:
+        print(f"{href}\t{text or '(no text)'}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+1. Save it as `links.py` (uses only the Python standard library — no `pip install` needed; Python 3.x).
+2. Run:
+   ```bash
+   python3 links.py
+   ```
+   or pass a different URL:
+   ```bash
+   python3 links.py https://www.python.org
+   ```
+
+For `https://example.com` you'll get one link — something like:
+
+```
+https://www.iana.org/domains/example	More information...
+```
+
+Notes:
+- Uses `html.parser` from the stdlib so it works out of the box. If you'd rather use `requests` + `beautifulsoup4` (more robust for messy HTML), say the word and I'll show that version.
+- `urljoin` resolves relative hrefs (e.g. `/about`) into absolute URLs.

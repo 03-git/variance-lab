@@ -1,0 +1,47 @@
+**time_server.py**
+```python
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
+from datetime import datetime
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            timestamp = datetime.utcnow().isoformat() + 'Z'
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"time": timestamp}).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+def run_server():
+    port = 8000
+    server_address = ('', port)
+    httpd = HTTPServer(server_address, TimeHandler)
+    print(f'Server running at http://localhost:{port}/time')
+    httpd.serve_forever()
+
+if __name__ == '__main__':
+    run_server()
+```
+
+**Running the server:**
+
+1. Save the above code in a file named `time_server.py`.
+2. Install Python 3.x if you haven't already (the code is written for Python 3.x).
+3. Open a terminal and navigate to the directory where you saved `time_server.py`.
+4. Run the server with the following command:
+```bash
+python time_server.py
+```
+5. Open a web browser and navigate to `http://localhost:8000/time`. You should see a JSON response with the current time in ISO 8601 format.
+
+**Example response:**
+```json
+{
+  "time": "2023-01-01T12:00:00Z"
+}
+```
+Note: The server will continue running until you manually stop it (e.g., with `Ctrl+C` in the terminal).

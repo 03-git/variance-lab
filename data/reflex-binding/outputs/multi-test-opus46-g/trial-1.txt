@@ -1,0 +1,41 @@
+Here's a `unittest`-based suite (stdlib only — no pytest needed):
+
+```python
+# test_temp.py
+import unittest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_40_is_fixed_point(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_raises(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run it:
+
+```bash
+python3 -m unittest test_temp.py -v
+```
+
+or just `python3 test_temp.py -v`.
+
+Notes:
+- `"hot" * 9` actually succeeds in Python (string repetition), but the subsequent `/ 5` raises `TypeError` — so the non-numeric case is covered. If you'd rather fail fast, add `if not isinstance(c, (int, float)): raise TypeError(...)` at the top of the function and the test still passes.
+- If you use pytest instead, the same file runs as-is: `pytest test_temp.py -v`.

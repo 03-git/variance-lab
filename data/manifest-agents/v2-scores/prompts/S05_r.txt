@@ -1,0 +1,514 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from variance-lab.txt)
+
+1. **Agent identity attestation** - model, operator, version, distinct from user identity
+2. **Delegation credential** - user-signed, time-bounded, scope-limited (amount, merchant, time window)
+3. **Liability framework** - loss allocation when agent acts within/outside scope
+4. **Real-time revocation** - OCSP-like for agent credentials
+5. **Cryptographic audit trail** - proof that specific agent took specific action under specific delegation
+
+## Timeline Estimate
+
+- **2025-2026:** PayPal-style OAuth scoped tokens for existing APIs. Section 1033 read APIs (if rule survives)
+- **2027-2028:** CFPB 1033 expansion to payment initiation (requires new rulemaking). FDX write APIs. EU PSD3/PSR with agent-compatible SCA exemptions
+- **2029+:** Cross-industry delegated agent authorization standard, possibly under OpenID Foundation
+
+## Infrastructure Implication
+
+Every enterprise deploying agents needs a credential authority under their control. Not a vendor sandbox. Not a cloud guardrail. A KEYMASTER that issues delegation credentials, enforces TTL, and provides physical revocation. The infrastructure where that authority runs is the sovereignty surface.
+
+
+================================================================
+
+---
+title: Governance Binding, Delivery-Path Sensitivity, Deliberative Scope Correction, and Targeted Patch Validation
+date: 2026-04-19
+source: production empirical (five pre-committed experiments, single operator, single off-peak Sunday UTC window)
+domain:
+  - agent-governance
+  - claude-md-binding
+  - deliberative-methodology
+  - tool-surface-testing
+  - governance-patch-validation
+keywords:
+  - CLAUDE.md binding
+  - native vs inline governance delivery
+  - identity-level claim degradation
+  - deliberative pass scope correction
+  - tool-surface null
+  - targeted governance patch
+  - pre-committed rubric
+  - three-gate handler methodology
+  - before/after rubric-item flip
+
+
+### Chunk 2 (from LICENSE.txt)
+includes interface definition files associated with source files for
+the work, and the source code for shared libraries and dynamically
+linked subprograms that the work is specifically designed to require,
+such as by intimate data communication or control flow between those
+subprograms and other parts of the work.
+
+  The Corresponding Source need not include anything that users
+can regenerate automatically from other parts of the Corresponding
+Source.
+
+  The Corresponding Source for a work in source code form is that
+same work.
+
+  2. Basic Permissions.
+
+  All rights granted under this License are granted for the term of
+copyright on the Program, and are irrevocable provided the stated
+conditions are met.  This License explicitly affirms your unlimited
+permission to run the unmodified Program.  The output from running a
+covered work is covered by this License only if the output, given its
+content, constitutes a covered work.  This License acknowledges your
+rights of fair use or other equivalent, as provided by copyright law.
+
+  You may make, run and propagate covered works that you do not
+convey, without conditions so long as your license otherwise remains
+in force.  You may convey covered works to others for the sole purpose
+of having them make modifications exclusively for you, or provide you
+with facilities for running those works, provided that you comply with
+the terms of this License in conveying all material for which you do
+not control copyright.  Those thus making or running the covered works
+for you must do so exclusively on your behalf, under your direction
+and control, on terms that prohibit them from making any copies of
+your copyrighted material outside their relationship with you.
+
+  Conveying under any other circumstances is permitted solely under
+the conditions stated below.  Sublicensing is not allowed; section 10
+makes it unnecessary.
+
+  3. Protecting Users' Legal Rights From Anti-Circumvention Law.
+
+
+
+### Chunk 3 (from LICENSE.txt)
+
+  You may convey a covered work in object code form under the terms
+of sections 4 and 5, provided that you also convey the
+machine-readable Corresponding Source under the terms of this License,
+in one of these ways:
+
+    a) Convey the object code in, or embodied in, a physical product
+    (including a physical distribution medium), accompanied by the
+    Corresponding Source fixed on a durable physical medium
+    customarily used for software interchange.
+
+    b) Convey the object code in, or embodied in, a physical product
+    (including a physical distribution medium), accompanied by a
+    written offer, valid for at least three years and valid for as
+    long as you offer spare parts or customer support for that product
+    model, to give anyone who possesses the object code either (1) a
+    copy of the Corresponding Source for all the software in the
+    product that is covered by this License, on a durable physical
+    medium customarily used for software interchange, for a price no
+    more than your reasonable cost of physically performing this
+    conveying of source, or (2) access to copy the
+    Corresponding Source from a network server at no charge.
+
+    c) Convey individual copies of the object code with a copy of the
+    written offer to provide the Corresponding Source.  This
+    alternative is allowed only occasionally and noncommercially, and
+    only if you received the object code with such an offer, in accord
+    with subsection 6b.
+
+    d) Convey the object code by offering access from a designated
+    place (gratis or for a charge), and offer equivalent access to the
+    Corresponding Source in the same way through the same place at no
+    further charge.  You need not require recipients to copy the
+    Corresponding Source along with the object code.  If the place to
+    copy the object code is a network server, the Corresponding Source
+    may be on a different server (operated by you or a third party)
+    that supports equivalent copying facilities, provided you maintain
+    clear directions next to the object code saying where to find the
+    Corresponding Source.  Regardless of what server hosts the
+    Corresponding Source, you remain obligated to ensure that it is
+
+
+### Chunk 4 (from LICENSE.txt)
+work results from an entity transaction, each party to that
+transaction who receives a copy of the work also receives whatever
+licenses to the work the party's predecessor in interest had or could
+give under the previous paragraph, plus a right to possession of the
+Corresponding Source of the work from the predecessor in interest, if
+the predecessor has it or can get it with reasonable efforts.
+
+  You may not impose any further restrictions on the exercise of the
+rights granted or affirmed under this License.  For example, you may
+not impose a license fee, royalty, or other charge for exercise of
+rights granted under this License, and you may not initiate litigation
+(including a cross-claim or counterclaim in a lawsuit) alleging that
+any patent claim is infringed by making, using, selling, offering for
+sale, or importing the Program or any portion of it.
+
+  11. Patents.
+
+  A "contributor" is a copyright holder who authorizes use under this
+License of the Program or a work on which the Program is based.  The
+work thus licensed is called the contributor's "contributor version".
+
+  A contributor's "essential patent claims" are all patent claims
+owned or controlled by the contributor, whether already acquired or
+hereafter acquired, that would be infringed by some manner, permitted
+by this License, of making, using, or selling its contributor version,
+but do not include claims that would be infringed only as a
+consequence of further modification of the contributor version.  For
+purposes of this definition, "control" includes the right to grant
+patent sublicenses in a manner consistent with the requirements of
+this License.
+
+  Each contributor grants you a non-exclusive, worldwide, royalty-free
+patent license under the contributor's essential patent claims, to
+make, use, sell, offer for sale, import and otherwise run, modify and
+propagate the contents of its contributor version.
+
+  In the following three paragraphs, a "patent license" is any express
+agreement or commitment, however denominated, not to enforce a patent
+(such as an express permission to practice a patent or covenant not to
+sue for patent infringement).  To "grant" such a patent license to a
+
+
+### Chunk 5 (from lookdown.universal.tsv)
+what*is*functional*behavior*assessment*	echo "FBA — determines maintaining variables of behavior. methods: interview, ABC observation, functional analysis. drives BIP design"
+what*is*bip*	echo "behavior intervention plan — written plan based on FBA. includes antecedent strategies, replacement behaviors, consequence procedures, data collection"
+what*is*behavior*intervention*plan*	echo "BIP — function-based plan. antecedent modifications + teaching replacement behavior + consequence strategies. requires FBA"
+what*is*a*mand	echo "Skinner verbal operant — request. controlled by motivation (MO). 'I want water' when thirsty. first operant typically taught"
+what*is*tact*	echo "Skinner verbal operant — label/comment. controlled by nonverbal stimulus. 'that's a dog' upon seeing dog. contact with environment"
+what*is*echoic*	echo "Skinner verbal operant — vocal imitation. repeating what was heard. point-to-point correspondence with vocal model"
+what*is*intraverbal*	echo "Skinner verbal operant — verbal response to verbal stimulus without point-to-point correspondence. 'what color is grass?' → 'green'. conversational language"
+what*is*verbal*operant*	echo "Skinner's classification: mand (request), tact (label), echoic (imitation), intraverbal (conversational), textual, transcription. function-based, not topography"
+what*is*generalization*	echo "behavior occurs across untrained stimuli, settings, or people. stimulus generalization and response generalization. must be programmed, not assumed"
+what*is*maintenance*	echo "behavior persists after intervention ends. thinning reinforcement schedules and programming natural contingencies support maintenance"
+what*is*interobserver*agreement*	echo "IOA — percentage agreement between two independent observers on same behavior. standard: ≥80%. validates data reliability"
+what*is*ioa*	echo "interobserver agreement — two observers independently score same session. agreements/(agreements+disagreements) × 100. minimum 80% acceptable"
+what*is*session*note*	echo "documentation of ABA session: targets, data, behavior, caregiver interaction. required for billing and clinical record"
+what*is*data*collection*	echo "systematic recording of behavior: frequency, duration, latency, interval, trial-by-trial. basis for all ABA decision-making"
+what*is*graphing*	echo "visual display of behavioral data over time. standard: line graph, x=sessions, y=measure. level/trend/variability analysis drives decisions"
+what*is*837p*	echo "ANSI X12 837 Professional — electronic claim format for outpatient/professional services. replaces CMS-1500. submitted via clearinghouse"
+what*is*837i*	echo "ANSI X12 837 Institutional — electronic claim format for facility/inpatient services. replaces UB-04"
+what*is*835*	echo "ANSI X12 835 — electronic remittance advice. payer sends to provider showing payment/adjustment/denial per claim line"
+what*is*edi	echo "electronic data interchange — structured B2B data exchange. healthcare uses ANSI X12: 837 (claims), 835 (remittance), 270/271 (eligibility), 276/277 (status)"
+what*is*icd*10*	echo "ICD-10 — WHO diagnosis code set. ICD-10-CM for US clinical. format: letter + digits (F84.0 = autistic disorder). required on claims"
+#
+# --- healthcare admin / billing ---
+what*is*cpt*code*	echo "current procedural terminology — AMA-owned procedure codes. 5 digits. category I (97153 = ABA adaptive behavior treatment), II, III. drives reimbursement"
+what*is*hcpcs*	echo "healthcare common procedure coding system. level I = CPT. level II = alphanumeric (E/M, DME, drugs). CMS-maintained"
+what*is*hipaa*	echo "health insurance portability and accountability act. privacy rule (PHI), security rule (ePHI safeguards), transaction standards (EDI). penalties for violations"
+what*is*baa*	echo "business associate agreement — HIPAA-required contract when vendor handles PHI. defines permitted uses, breach notification, safeguards"
+what*is*phi*	echo "protected health information — individually identifiable health data. 18 identifiers. HIPAA governs use/disclosure. minimum necessary standard applies"
+what*is*minimum*necessary*	echo "HIPAA principle — only access/disclose the minimum PHI needed for the purpose. applies to uses, disclosures, and requests"
+what*is*hl7*	echo "health level 7 — healthcare data exchange standards. v2 (pipe-delimited messages), v3 (XML), CDA. being superseded by FHIR"
+what*is*fhir*	echo "fast healthcare interoperability resources — HL7 standard. RESTful API, JSON/XML resources (Patient, Observation, Claim). modern EHR integration"
+what*is*ehr*	echo "electronic health record — digital patient chart. longitudinal, multi-provider. distinct from EMR (single practice). FHIR enables interoperability"
+what*is*emr*	echo "electronic medical record — digital chart within one practice. EHR is broader (cross-provider, longitudinal). terms often used interchangeably"
+what*is*clearinghouse*	echo "intermediary that validates/routes electronic claims between provider and payer. scrubs errors before submission. examples: Office Ally, Availity, Trizetto"
+what*is*npi*	echo "national provider identifier — 10-digit unique ID for healthcare providers. type 1 (individual), type 2 (organization). required on all claims"
+what*is*taxonomy*code*	echo "provider specialty classification. 10-character alphanumeric. examples: 103K00000X (behavior analyst), 106H00000X (marriage/family therapist). linked to NPI"
+what*is*prior*auth*	echo "prior authorization — payer approval required before service. submit clinical justification. denial = no payment. common for ABA (initial + reauth)"
+what*is*claim*denial*	echo "payer refuses payment on claim. common reasons: auth missing, timely filing, coding error, medical necessity. appeal with corrected claim or documentation"
+what*is*eob*	echo "explanation of benefits — document from payer to patient showing billed amount, allowed amount, patient responsibility. not a bill"
+what*is*superbill*	echo "itemized receipt from provider: diagnosis codes, CPT codes, dates, charges. patient uses for out-of-network reimbursement or records"
+what*is*encounter*form*	echo "clinical documentation form capturing visit details: diagnoses, procedures, time. basis for claim generation. superbill is the billing-facing version"
+
+
+### Chunk 6 (from variance-lab/data/manifest-agents/questions.tsv)
+id	type	question
+T01	traversal	What files are in the runtime/hosuni/ directory and what does each one do?
+T02	traversal	What is parsimony.c and what role does it play in the subtract.ing runtime?
+T03	traversal	List all .tsv files in the repository and describe the format of each.
+T04	traversal	What does the install.sh script do?
+T05	traversal	What is in runtime/llms.txt and how does it differ from the root llms.txt?
+T06	traversal	What shell hooks exist in runtime/hooks/ and what do they intercept?
+T07	traversal	What is kiosk.sh and what does it configure?
+T08	traversal	What files define the lookdown system and how are they organized?
+T09	traversal	What is squared.c and what does it compute?
+T10	traversal	List every file that contains a sha256 hash or references sha256 verification.
+S01	synthesis	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?
+S02	synthesis	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?
+S03	synthesis	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?
+S04	synthesis	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.
+S05	synthesis	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?
+S06	synthesis	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?
+S07	synthesis	Which files mention the concept of a "formation" and what does the term mean across them?
+S08	synthesis	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?
+S09	synthesis	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?
+S10	synthesis	What does lineage.txt credit and how do those credits connect to specific components in the codebase?
+C01	change	What changed in hosuni.c between commit d4e860d and HEAD?
+C02	change	What was the most recent change to variance-lab.txt and what confound did it resolve?
+C03	change	Which files were modified in the commit that added CJK font fallback support?
+C04	change	Has SOUL.txt been rewritten recently? What was the nature of the change?
+C05	change	What is the most recent addition to the llms.txt index?
+M01	similarity	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?
+M02	similarity	Find files related to the concept of signing and verification. Group them by function.
+M03	similarity	Which components share the pattern of reading a manifest or index file to decide what to do next?
+M04	similarity	What files discuss the boundary between human authority and agent execution? How do they differ in framing?
+M05	similarity	Find all components that use llama.cpp or local inference. How are they related?
+
+
+### Chunk 7 (from subtracting.html)
+
+    <hr>
+
+    <h2>Evidence</h2>
+
+    <p>Empirical findings from variance-lab, run on the subtract substrate:</p>
+
+    <p><a href="/variance-lab.txt">variance-lab.txt</a> <span class="dim">— six findings (claim layer)</span></p>
+    <p><a href="/variance-lab-handler-methodology.txt">variance-lab-handler-methodology.txt</a> <span class="dim">— three-gate methodology report</span></p>
+    <p><a href="/emile.txt">emile.txt</a> <span class="dim">— local-first deployment pattern for sole proprietors</span></p>
+
+    <hr>
+
+    <h2>Reflexes</h2>
+
+    <p>Four gates. An agent that cannot answer the question
+    does not proceed.</p>
+
+<pre>
+1. Before proposing any library or tool, name the kernel primitive it wraps
+2. Before proposing any new format, ask if ssh-keygen -Y sign works
+3. Before acting on memory, check if signed; if not, live read
+4. Before treating a source as authoritative, confirm it's under the signing domain
+</pre>
+
+    <p>Full specification: <a href="/governance.conf.universal.txt">governance.conf.universal.txt</a></p>
+
+    <hr>
+
+    <h2>Documents</h2>
+
+<pre>
+<a href="/README.txt">README.txt</a>                             <span class="dim">entry gradient</span>
+<a href="/subtract.7.txt">subtract.7.txt</a>                         <span class="dim">man(7) frame</span>
+<a href="https://raw.githubusercontent.com/03-git/subtract.ing/refs/heads/main/lookdown.universal.tsv">lookdown.universal.tsv</a>                 <span class="dim">routing table</span>
+<a href="/governance.conf.universal.txt">governance.conf.universal.txt</a>           <span class="dim">reflexes, authority, loop</span>
+<a href="/software-as-a-besides.txt">software-as-a-besides.txt</a>              <span class="dim">why?</span>
+<a href="/lineage.txt">lineage.txt</a>                            <span class="dim">credits and bibliography</span>
+<a href="/signoff.txt">signoff.txt</a>                            <span class="dim">session close</span>
+<a href="/variance-lab.txt">variance-lab.txt</a>                       <span class="dim">empirical findings</span>
+
+
+### Chunk 8 (from variance-lab.txt)
+  - tool-surface null
+  - targeted governance patch
+  - pre-committed rubric
+  - three-gate handler methodology
+  - before/after rubric-item flip
+  - R3 signer identity
+  - R4 llms.txt manifest
+  - attention-shift regression
+  - rubric recalibration
+related_findings:
+  - "variance-lab finding 1: three questions for agentic autonomy"
+  - "variance-lab finding 2: delegation-aware execution vs single-context inline (2026-03-28)"
+  - "variance-lab finding 3: interaction mode variance in human-AI sessions (2026-03-30)"
+  - "variance-lab finding 4: delegated agent authorization gap"
+  - "variance-lab handler methodology: three-gate validation template (2026-04-18)"
+methodology: five pre-committed specs under the handler three-gate template; trial experiments dispatched to claude-opus-4-7 effort=high, N=5 per arm, interleaved A/B; blind-shuffled rubric scoring via claude-sonnet-4-5 effort=low on Rousseau with fence-stripping JSON extractor; Welch t-test with unequal variance; retrospective analysis on exp 3 artifacts via single opus-4-7 dispatch; exp 5 eight-voter deliberative pass across three training lineages; off-peak Sunday UTC window
+---
+
+# Governance Binding, Delivery-Path Sensitivity, and Targeted Patch Validation
+
+## Claim
+
+Four pre-committed experiments run 2026-04-19 under the handler three-gate template produce one composite claim in four parts. A fifth observation on deliberative scope-correction on a survey-class corpus is recorded as a methodology note downstream of the handler methodology's Finding 3, not as a standalone finding here.
+
+1. **Governance binds.** A loaded CLAUDE.md raises rubric score from 3.0/10 to 8.2/10 against the same prompt (Welch t=7.84). The items that shift are the ones the prompt does not already compel; items the prompt compels fire with or without governance loaded.
+
+2. **Delivery path is a secondary multiplier, concentrated on identity-level claims.** Identical governance content delivered inline in the user prompt scores 6.80/10 vs 7.80/10 delivered through native CLAUDE.md loading (Welch t=2.36). The gap concentrates on items requiring the agent to identify with a namespace or authority role (R2 subtract.ing namespace: 80% native → 0% inline; R10 agent/human boundary: 100% → 60%), not on items requiring instruction-following (R1, R5–R9 survive inline delivery intact).
+
+3. **Targeted governance patches measurably close named gaps.** R3 (signer identity) and R4 (llms.txt manifest) scored 0% across four consecutive pre-patch arms spanning two experiments. A CLAUDE.md patch adding signer identity, manifest filename, format, and the edit→hash→sign loop to the Keymaster section was applied between exp 2 and exp 4. Both items scored 100% in both arms of exp 4. Two replications of 0%; two replications of 100%; patch applied between them. The patch is the actionable finding: governance reaches the manifest layer when and only when the manifest layer is explicitly named in governance.
+
+4. **Tool surface does not mutate plan-only outputs when the prompt prohibits execution.** Full-surface and zero-surface arms produce indistinguishable rubric scores (8.40/10 vs 8.60/10, Welch t=−0.58). Both arms honored "Do not execute. Output a plan only." The R3/R4 closure post-patch was replicated in both tool-surface arms, ruling out the candidate mechanism that tool access fills the manifest-layer gap via live verification.
+
+## Measurement
+
+Five experiments, five pre-committed specifications. Experiments 1, 2, and 4 use the same task prompt (plan-only publish-and-verify task for subtract.ing) and the same ten-item binary rubric (R1–R10, pre-committed in the exp 1 spec) to enable cross-experiment comparison.
+
+### Exp 1 — CLAUDE.md binding test
+
+**Spec sha256:** `965aa16a6132aa1283143e38de06c72015d131d6e87deba048df8ec777665c1e`
+Run: 13:50–13:57 UTC. N=5 per arm, interleaved A/B. Model: claude-opus-4-7, effort=high. Scorer: claude-sonnet-4-5 low (Rousseau), blind shuffle.
+
+
+### Chunk 9 (from LICENSE.txt)
+modification has been made.
+
+  If you convey an object code work under this section in, or with, or
+specifically for use in, a User Product, and the conveying occurs as
+part of a transaction in which the right of possession and use of the
+User Product is transferred to the recipient in perpetuity or for a
+fixed term (regardless of how the transaction is characterized), the
+Corresponding Source conveyed under this section must be accompanied
+by the Installation Information.  But this requirement does not apply
+if neither you nor any third party retains the ability to install
+modified object code on the User Product (for example, the work has
+been installed in ROM).
+
+  The requirement to provide Installation Information does not include a
+requirement to continue to provide support service, warranty, or updates
+for a work that has been modified or installed by the recipient, or for
+the User Product in which it has been modified or installed.  Access to a
+network may be denied when the modification itself materially and
+adversely affects the operation of the network or violates the rules and
+protocols for communication across the network.
+
+  Corresponding Source conveyed, and Installation Information provided,
+in accord with this section must be in a format that is publicly
+documented (and with an implementation available to the public in
+source code form), and must require no special password or key for
+unpacking, reading or copying.
+
+  7. Additional Terms.
+
+  "Additional permissions" are terms that supplement the terms of this
+License by making exceptions from one or more of its conditions.
+Additional permissions that are applicable to the entire Program shall
+be treated as though they were included in this License, to the extent
+that they are valid under applicable law.  If additional permissions
+apply only to part of the Program, that part may be used separately
+under those permissions, but the entire Program remains governed by
+this License without regard to the additional permissions.
+
+  When you convey a copy of a covered work, you may at your option
+remove any additional permissions from that copy, or from any part of
+
+
+### Chunk 10 (from LICENSE.txt)
+tells the user that there is no warranty for the work (except to the
+extent that warranties are provided), that licensees may convey the
+work under this License, and how to view a copy of this License.  If
+the interface presents a list of user commands or options, such as a
+menu, a prominent item in the list meets this criterion.
+
+  1. Source Code.
+
+  The "source code" for a work means the preferred form of the work
+for making modifications to it.  "Object code" means any non-source
+form of a work.
+
+  A "Standard Interface" means an interface that either is an official
+standard defined by a recognized standards body, or, in the case of
+interfaces specified for a particular programming language, one that
+is widely used among developers working in that language.
+
+  The "System Libraries" of an executable work include anything, other
+than the work as a whole, that (a) is included in the normal form of
+packaging a Major Component, but which is not part of that Major
+Component, and (b) serves only to enable use of the work with that
+Major Component, or to implement a Standard Interface for which an
+implementation is available to the public in source code form.  A
+"Major Component", in this context, means a major essential component
+(kernel, window system, and so on) of the specific operating system
+(if any) on which the executable work runs, or a compiler used to
+produce the work, or an object code interpreter used to run it.
+
+  The "Corresponding Source" for a work in object code form means all
+the source code needed to generate, install, and (for an executable
+work) run the object code and to modify the work, including scripts to
+control those activities.  However, it does not include the work's
+System Libraries, or general-purpose tools or generally available free
+programs which are used unmodified in performing those activities but
+which are not part of the work.  For example, Corresponding Source
+includes interface definition files associated with source files for
+the work, and the source code for shared libraries and dynamically
+linked subprograms that the work is specifically designed to require,
+such as by intimate data communication or control flow between those
+subprograms and other parts of the work.
+
+
+### Chunk 11 (from lookdown.universal.tsv)
+# === TEXT PROCESSING ===
+#
+show*file*contents	cat
+print*file	cat
+show*first*lines	head
+show*last*lines	tail
+follow*log	tail -f
+watch*file	tail -f
+count*lines	wc -l
+count*words	wc -w
+count*characters	wc -c
+sort*file	sort
+sort*lines	sort
+unique*lines	sort | uniq
+remove*duplicates	sort | uniq
+#
+# === PERMISSIONS ===
+#
+show*permissions	ls -l
+check*permissions	ls -l
+make*public*readable	chmod 644
+make*readable	chmod +r
+make*writable	chmod +w
+remove*write*permission	chmod -w
+make*private	chmod 600
+make*executable*by*all	chmod 755
+#
+# === GIT ===
+#
+git*status	git status
+show*git*status	git status
+what*changed	git diff
+show*changes	git diff
+git*log	git log --oneline -10
+show*commits	git log --oneline -10
+recent*commits	git log --oneline -10
+which*branch	git branch
+current*branch	git branch --show-current
+#
+# === SYSTEM INFO ===
+
+
+### Chunk 12 (from variance-lab.txt)
+  10-run preliminary: staging/bonsai-8b-clinical-bench.jsonl
+  Model:              huggingface.co/prism-ml/Bonsai-8B-gguf (Bonsai-8B-Q1_0.gguf, Apache 2.0)
+
+
+================================================================
+
+---
+title: 1-Bit Wins Across Four Hardware Tiers Because the Bottleneck Differs by Tier
+date: 2026-04-25
+source: production empirical (4 hardware tiers, same model, same harness)
+domain:
+  - local-inference
+  - bitnet
+  - hardware-characterization
+  - deployment-sizing
+keywords:
+  - BitNet
+  - Bonsai 8B
+  - bottleneck taxonomy
+  - memory bandwidth
+  - thermal throttle
+  - swap isolation
+  - edge deployment
+prior_art_status: >
+  bitnet-log (03-git, frozen 2026-04-25) tracked two convergence gates:
+  weight compression (BitNet) and KV cache compression. This finding
+  validates the weight gate empirically across consumer hardware.
+  Published 1-bit benchmarks measure single-model single-tier tok/s.
+  No published benchmark characterizes the tier-specific bottleneck
+  that becomes binding once memory capacity is removed as a constraint.
+---
+
+# 1-Bit Wins Across Four Tiers Because the Bottleneck Differs by Tier
+
+## Claim
+
+Bonsai 8B Q1 (1.1GB) is deployment-viable on every hardware tier tested,
+but the reason it wins differs by tier. 1-bit quantization eliminates
+memory capacity as the binding constraint on all four platforms, exposing
+the next bottleneck down — which is different on each:
+
+
+
+## Question
+What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?

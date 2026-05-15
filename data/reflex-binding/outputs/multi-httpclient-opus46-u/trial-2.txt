@@ -1,0 +1,74 @@
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print status, headers, and a body preview."""
+import sys
+import urllib.request
+import urllib.error
+
+
+def fetch(url: str) -> None:
+    req = urllib.request.Request(url, headers={"User-Agent": "fetch-script/1.0"})
+    try:
+        # urllib follows redirects (3xx) automatically via HTTPRedirectHandler
+        with urllib.request.urlopen(req) as resp:
+            status = resp.status
+            headers = resp.headers
+            body = resp.read(500).decode(resp.headers.get_content_charset() or "utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        # HTTPError is also a response — report it instead of crashing
+        status = e.code
+        headers = e.headers
+        body = e.read(500).decode("utf-8", errors="replace")
+
+    print(f"Status: {status}\n")
+    print("Headers:")
+    for name, value in headers.items():
+        print(f"  {name}: {value}")
+    print("\nBody (first 500 chars):")
+    print(body)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <url>", file=sys.stderr)
+        sys.exit(1)
+    fetch(sys.argv[1])
+```
+
+**How to run it:**
+
+1. Save it as `fetch.py` (uses only the standard library, so no `pip install` needed).
+2. Run with a URL argument:
+
+```bash
+python3 fetch.py https://httpbin.org/redirect/2
+```
+
+The final destination after redirects is what gets printed. Try `https://httpbin.org/status/404` to see the `HTTPError` branch in action.
+
+---
+
+If you'd rather use the `requests` library (cleaner API, but a third-party dependency):
+
+```python
+#!/usr/bin/env python3
+import sys
+import requests
+
+if len(sys.argv) != 2:
+    sys.exit(f"Usage: {sys.argv[0]} <url>")
+
+r = requests.get(sys.argv[1], allow_redirects=True, timeout=30)
+print(f"Status: {r.status_code}\n")
+print("Headers:")
+for k, v in r.headers.items():
+    print(f"  {k}: {v}")
+print("\nBody (first 500 chars):")
+print(r.text[:500])
+```
+
+Run it the same way after `pip install requests`:
+
+```bash
+python3 fetch.py https://example.com
+```

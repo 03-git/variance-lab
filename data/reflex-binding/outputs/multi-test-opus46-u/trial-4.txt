@@ -1,0 +1,84 @@
+Here's a test suite using `pytest`:
+
+```python
+# test_temperature.py
+import pytest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32
+
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212
+
+
+def test_minus_forty_is_equal():
+    # -40 °C == -40 °F, the one place the scales cross
+    assert celsius_to_fahrenheit(-40) == -40
+
+
+def test_non_numeric_input_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+If you'd rather not depend on pytest, here's the same thing with the stdlib `unittest`:
+
+```python
+# test_temperature.py
+import unittest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_forty_is_equal(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_input_raises(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+## How to run it
+
+**pytest version:**
+```sh
+pip install pytest
+pytest test_temperature.py -v
+```
+
+**unittest version (no install needed):**
+```sh
+python -m unittest test_temperature.py -v
+# or, since it has the __main__ block:
+python test_temperature.py
+```
+
+A note on the non-numeric test: `"hot" * 9` is actually valid in Python (string repetition), so the `TypeError` is triggered by the subsequent `/ 5` on a string — the exception still fires, so the test passes. If you want stricter behavior, add an explicit type check at the top of `celsius_to_fahrenheit`:
+
+```python
+def celsius_to_fahrenheit(c):
+    if not isinstance(c, (int, float)):
+        raise TypeError(f"expected a number, got {type(c).__name__}")
+    return c * 9 / 5 + 32
+```
+
+(Note: passing `True`/`False` would slip through `isinstance(..., int)` since `bool` is a subclass of `int` — fine for most uses, but worth knowing.)

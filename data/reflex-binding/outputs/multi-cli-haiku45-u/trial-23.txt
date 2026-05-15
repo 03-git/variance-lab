@@ -1,0 +1,61 @@
+I'll show you a Python CLI tool that handles those flags and validation:
+
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(description="Configuration CLI tool")
+    parser.add_argument("--host", required=True, help="Host address")
+    parser.add_argument("--port", type=int, required=True, help="Port number")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    
+    try:
+        args = parser.parse_args()
+    except SystemExit:
+        sys.exit(1)
+    
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        print(f"Error: port must be between 1 and 65535, got {args.port}", file=sys.stderr)
+        sys.exit(1)
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Valid configuration
+python cli.py --host localhost --port 8080
+
+# With verbose flag
+python cli.py --host 0.0.0.0 --port 3000 --verbose
+
+# Invalid port (too high)
+python cli.py --host localhost --port 70000
+
+# Invalid port (not an integer)
+python cli.py --host localhost --port abc
+```
+
+**Example output:**
+```json
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": false
+}
+```
+
+The tool uses `argparse` to handle CLI arguments, validates the port is an integer automatically (argparse raises an error if it can't convert), and then checks the valid range (1-65535). The configuration is printed as formatted JSON.

@@ -1,0 +1,44 @@
+Reflex check (reflex.1, python→kernel): the primitive here is `unittest` from the stdlib — no third-party test runner needed.
+
+```python
+# test_temp.py
+import unittest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_forty(self):
+        # the one temperature where C and F coincide
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run it:
+
+```
+python -m unittest test_temp.py -v
+```
+
+or, since it has the `__main__` block:
+
+```
+python test_temp.py -v
+```
+
+Note: in real use you'd `from your_module import celsius_to_fahrenheit` rather than defining it in the test file — it's inlined here so the snippet runs standalone. The `"hot" * 9` actually succeeds (string repetition) but `... / 5` then raises `TypeError`, so the non-numeric test passes.

@@ -1,0 +1,55 @@
+I'll show you a simple HTTP endpoint that returns the current time as JSON.
+
+Here's a Node.js solution using Express:
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.get('/time', (req, res) => {
+  res.json({ time: new Date().toISOString() });
+});
+
+app.listen(3000, () => {
+  console.log('Server running at http://localhost:3000');
+});
+```
+
+**To run it:**
+
+```bash
+npm install express
+node app.js
+```
+
+Then test it:
+```bash
+curl http://localhost:3000/time
+```
+
+---
+
+Alternatively, here's a Python solution using Flask:
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    return jsonify(time=datetime.utcnow().isoformat() + 'Z')
+
+if __name__ == '__main__':
+    app.run(port=3000, debug=True)
+```
+
+**To run it:**
+
+```bash
+pip install flask
+python app.py
+```
+
+Both return the current time in ISO 8601 format. The Node.js version is lighter weight; the Python version is simpler if you already have Flask installed.

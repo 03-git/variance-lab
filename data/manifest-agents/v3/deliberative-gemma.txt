@@ -1,0 +1,47 @@
+<|channel>thought
+<channel|>This deliberative review identifies several critical issues regarding mathematical consistency, logical framing, and missing methodological details.
+
+### 1. Factual Errors
+
+**A. Mathematical Inconsistency in V1 Cost/Time Claims**
+*   **Problematic Text:** `"V1 cost: Arm M uses 2x the tokens (343K vs 174K total) and 26% more wall time (841s vs 667s)."`
+*   **Error:** The math for "2x" is incorrect. $343,000 / 174,000 \approx 1.97$. While close, the text later claims in the V1 $\to$ V2 improvement table that V1 Arm M used $343,180$ tokens. If we use the precise number, $343,180 / 174,000 = 1.972$. More importantly, the wall time calculation is inconsistent: $841 / 667 \approx 1.2608$, which is indeed $26\%$ more, but the comparison between V1 and V2 later claims a $36\%$ reduction in time for Arm M ($841s \to 535s$), which is correct, but the baseline comparison in the V1 section is slightly imprecise.
+*   **Correction:** Ensure all percentage comparisons use the same precision. Use: `"Arm M uses ~1.97x the tokens..."`
+
+**B. Discrepancy in V2 Token Count**
+*   **Problematic Text:** `"Arm M uses 19% fewer tokens (138K vs 172K total)"` vs. the V1 $\to$ V2 table which lists `"138,378"` for V2 Arm M.
+*   **Error:** In the V2 cost section, the comparison is against "BM25 retrieval" ($172\text{K}$). However, the V1 Arm R (BM25) was listed as $174\text{K}$. If the BM25 arm (Arm R) did not change between V1 and V2, the denominator should be $174\text{K}$, not $172\text{K}$. If it did change, the reason for the change in the control group (Arm R) is not stated.
+*   **Correction:** Clarify if Arm R's token usage changed between V1 and V2. If it remained $174\text{K}$, the text should read: `"Arm M uses 20.5% fewer tokens (138K vs 174K total)"`.
+
+**C. Welch t-test Inconsistency**
+*   **Problematic Text:** In the V1 table, the Aggregate Welch $t$ is $-3.80$. In the V2 table, the Aggregate Welch $t$ is $-0.22$.
+*   **Error:** While mathematically possible, the "Aggregate" row in these tables implies a pooled statistic. However, the individual scorers' $t$-values do not aggregate linearly to the aggregate $t$ shown. For example, in V1, the $t$-values are $-3.25, -2.83, -2.61$. A pooled Welch $t$ for these three would not necessarily result in $-3.80$ (which is actually more extreme than any individual component).
+*   **Correction:** Explicitly state the methodology for the "Aggregate" Welch $t$ (e.g., "pooled Welch $t$ across all three scorers").
+
+### 2. Framing Drift
+
+**A. Causality of "Speed"**
+*   **Problematic Text:** `"The curated manifest approach is cheaper than BM25 retrieval because the manifest routes to fewer, more relevant chunks."`
+*   **Drift:** This implies the *speed* (wall time) is a direct result of the *routing efficiency*. However, "wall time" in a local LLM setup (M1 Mac Studio) is heavily influenced by context window size (KV cache pressure). The speedup is likely due to the reduction in total tokens processed by the LLM, not just the "routing."
+*   **Correction:** `"The curated manifest approach is faster and more token-efficient because it reduces the total context volume required for the 7B model to reach parity."`
+
+**B. The "Quality Parity" Claim**
+*   **Problematic Text:** `"The quality parity depends on manifest curation quality."`
+*   **Drift:** The text claims parity is achieved in V2, but the data shows that in V2, Arm R (BM25) still leads in 2 out of 3 scorers (Claude and Qwen). While the *aggregate* is statistically indistinguishable, the narrative implies a "win" for the manifest that the individual scorer data slightly contradicts.
+*   **Correction:** `"The curated manifest approach achieves statistical parity in aggregate quality, though BM25 retains a marginal lead in two of the three scoring models."`
+
+### 3. Missing Information
+
+**A. Definition of "Lookdown-style"**
+*   **Problematic Text:** `"lookdown-style routing table"`
+*   **Missing:** "Lookdown" is used as a technical descriptor but is not defined within the finding. Given this is a "variance-lab" finding, the specific structure of a "lookdown" (beyond the TSV example) is critical to replicating the curation logic.
+*   **Correction:** Add a brief parenthetical definition: `"...lookdown-style routing table (a hierarchical, tag-based index of file intent)..."`
+
+**B. Scorer Calibration Details**
+*   **Problematic Text:** `"Three training lineages, three calibration profiles (claude strict, gemma generous, qwen self-biased)."`
+*   **Missing:** The methodology for how "strict," "generous," and "self-biased" were applied is missing. Without knowing if these were system prompts, few-shot examples, or temperature adjustments, the "Scorer calibration" section is not verifiable.
+*   **Correction:** Add a footnote or brief sentence explaining the calibration mechanism (e.g., `"Calibration was achieved via persona-based system prompting."`).
+
+**C. Missing "Arm R" V2 Baseline**
+*   **Problematic Text:** The V2 table compares Arm M and Arm R, but the "V2 cost" section compares Arm M to a version of Arm R that appears to have changed from V1 ($174\text{K} \to 172\text{K}$).
+*   **Missing:** A statement explaining why the BM25 (Arm R) token count changed between the V1 and V2 experiments.

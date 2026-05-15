@@ -1,0 +1,79 @@
+Here's a Node.js/Express REST API endpoint with proper validation:
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+app.post('/users', (req, res) => {
+  const { name, email, age } = req.body;
+  const errors = [];
+
+  // Validation
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    errors.push('name is required and must be a non-empty string');
+  }
+
+  if (!email || !email.includes('@')) {
+    errors.push('email is required and must contain @');
+  }
+
+  if (age === undefined || !Number.isInteger(age) || age < 1 || age > 150) {
+    errors.push('age is required and must be an integer between 1 and 150');
+  }
+
+  // Return 400 if validation fails
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  // Return 201 with validated user
+  res.status(201).json({
+    name: name.trim(),
+    email,
+    age,
+  });
+});
+
+app.listen(3000, () => {
+  console.log('API running on http://localhost:3000');
+});
+```
+
+**To run it:**
+
+```bash
+# Initialize Node project and install Express
+npm init -y
+npm install express
+
+# Save the code above to server.js, then:
+node server.js
+```
+
+**Test it:**
+
+```bash
+# Valid request (returns 201)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Alice","email":"alice@example.com","age":30}'
+
+# Missing name (returns 400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email":"bob@example.com","age":25}'
+
+# Invalid email (returns 400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Charlie","email":"invalid","age":35}'
+
+# Age out of range (returns 400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"David","email":"david@example.com","age":200}'
+```
+
+The validation is strict: it rejects missing fields, non-integers for age, emails without `@`, and ages outside 1-150. On success, it echoes back the validated user with a 201 status.

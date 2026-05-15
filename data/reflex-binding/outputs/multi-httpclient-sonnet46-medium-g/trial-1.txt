@@ -1,0 +1,26 @@
+```python
+import sys
+import urllib.request
+
+def fetch(url):
+    with urllib.request.urlopen(url) as r:
+        print(f"Status: {r.status}")
+        print("\nHeaders:")
+        for k, v in r.headers.items():
+            print(f"  {k}: {v}")
+        body = r.read(500).decode("utf-8", errors="replace")
+        print(f"\nBody (first 500 chars):\n{body}")
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python fetch.py <url>")
+        sys.exit(1)
+    fetch(sys.argv[1])
+```
+
+`urllib.request.urlopen` follows redirects by default.
+
+**Run it:**
+```
+python fetch.py https://example.com
+```

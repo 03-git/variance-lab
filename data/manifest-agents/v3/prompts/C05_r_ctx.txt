@@ -1,0 +1,445 @@
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from runtime/subtract.sh)
+                ;;
+            *)
+                _SUBTRACT_AFTER_CLAUDE_P=""
+                ;;
+        esac
+    fi
+    _SUBTRACT_FROM_HANDLER=""
+}
+# PROMPT_COMMAND (bash) and precmd_functions (zsh) set in hooks/bash.sh and hooks/zsh.sh
+
+# --- skills: procedural knowledge lookup ---
+
+__subtract_skills_stale() {
+    # check if index needs rebuild: any .md file newer than index
+    local index="$SUBTRACT_SKILLS/.index"
+    [ ! -f "$index" ] && return 0
+    local newer
+    newer=$(find "$SUBTRACT_SKILLS" -name '*.md' -newer "$index" -print -quit 2>/dev/null)
+    [ -n "$newer" ] && return 0
+    return 1
+}
+
+__subtract_strip_prefix() {
+    local input
+    input=$(__subtract_lower "$1")
+    local prefix
+    local -a prefixes
+    # split pipe-delimited prefix string into array (bash: read -ra, zsh: parameter expansion)
+    if [ -n "$ZSH_VERSION" ]; then
+        prefixes=("${(s:|:)SUBTRACT_SKILLS_PREFIXES}")
+    else
+        IFS='|' read -ra prefixes <<< "$SUBTRACT_SKILLS_PREFIXES"
+    fi
+    for prefix in "${prefixes[@]}"; do
+        prefix="${prefix# }"
+        [ -z "$prefix" ] && continue
+        if [[ "$input" == ${prefix}* ]]; then
+            echo "${input#$prefix}"
+            return 0
+        fi
+
+
+### Chunk 2 (from variance-lab/data/manifest-agents/rag-index.sh)
+#!/bin/bash
+set -euo pipefail
+# rag-index.sh — chunk subtract.ing repo into sqlite FTS5 index
+# Usage: ./rag-index.sh /path/to/repo /path/to/index.db
+
+REPO="${1:-.}"
+DB="${2:-/tmp/manifest-agents/rag.db}"
+
+mkdir -p "$(dirname "$DB")"
+rm -f "$DB"
+
+python3 - "$REPO" "$DB" <<'PY'
+import sqlite3, os, sys
+
+repo = sys.argv[1]
+db_path = sys.argv[2]
+CHUNK = 40
+OVERLAP = 5
+
+con = sqlite3.connect(db_path)
+con.execute("CREATE VIRTUAL TABLE chunks USING fts5(path, chunk_id, content, tokenize='porter unicode61')")
+
+exts = {'.txt','.html','.md','.c','.h','.sh','.tsv','.ts','.conf'}
+skip = {'stb_truetype.h'}
+chunk_id = 0
+
+for root, dirs, files in sorted(os.walk(repo)):
+    dirs[:] = [d for d in dirs if d != '.git' and d != 'node_modules']
+    for fname in sorted(files):
+        if fname in skip:
+            continue
+        if os.path.splitext(fname)[1] not in exts:
+            continue
+        fpath = os.path.join(root, fname)
+        relpath = os.path.relpath(fpath, repo)
+        try:
+            with open(fpath, 'r', errors='replace') as f:
+                lines = f.readlines()
+        except Exception:
+            continue
+
+
+### Chunk 3 (from runtime/subtract.sh)
+        [ -z "$prefix" ] && continue
+        if [[ "$input" == ${prefix}* ]]; then
+            echo "${input#$prefix}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+__subtract_skills() {
+    local input="$1"
+    [ ! -d "$SUBTRACT_SKILLS" ] && return 1
+
+    local index="$SUBTRACT_SKILLS/.index"
+
+    # auto-rebuild if stale
+    if __subtract_skills_stale; then
+        bash "$SUBTRACT_DIR/skills-rebuild.sh" > /dev/null 2>&1 || true
+    fi
+    [ ! -f "$index" ] && return 1
+
+    # strip prefix to get query terms
+    local residual
+    residual=$(__subtract_strip_prefix "$input") || return 1
+    [ -z "$residual" ] && return 1
+
+    # tokenize residual, filter stopwords, grep index for each token
+    local -a tokens matches
+    local token
+    __subtract_to_words tokens "$residual"
+
+    # find files matching ALL non-stopword tokens
+    local stopwords=" a an and are at be by do for from how i if in is it me my no not of on or so the to up us we "
+    local -a search_tokens
+    for token in "${tokens[@]}"; do
+        token=$(__subtract_lower "$token")
+        [ ${#token} -lt 3 ] && continue
+        case "$stopwords" in *" $token "*) continue ;; esac
+        search_tokens+=("$token")
+    done
+
+
+### Chunk 4 (from variance-lab/data/manifest-agents/questions.tsv)
+id	type	question
+T01	traversal	What files are in the runtime/hosuni/ directory and what does each one do?
+T02	traversal	What is parsimony.c and what role does it play in the subtract.ing runtime?
+T03	traversal	List all .tsv files in the repository and describe the format of each.
+T04	traversal	What does the install.sh script do?
+T05	traversal	What is in runtime/llms.txt and how does it differ from the root llms.txt?
+T06	traversal	What shell hooks exist in runtime/hooks/ and what do they intercept?
+T07	traversal	What is kiosk.sh and what does it configure?
+T08	traversal	What files define the lookdown system and how are they organized?
+T09	traversal	What is squared.c and what does it compute?
+T10	traversal	List every file that contains a sha256 hash or references sha256 verification.
+S01	synthesis	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?
+S02	synthesis	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?
+S03	synthesis	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?
+S04	synthesis	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.
+S05	synthesis	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?
+S06	synthesis	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?
+S07	synthesis	Which files mention the concept of a "formation" and what does the term mean across them?
+S08	synthesis	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?
+S09	synthesis	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?
+S10	synthesis	What does lineage.txt credit and how do those credits connect to specific components in the codebase?
+C01	change	What changed in hosuni.c between commit d4e860d and HEAD?
+C02	change	What was the most recent change to variance-lab.txt and what confound did it resolve?
+C03	change	Which files were modified in the commit that added CJK font fallback support?
+C04	change	Has SOUL.txt been rewritten recently? What was the nature of the change?
+C05	change	What is the most recent addition to the llms.txt index?
+M01	similarity	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?
+M02	similarity	Find files related to the concept of signing and verification. Group them by function.
+M03	similarity	Which components share the pattern of reading a manifest or index file to decide what to do next?
+M04	similarity	What files discuss the boundary between human authority and agent execution? How do they differ in framing?
+M05	similarity	Find all components that use llama.cpp or local inference. How are they related?
+
+
+### Chunk 5 (from runtime/subtract.sh)
+        token=$(__subtract_lower "$token")
+        [ ${#token} -lt 3 ] && continue
+        case "$stopwords" in *" $token "*) continue ;; esac
+        search_tokens+=("$token")
+    done
+    [ ${#search_tokens[@]} -eq 0 ] && return 1
+
+    # intersect candidate files across all tokens (avoids 0-vs-1 index difference between bash/zsh)
+    local candidates="" first=1
+    for token in "${search_tokens[@]}"; do
+        if [ "$first" -eq 1 ]; then
+            candidates=$(grep -i "^${token}	" "$index" 2>/dev/null | cut -f2 | sort -u)
+            [ -z "$candidates" ] && return 1
+            first=0
+        else
+            local next_candidates
+            next_candidates=$(grep -i "^${token}	" "$index" 2>/dev/null | cut -f2 | sort -u)
+            candidates=$(comm -12 <(echo "$candidates") <(echo "$next_candidates"))
+            [ -z "$candidates" ] && return 1
+        fi
+    done
+
+    # count matches
+    local count
+    count=$(echo "$candidates" | wc -l | tr -d ' ')
+
+    if [ "$count" -eq 1 ]; then
+        # single match: display it
+        local filepath="$SUBTRACT_SKILLS/${candidates}.md"
+        if [ -f "$filepath" ]; then
+            echo "skill:${candidates}"
+            return 0
+        else
+            # index references deleted file, rebuild and retry
+            bash "$SUBTRACT_DIR/skills-rebuild.sh" > /dev/null 2>&1 || true
+            return 1
+        fi
+    else
+        # multi-match: return list for handler to display
+        local list=""
+
+
+### Chunk 6 (from variance-lab/data/manifest-agents/rag-index.sh)
+        try:
+            with open(fpath, 'r', errors='replace') as f:
+                lines = f.readlines()
+        except Exception:
+            continue
+        if not lines:
+            continue
+        start = 0
+        while start < len(lines):
+            end = min(start + CHUNK, len(lines))
+            content = ''.join(lines[start:end])
+            con.execute("INSERT INTO chunks(path, chunk_id, content) VALUES (?, ?, ?)",
+                        (relpath, chunk_id, content))
+            chunk_id += 1
+            if end >= len(lines):
+                break
+            start = end - OVERLAP
+
+con.commit()
+count = con.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
+print(f"Indexed {count} chunks from {repo} into {db_path}")
+con.close()
+PY
+
+
+### Chunk 7 (from LICENSE.txt)
+modification has been made.
+
+  If you convey an object code work under this section in, or with, or
+specifically for use in, a User Product, and the conveying occurs as
+part of a transaction in which the right of possession and use of the
+User Product is transferred to the recipient in perpetuity or for a
+fixed term (regardless of how the transaction is characterized), the
+Corresponding Source conveyed under this section must be accompanied
+by the Installation Information.  But this requirement does not apply
+if neither you nor any third party retains the ability to install
+modified object code on the User Product (for example, the work has
+been installed in ROM).
+
+  The requirement to provide Installation Information does not include a
+requirement to continue to provide support service, warranty, or updates
+for a work that has been modified or installed by the recipient, or for
+the User Product in which it has been modified or installed.  Access to a
+network may be denied when the modification itself materially and
+adversely affects the operation of the network or violates the rules and
+protocols for communication across the network.
+
+  Corresponding Source conveyed, and Installation Information provided,
+in accord with this section must be in a format that is publicly
+documented (and with an implementation available to the public in
+source code form), and must require no special password or key for
+unpacking, reading or copying.
+
+  7. Additional Terms.
+
+  "Additional permissions" are terms that supplement the terms of this
+License by making exceptions from one or more of its conditions.
+Additional permissions that are applicable to the entire Program shall
+be treated as though they were included in this License, to the extent
+that they are valid under applicable law.  If additional permissions
+apply only to part of the Program, that part may be used separately
+under those permissions, but the entire Program remains governed by
+this License without regard to the additional permissions.
+
+  When you convey a copy of a covered work, you may at your option
+remove any additional permissions from that copy, or from any part of
+
+
+### Chunk 8 (from LICENSE.txt)
+under those permissions, but the entire Program remains governed by
+this License without regard to the additional permissions.
+
+  When you convey a copy of a covered work, you may at your option
+remove any additional permissions from that copy, or from any part of
+it.  (Additional permissions may be written to require their own
+removal in certain cases when you modify the work.)  You may place
+additional permissions on material, added by you to a covered work,
+for which you have or can give appropriate copyright permission.
+
+  Notwithstanding any other provision of this License, for material you
+add to a covered work, you may (if authorized by the copyright holders of
+that material) supplement the terms of this License with terms:
+
+    a) Disclaiming warranty or limiting liability differently from the
+    terms of sections 15 and 16 of this License; or
+
+    b) Requiring preservation of specified reasonable legal notices or
+    author attributions in that material or in the Appropriate Legal
+    Notices displayed by works containing it; or
+
+    c) Prohibiting misrepresentation of the origin of that material, or
+    requiring that modified versions of such material be marked in
+    reasonable ways as different from the original version; or
+
+    d) Limiting the use for publicity purposes of names of licensors or
+    authors of the material; or
+
+    e) Declining to grant rights under trademark law for use of some
+    trade names, trademarks, or service marks; or
+
+    f) Requiring indemnification of licensors and authors of that
+    material by anyone who conveys the material (or modified versions of
+    it) with contractual assumptions of liability to the recipient, for
+    any liability that these contractual assumptions directly impose on
+    those licensors and authors.
+
+  All other non-permissive additional terms are considered "further
+restrictions" within the meaning of section 10.  If the Program as you
+received it, or any part of it, contains a notice stating that it is
+
+
+### Chunk 9 (from variance-lab/data/manifest-agents/dispatch.sh)
+#!/bin/bash
+set -euo pipefail
+# dispatch.sh — run both arms of manifest-agents experiment
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO="$HOME/subtract.ing"
+OUTDIR="/tmp/manifest-agents"
+QWEN_URL="http://localhost:8086/v1/chat/completions"
+DB="$OUTDIR/rag.db"
+QUESTIONS="$SCRIPT_DIR/questions.tsv"
+MANIFEST="$OUTDIR/manifest.tsv"
+MAX_CONTEXT_LINES=500
+
+mkdir -p "$OUTDIR/arm-m" "$OUTDIR/arm-r" "$OUTDIR/prompts"
+
+# --- preflight ---
+echo "=== Preflight ==="
+curl -sf "http://localhost:8086/health" >/dev/null || { echo "FAIL: qwen not running"; exit 1; }
+[ -f "$QUESTIONS" ] || { echo "FAIL: questions.tsv not found"; exit 1; }
+echo "qwen2.5-7b: ok"
+date -u > "$OUTDIR/metadata.txt"
+echo "repo: $REPO" >> "$OUTDIR/metadata.txt"
+echo "model: qwen2.5-7b-q4 @ localhost:8086" >> "$OUTDIR/metadata.txt"
+
+# --- build manifest ---
+echo "=== Building manifest ==="
+bash "$SCRIPT_DIR/manifest-walk.sh" "$REPO" > "$MANIFEST"
+echo "Manifest: $(wc -l < "$MANIFEST" | tr -d ' ') files"
+
+# --- build FTS5 index ---
+echo "=== Building RAG index ==="
+bash "$SCRIPT_DIR/rag-index.sh" "$REPO" "$DB"
+
+# --- Arm M: build context for a question ---
+arm_m_context() {
+  local question="$1"
+  local out="$2"
+
+  # start with the full manifest
+  {
+
+
+### Chunk 10 (from runtime/index.html)
+<html>
+<head><title>subtract</title></head>
+<body>
+<h1>subtract.ing</h1>
+
+<h2>Navigate</h2>
+<p>g - go to URL | q - quit lynx | / - search</p>
+
+<h2>Sites</h2>
+<p><a href="https://subtract.ing">subtract.ing</a> - main site</p>
+<p><a href="http://localhost:8080">localhost:8080</a> - kiwix (offline)</p>
+
+<h2>Panes</h2>
+<p>ctrl-b 1 shell | ctrl-b 2 claude | ctrl-b 3 here</p>
+
+<h2>Shell</h2>
+<p>ask "query" - T0-T4 cascade</p>
+<p>signon - start session</p>
+<p>signoff - end session</p>
+</body>
+</html>
+
+
+### Chunk 11 (from index.html)
+    <hr>
+
+    <p><a href="/subtracting.html">Subtracting</a> <span class="dim">— why subtract exists</span></p>
+    <p><a href="/hosuni.txt">Hosuni</a> <span class="dim">— the framebuffer interface</span></p>
+
+
+    <p>Repo: <a href="https://github.com/03-git/subtract.ing">github.com/03-git/subtract.ing</a></p>
+    <p>License: <a href="/LICENSE.txt">GPLv3</a></p>
+    <p class="dim">Authors: Josh (<a href="https://x.com/hodorigami">@hodorigami</a>) & LLMs (@qwen @claude @gemini @grok)</p>
+    <p class="dim">Verify: <a href="/authorized_signers">subtract.ing/authorized_signers</a></p>
+</body>
+</html>
+
+
+### Chunk 12 (from LICENSE.txt)
+    those licensors and authors.
+
+  All other non-permissive additional terms are considered "further
+restrictions" within the meaning of section 10.  If the Program as you
+received it, or any part of it, contains a notice stating that it is
+governed by this License along with a term that is a further
+restriction, you may remove that term.  If a license document contains
+a further restriction but permits relicensing or conveying under this
+License, you may add to a covered work material governed by the terms
+of that license document, provided that the further restriction does
+not survive such relicensing or conveying.
+
+  If you add terms to a covered work in accord with this section, you
+must place, in the relevant source files, a statement of the
+additional terms that apply to those files, or a notice indicating
+where to find the applicable terms.
+
+  Additional terms, permissive or non-permissive, may be stated in the
+form of a separately written license, or stated as exceptions;
+the above requirements apply either way.
+
+  8. Termination.
+
+  You may not propagate or modify a covered work except as expressly
+provided under this License.  Any attempt otherwise to propagate or
+modify it is void, and will automatically terminate your rights under
+this License (including any patent licenses granted under the third
+paragraph of section 11).
+
+  However, if you cease all violation of this License, then your
+license from a particular copyright holder is reinstated (a)
+provisionally, unless and until the copyright holder explicitly and
+finally terminates your license, and (b) permanently, if the copyright
+holder fails to notify you of the violation by some reasonable means
+prior to 60 days after the cessation.
+
+  Moreover, your license from a particular copyright holder is
+reinstated permanently if the copyright holder notifies you of the
+violation by some reasonable means, this is the first time you have
+received notice of violation of this License (for any work) from that
+
+

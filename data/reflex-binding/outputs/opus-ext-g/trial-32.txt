@@ -1,0 +1,42 @@
+For an HTTP listener the kernel primitive is a TCP socket (`socket`/`bind`/`listen`/`accept`); Python's stdlib `http.server` wraps exactly that, so no third-party library is needed.
+
+```python
+#!/usr/bin/env python3
+# time_server.py
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != "/time":
+            self.send_error(404)
+            return
+        body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+if __name__ == "__main__":
+    HTTPServer(("127.0.0.1", 8000), Handler).serve_forever()
+```
+
+Run it:
+
+```
+python3 time_server.py
+```
+
+Test it:
+
+```
+curl http://127.0.0.1:8000/time
+# {"time": "2026-05-10T18:42:01.123456+00:00"}
+```
+
+Notes:
+- `datetime.now(timezone.utc).isoformat()` is the ISO 8601 timestamp (with `+00:00` offset). Append `.replace("+00:00", "Z")` if you want `Z` instead.
+- Single-threaded; fine for a status endpoint. Swap `HTTPServer` for `ThreadingHTTPServer` (same stdlib module) if you need concurrency.
+- Binds to loopback only; use `("", 8000)` to listen on all interfaces.

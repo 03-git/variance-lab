@@ -1,0 +1,74 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using pytest.
+
+Here's the code:
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    """Convert temperature from Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    def test_zero_celsius(self):
+        """0°C should equal 32°F (freezing point of water)."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_hundred_celsius(self):
+        """100°C should equal 212°F (boiling point of water)."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty(self):
+        """−40°C should equal −40°F (same in both scales)."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise a TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("100")
+    
+    def test_float_input(self):
+        """Should handle float inputs correctly."""
+        assert celsius_to_fahrenheit(37) == 98.6  # Normal body temperature
+```
+
+**How to run it:**
+
+1. **Install pytest** (if not already installed):
+   ```bash
+   pip install pytest
+   ```
+
+2. **Save the code** to a file (e.g., `test_temperature.py`)
+
+3. **Run the tests**:
+   ```bash
+   pytest test_temperature.py
+   ```
+
+   Or for verbose output:
+   ```bash
+   pytest test_temperature.py -v
+   ```
+
+   Or to run a specific test:
+   ```bash
+   pytest test_temperature.py::TestCelsiusToFahrenheit::test_zero_celsius -v
+   ```
+
+**Expected output:**
+```
+test_temperature.py::TestCelsiusToFahrenheit::test_zero_celsius PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_hundred_celsius PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_negative_forty PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_float_input PASSED
+
+5 passed in 0.05s
+```
+
+The test suite covers:
+- **Normal cases**: 0°C, 100°C (water freezing/boiling points)
+- **Edge case**: -40°C (where both scales converge)
+- **Error handling**: Non-numeric string input that should raise `TypeError`
+- **Bonus**: Float input validation

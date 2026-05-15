@@ -1,0 +1,65 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using `pytest`:
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+# Test cases
+def test_freezing_point():
+    """Test conversion of water's freezing point (0°C = 32°F)"""
+    assert celsius_to_fahrenheit(0) == 32
+
+def test_boiling_point():
+    """Test conversion of water's boiling point (100°C = 212°F)"""
+    assert celsius_to_fahrenheit(100) == 212
+
+def test_negative_forty():
+    """Test the temperature where Celsius equals Fahrenheit (-40°C = -40°F)"""
+    assert celsius_to_fahrenheit(-40) == -40
+
+def test_non_numeric_input():
+    """Test that non-numeric input raises a TypeError"""
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("invalid")
+    
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit(None)
+
+def test_float_input():
+    """Test conversion with decimal values"""
+    assert celsius_to_fahrenheit(25) == 77
+    assert celsius_to_fahrenheit(-10.5) == 12.1
+```
+
+**How to run it:**
+
+1. **Install pytest** (if you don't have it):
+   ```bash
+   pip install pytest
+   ```
+
+2. **Save the code to a file** (e.g., `test_temperature.py`) and run:
+   ```bash
+   pytest test_temperature.py
+   ```
+
+3. **For verbose output**:
+   ```bash
+   pytest test_temperature.py -v
+   ```
+
+4. **Run a specific test**:
+   ```bash
+   pytest test_temperature.py::test_freezing_point -v
+   ```
+
+**What each test covers:**
+- `test_freezing_point`: 0°C → 32°F (basic conversion)
+- `test_boiling_point`: 100°C → 212°F (positive value)
+- `test_negative_forty`: -40°C → -40°F (negative value, special case)
+- `test_non_numeric_input`: Validates error handling for strings and None
+- `test_float_input`: Bonus test for decimal inputs
+
+The `pytest.raises(TypeError)` context manager verifies that the function properly raises an exception when given invalid input.

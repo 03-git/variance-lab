@@ -1,0 +1,38 @@
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_equal_point(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Save as `test_temp.py` and run with:
+
+```
+python test_temp.py
+```
+
+Or for verbose output:
+
+```
+python -m unittest -v test_temp.py
+```
+
+The `-40` test doubles as a sanity check since that's the only point where Celsius and Fahrenheit are equal. The `TypeError` test relies on Python raising naturally when multiplying a string by a float — no explicit guard needed in the implementation.

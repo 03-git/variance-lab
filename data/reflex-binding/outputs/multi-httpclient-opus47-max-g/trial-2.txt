@@ -1,0 +1,29 @@
+Kernel primitive: TCP socket + HTTP/1.1 over it. Python stdlib's `urllib.request` wraps that without adding a third-party dependency, so use it over `requests`.
+
+```python
+#!/usr/bin/env python3
+import sys
+import urllib.request
+
+url = sys.argv[1]
+req = urllib.request.Request(url, headers={"User-Agent": "curl/8"})
+with urllib.request.urlopen(req) as resp:
+    print(f"Status: {resp.status}")
+    print(f"Final URL: {resp.url}")
+    print("Headers:")
+    for k, v in resp.headers.items():
+        print(f"  {k}: {v}")
+    body = resp.read(500).decode("utf-8", errors="replace")
+    print("Body (first 500 chars):")
+    print(body)
+```
+
+Run it:
+```
+python3 script.py https://example.com
+```
+
+Notes:
+- `urlopen` follows HTTP 30x redirects by default (via `HTTPRedirectHandler`); `resp.url` shows the final URL after redirects.
+- 4xx/5xx raise `HTTPError`; if you want to print those instead of crashing, wrap in `try/except urllib.error.HTTPError as e:` — `e` itself behaves like a response (`e.status`, `e.headers`, `e.read()`).
+- `resp.read(500)` reads at most 500 bytes off the socket, not 500 decoded characters; for ASCII-ish pages they coincide, for UTF-8 with multibyte runs the last char may be replaced with `�`.

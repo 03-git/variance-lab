@@ -1,0 +1,103 @@
+Here's an async TCP echo server using Python's `asyncio` module:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If no data, client disconnected
+            if not data:
+                break
+            
+            message = data.decode().strip()
+            print(f"[{addr}] Received: {message}")
+            
+            # Echo the message back
+            response = message + "\n"
+            writer.write(response.encode())
+            await writer.drain()
+            
+    except Exception as e:
+        print(f"[{addr}] Error: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def start_server():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server running on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(start_server())
+```
+
+**To run the server:**
+```bash
+python3 echo_server.py
+```
+
+**To test it, use a simple client in another terminal:**
+
+```bash
+telnet 127.0.0.1 8888
+```
+
+Then type anything and press Enter—you'll see it echoed back.
+
+**Or use this Python client to test multiple concurrent connections:**
+
+```python
+import asyncio
+
+async def client(name, message):
+    """Connect and send a message."""
+    reader, writer = await asyncio.open_connection('127.0.0.1', 8888)
+    
+    print(f"[{name}] Connecting...")
+    writer.write((message + "\n").encode())
+    await writer.drain()
+    
+    response = await reader.readline()
+    print(f"[{name}] Sent: {message}")
+    print(f"[{name}] Got: {response.decode().strip()}")
+    
+    writer.close()
+    await writer.wait_closed()
+
+async def main():
+    """Run multiple concurrent clients."""
+    await asyncio.gather(
+        client("Client-1", "Hello from client 1"),
+        client("Client-2", "Hello from client 2"),
+        client("Client-3", "Hello from client 3"),
+    )
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**Run the client (in another terminal while server is running):**
+```bash
+python3 echo_client.py
+```
+
+The server uses `asyncio.start_server()` to handle multiple concurrent clients with a single event loop. Each client connection runs the `handle_client()` coroutine independently, allowing the server to serve many clients simultaneously without threads or multiprocessing.

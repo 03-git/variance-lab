@@ -1,0 +1,113 @@
+Here's an async TCP echo server using Python's `asyncio`:
+
+## Echo Server
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client {addr} connected")
+    
+    try:
+        while True:
+            # Read a line from the client
+            line = await reader.readline()
+            
+            if not line:  # Client disconnected
+                break
+            
+            # Echo the line back
+            writer.write(line)
+            await writer.drain()
+            
+            print(f"From {addr}: {line.decode().strip()}")
+    
+    except asyncio.CancelledError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client {addr} disconnected")
+
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server running on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+## Test Client
+
+```python
+import asyncio
+
+async def test_client(message):
+    """Connect to the echo server and send/receive a message."""
+    reader, writer = await asyncio.open_connection('127.0.0.1', 8888)
+    
+    # Send message
+    writer.write(message.encode() + b'\n')
+    await writer.drain()
+    
+    # Receive echo
+    response = await reader.readline()
+    print(f"Sent: {message}")
+    print(f"Received: {response.decode().strip()}")
+    
+    writer.close()
+    await writer.wait_closed()
+
+
+async def run_multiple_clients():
+    """Run multiple concurrent clients."""
+    tasks = [
+        test_client("Hello from client 1"),
+        test_client("Hello from client 2"),
+        test_client("Hello from client 3"),
+    ]
+    await asyncio.gather(*tasks)
+
+
+if __name__ == '__main__':
+    asyncio.run(run_multiple_clients())
+```
+
+## How to Run
+
+**Terminal 1 - Start the server:**
+```bash
+python server.py
+# Output: Echo server running on ('127.0.0.1', 8888)
+```
+
+**Terminal 2 - Run multiple clients concurrently:**
+```bash
+python client.py
+```
+
+Or test manually with `nc`:
+```bash
+nc localhost 8888
+# Type "hello" and press Enter - you'll see it echoed back
+```
+
+**Key features:**
+- `asyncio.start_server()` creates a non-blocking server that handles multiple clients simultaneously
+- Each client connection runs the `handle_client()` coroutine independently
+- `readline()` reads until a newline, and `write()`/`drain()` sends data safely
+- The server prints connection/disconnection events and echoed messages

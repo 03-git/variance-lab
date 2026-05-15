@@ -1,0 +1,60 @@
+
+
+Here's the code:
+
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.current_href = None
+        self.current_text = ""
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            for name, value in attrs:
+                if name == "href":
+                    self.current_href = value
+                    self.current_text = ""
+
+    def handle_data(self, data):
+        if self.current_href is not None:
+            self.current_text += data
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self.current_href is not None:
+            print(f"{self.current_href} -> {self.current_text.strip()}")
+            self.current_href = None
+            self.current_text = ""
+
+with urllib.request.urlopen("https://example.com") as resp:
+    html = resp.read().decode()
+
+parser = LinkExtractor()
+parser.feed(html)
+```
+
+**To run it:**
+
+```bash
+python3 script.py
+```
+
+No dependencies needed — it uses only the standard library (`urllib.request` for fetching, `html.parser` for parsing). Each line of output shows `href -> link text`.
+
+If you want a version using `requests` + `beautifulsoup4` (more robust for complex HTML):
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+resp = requests.get("https://example.com")
+soup = BeautifulSoup(resp.text, "html.parser")
+
+for a in soup.find_all("a", href=True):
+    print(f"{a['href']} -> {a.get_text(strip=True)}")
+```
+
+This version requires `pip install requests beautifulsoup4` first.

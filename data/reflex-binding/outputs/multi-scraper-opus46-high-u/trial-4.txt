@@ -1,0 +1,54 @@
+
+
+Here's a Python script that fetches `https://example.com` and extracts all hyperlinks:
+
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._current_text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            attrs_dict = dict(attrs)
+            self._current_href = attrs_dict.get("href", "")
+            self._current_text = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._current_text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            text = "".join(self._current_text).strip()
+            self.links.append((self._current_href, text))
+            self._current_href = None
+            self._current_text = []
+
+
+with urllib.request.urlopen("https://example.com") as response:
+    html = response.read().decode()
+
+parser = LinkExtractor()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"{href} -> {text}")
+
+if not parser.links:
+    print("No links found.")
+```
+
+**How to run it:**
+
+```bash
+python3 script.py
+```
+
+No external dependencies needed — it uses only the standard library (`urllib.request` for fetching, `html.parser` for parsing). Note that `https://example.com` is a minimal page maintained by IANA, so it typically contains just one link (`https://www.iana.org/domains/example` with text "More information...").

@@ -1,0 +1,66 @@
+```python
+# echo_server.py
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    peer = writer.get_extra_info("peername")
+    print(f"Connected: {peer}")
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:                      # client closed the connection
+                break
+            writer.write(data)                # echo the line back verbatim
+            await writer.drain()
+    except ConnectionResetError:
+        pass
+    finally:
+        print(f"Disconnected: {peer}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addr = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"Serving on {addr}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nShutting down.")
+```
+
+## How it works
+
+- `asyncio.start_server` accepts connections and spawns `handle_client` as a separate task per client, so many clients are served concurrently on a single thread.
+- `reader.readline()` waits for a `\n`-terminated line; an empty result means EOF (client hung up).
+- `writer.drain()` applies backpressure so a slow client can't make you buffer unbounded data.
+
+## Running it
+
+```bash
+python echo_server.py
+```
+
+Then connect with any TCP client:
+
+```bash
+# netcat — type a line, press Enter, see it echoed
+nc 127.0.0.1 8888
+
+# or telnet
+telnet 127.0.0.1 8888
+```
+
+Open several `nc` sessions at once to see concurrent handling. Quick scripted check:
+
+```bash
+printf 'hello\n' | nc 127.0.0.1 8888   # prints: hello
+```
+
+Stop the server with Ctrl-C.
+
+If you want a matching async client or an asyncio-based load test (N concurrent connections), say the word.

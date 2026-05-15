@@ -1,0 +1,47 @@
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    print(f"connected: {addr}")
+    try:
+        while True:
+            line = await reader.readline()
+            if not line:
+                break
+            writer.write(line)
+            await writer.drain()
+    except ConnectionResetError:
+        pass
+    finally:
+        print(f"disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"serving on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+```
+
+**Run it:**
+
+1. Save as `echo_server.py` and start it:
+   ```
+   python3 echo_server.py
+   ```
+2. In another terminal, connect with `nc` (or `telnet`):
+   ```
+   nc 127.0.0.1 8888
+   ```
+   Type a line, press Enter, and the same line comes back. Open multiple `nc` sessions in parallel — each is handled concurrently by the same event loop.
+
+**How it works:** `asyncio.start_server` spawns a new `handle_client` task per connection. `readline()` awaits a `\n`-terminated line; `writer.drain()` applies backpressure so a slow client can't bloat memory. Empty bytes from `readline()` signals the client closed the connection, ending the loop cleanly.

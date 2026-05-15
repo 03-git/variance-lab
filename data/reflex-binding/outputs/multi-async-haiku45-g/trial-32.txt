@@ -1,0 +1,85 @@
+I'll show you an async TCP echo server using Python's `asyncio` module.
+
+**Server code (echo_server.py):**
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:
+                break
+            
+            message = data.decode().strip()
+            print(f"Received from {addr}: {message}")
+            
+            writer.write(data)
+            await writer.drain()
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    server = await asyncio.start_server(handle_client, '127.0.0.1', 8888)
+    addr = server.sockets[0].getsockname()
+    print(f"Server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**Client code (echo_client.py) for testing:**
+
+```python
+import asyncio
+
+async def main():
+    reader, writer = await asyncio.open_connection('127.0.0.1', 8888)
+    
+    try:
+        while True:
+            message = input("Enter text (or 'quit' to exit): ")
+            if message.lower() == 'quit':
+                break
+            
+            writer.write((message + '\n').encode())
+            await writer.drain()
+            
+            response = await reader.readline()
+            print(f"Echo: {response.decode().strip()}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**How to run:**
+
+```bash
+# Terminal 1 - start the server
+python echo_server.py
+
+# Terminal 2+ - connect clients (open as many as you want)
+python echo_client.py
+```
+
+**Key points:**
+
+- `asyncio.start_server()` listens for connections and spawns `handle_client()` for each one
+- `reader.readline()` blocks until a newline is received (non-blocking at the OS level)
+- Multiple clients run concurrently because each gets its own async task
+- `writer.drain()` ensures data is flushed to the socket
+- The server handles disconnects gracefully with try/finally

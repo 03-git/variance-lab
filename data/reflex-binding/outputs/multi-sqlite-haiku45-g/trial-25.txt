@@ -1,0 +1,65 @@
+Here's a Python script that creates a SQLite database with notes:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create an in-memory database (or use ':memory:' for temporary)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('First Note', 'This is my first note', datetime.now().isoformat()),
+    ('Second Note', 'This is my second note with more content', datetime.now().isoformat()),
+    ('Third Note', 'This is my third note', datetime.now().isoformat()),
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+# Print the results
+print("All notes:")
+print("-" * 60)
+for note in notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 60)
+
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python3 script.py
+```
+
+This script:
+1. Creates an in-memory SQLite database (`:memory:`)
+2. Creates the `notes` table with the specified schema
+3. Inserts 3 sample notes with titles, bodies, and timestamps
+4. Queries all notes and prints them in a readable format
+5. Closes the connection
+
+If you want to persist the database to a file instead, replace `':memory:'` with a file path like `'notes.db'`.

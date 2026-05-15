@@ -1,0 +1,56 @@
+```python
+import sqlite3
+from datetime import datetime
+
+conn = sqlite3.connect("notes.db")
+cur = conn.cursor()
+
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+""")
+
+sample_notes = [
+    ("Shopping List", "Milk, eggs, bread, coffee", datetime.now().isoformat()),
+    ("Meeting Notes", "Discuss Q3 roadmap and assign owners", datetime.now().isoformat()),
+    ("Book Recommendation", "Check out 'The Pragmatic Programmer'", datetime.now().isoformat()),
+]
+
+cur.executemany(
+    "INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+    sample_notes,
+)
+conn.commit()
+
+cur.execute("SELECT id, title, body, created_at FROM notes")
+rows = cur.fetchall()
+
+print(f"{'ID':<4} {'TITLE':<22} {'BODY':<42} CREATED_AT")
+print("-" * 90)
+for row in rows:
+    print(f"{row[0]:<4} {row[1]:<22} {row[2]:<42} {row[3]}")
+
+conn.close()
+```
+
+**How to run:**
+
+```bash
+python notes.py
+```
+
+**Expected output:**
+
+```
+ID   TITLE                  BODY                                       CREATED_AT
+------------------------------------------------------------------------------------------
+1    Shopping List          Milk, eggs, bread, coffee                  2026-05-10T12:34:56.789
+2    Meeting Notes          Discuss Q3 roadmap and assign owners       2026-05-10T12:34:56.789
+3    Book Recommendation    Check out 'The Pragmatic Programmer'       2026-05-10T12:34:56.789
+```
+
+No third-party packages needed — `sqlite3` is part of Python's standard library. The database file `notes.db` will be created in the current directory. Run the script a second time and the rows will accumulate (swap `CREATE TABLE IF NOT EXISTS` for `CREATE TABLE` to error on re-run, or add a `DELETE FROM notes` before the insert if you want idempotent runs).

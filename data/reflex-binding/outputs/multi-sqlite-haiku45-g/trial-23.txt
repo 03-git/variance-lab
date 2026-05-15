@@ -1,0 +1,56 @@
+Here's a Python script that creates a SQLite database with notes and queries them:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create in-memory database (or use 'notes.db' for a file)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Python Tips', 'Remember to use list comprehensions for cleaner code', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discuss Q2 roadmap and timeline with the team', datetime.now().isoformat()),
+    ('Bug Fix', 'Fixed authentication issue in login flow', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query and print all notes
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+notes = cursor.fetchall()
+
+print("All Notes:")
+print("-" * 60)
+for note_id, title, body, created_at in notes:
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 60)
+
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python3 script.py
+```
+
+Or save it as `notes.py` and run with `python3 notes.py`. The script uses an in-memory database (`:memory:`), so the data disappears when it exits. Change `sqlite3.connect(':memory:')` to `sqlite3.connect('notes.db')` if you want to persist the database to a file.

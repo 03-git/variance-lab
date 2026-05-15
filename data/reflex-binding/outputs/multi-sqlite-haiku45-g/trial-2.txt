@@ -1,0 +1,55 @@
+Here's a Python script that creates a SQLite database with notes and displays them:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create/connect to database
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+now = datetime.now().isoformat()
+cursor.execute("INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+               ("First Note", "This is my first note", now))
+cursor.execute("INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+               ("Second Note", "Here's another note with more content", now))
+cursor.execute("INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+               ("Third Note", "Final note to complete the set", now))
+
+conn.commit()
+
+# Query all notes
+cursor.execute("SELECT * FROM notes")
+notes = cursor.fetchall()
+
+# Print results
+print("Notes in database:")
+print("-" * 60)
+for note_id, title, body, created_at in notes:
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 60)
+
+conn.close()
+```
+
+**How to run it:**
+
+```bash
+python3 script.py
+```
+
+The script uses an in-memory database (`:memory:`), so no file is created. If you want to persist to disk instead, change `':memory:'` to a filename like `'notes.db'`.

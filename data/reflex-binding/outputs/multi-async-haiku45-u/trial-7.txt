@@ -1,0 +1,72 @@
+Here's a clean async TCP echo server using Python's `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line of text from the client
+            data = await reader.readline()
+            
+            # If no data, client disconnected
+            if not data:
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def start_server(host='127.0.0.1', port=8888):
+    """Start the echo server."""
+    server = await asyncio.start_server(handle_client, host, port)
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server running on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(start_server())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+   ```bash
+   python echo_server.py
+   ```
+   Output: `Echo server running on 127.0.0.1:8888`
+
+2. **Test with multiple clients** (in separate terminals):
+   ```bash
+   nc localhost 8888
+   ```
+   Then type text and press Enter—it echoes back immediately.
+
+3. **Or use telnet:**
+   ```bash
+   telnet localhost 8888
+   ```
+
+**Key features:**
+- Uses `asyncio.start_server()` to handle multiple concurrent clients
+- Each client runs in its own coroutine via `handle_client()`
+- Reads lines until the client disconnects
+- Echoes each line back to the sender
+- Gracefully handles client disconnections and errors
+- Prints connection/disconnection logs with client addresses
+
+Try connecting 3-4 clients simultaneously—they all work without blocking each other.

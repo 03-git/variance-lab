@@ -1,0 +1,83 @@
+Here's a complete Python script that does exactly what you need:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create connection (use ':memory:' for in-memory, or 'notes.db' for a file)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Shopping List', 'Buy milk, eggs, bread, and coffee', datetime.now().isoformat()),
+    ('Python Tips', 'Remember to use context managers with sqlite3', datetime.now().isoformat()),
+    ('Project Ideas', 'Build a CLI tool, web scraper, or data dashboard', datetime.now().isoformat()),
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+all_notes = cursor.fetchall()
+
+# Print the results
+print("All Notes:")
+print("=" * 80)
+for row in all_notes:
+    print(f"ID: {row[0]}")
+    print(f"Title: {row[1]}")
+    print(f"Body: {row[2]}")
+    print(f"Created At: {row[3]}")
+    print("-" * 80)
+
+conn.close()
+```
+
+**How to run it:**
+
+Save the code to a file (e.g., `notes.py`) and run:
+```bash
+python notes.py
+```
+
+**Output:**
+```
+All Notes:
+================================================================================
+ID: 1
+Title: Shopping List
+Body: Buy milk, eggs, bread, and coffee
+Created At: 2026-05-10T14:30:45.123456
+--------------------------------------------------------------------------------
+ID: 2
+Title: Python Tips
+Body: Remember to use context managers with sqlite3
+Created At: 2026-05-10T14:30:45.123457
+--------------------------------------------------------------------------------
+ID: 3
+Title: Project Ideas
+Body: Build a CLI tool, web scraper, or data dashboard
+Created At: 2026-05-10T14:30:45.123458
+--------------------------------------------------------------------------------
+```
+
+**Key points:**
+- Uses `:memory:` for an in-memory database (good for testing); change to `'notes.db'` to persist to a file
+- Uses parameterized queries (`?` placeholders) to prevent SQL injection
+- `executemany()` is efficient for inserting multiple rows at once
+- The `datetime.now().isoformat()` creates ISO 8601 timestamps

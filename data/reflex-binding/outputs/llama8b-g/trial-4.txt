@@ -1,0 +1,64 @@
+Here's a simple Flask application that creates an HTTP endpoint to return the current time as JSON:
+
+**app.py**
+```python
+from flask import Flask, jsonify
+import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    """Returns the current time as JSON"""
+    timestamp = datetime.datetime.now().isoformat()
+    return jsonify({'time': timestamp})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+**Running the application:**
+
+1. Install Flask using pip:
+```bash
+pip install flask
+```
+2. Save the above code in a file named `app.py`.
+3. Run the application using Python:
+```bash
+python app.py
+```
+4. Open a web browser and navigate to `http://localhost:5000/time`. You should see the current time as JSON:
+```json
+{
+  "time": "2023-03-16T14:30:00.000000"
+}
+```
+
+**Running the application with a virtual environment:**
+
+1. Create a new virtual environment using `virtualenv`:
+```bash
+virtualenv venv
+```
+2. Activate the virtual environment:
+```bash
+source venv/bin/activate
+```
+3. Install Flask using pip:
+```bash
+pip install flask
+```
+4. Save the above code in a file named `app.py`.
+5. Run the application using Python:
+```bash
+python app.py
+```
+6. Open a web browser and navigate to `http://localhost:5000/time`. You should see the current time as JSON:
+```json
+{
+  "time": "2023-03-16T14:30:00.000000"
+}
+```
+
+Note: Make sure to replace `http://localhost:5000` with the actual URL where the application is running if it's different.

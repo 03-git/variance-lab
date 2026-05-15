@@ -1,0 +1,68 @@
+```python
+#!/usr/bin/env python3
+"""Create a SQLite notes database, seed it, and print all rows."""
+
+import sqlite3
+from datetime import datetime, timezone
+
+DB_PATH = "notes.db"
+
+
+def main() -> None:
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS notes (
+                id         INTEGER PRIMARY KEY,
+                title      TEXT,
+                body       TEXT,
+                created_at TEXT
+            )
+            """
+        )
+
+        now = datetime.now(timezone.utc).isoformat()
+        sample_notes = [
+            ("Groceries", "Milk, eggs, bread, coffee", now),
+            ("Ideas", "Write a SQLite tutorial", now),
+            ("Reminder", "Call the dentist on Monday", now),
+        ]
+        conn.executemany(
+            "INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+            sample_notes,
+        )
+        conn.commit()
+
+        for row in conn.execute(
+            "SELECT id, title, body, created_at FROM notes ORDER BY id"
+        ):
+            note_id, title, body, created_at = row
+            print(f"[{note_id}] {title} ({created_at})")
+            print(f"    {body}")
+    finally:
+        conn.close()
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it**
+
+1. Save the code as `notes_demo.py` (no external dependencies — `sqlite3` ships with Python 3).
+2. Run it:
+   ```sh
+   python3 notes_demo.py
+   ```
+3. Expected output:
+   ```
+   [1] Groceries (2026-05-10T...+00:00)
+       Milk, eggs, bread, coffee
+   [2] Ideas (2026-05-10T...+00:00)
+       Write a SQLite tutorial
+   [3] Reminder (2026-05-10T...+00:00)
+       Call the dentist on Monday
+   ```
+
+It writes a `notes.db` file in the current directory. Note that re-running it appends another 3 notes each time (the table is reused via `CREATE TABLE IF NOT EXISTS`); delete `notes.db` first if you want a clean run.

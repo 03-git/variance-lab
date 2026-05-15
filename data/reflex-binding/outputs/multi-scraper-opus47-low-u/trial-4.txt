@@ -1,0 +1,80 @@
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print every anchor tag's href and link text."""
+
+import sys
+from html.parser import HTMLParser
+from urllib.request import urlopen, Request
+from urllib.parse import urljoin
+
+
+class LinkParser(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []          # list of (href, text)
+        self._current_href = None
+        self._current_text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href is not None:
+                self._current_href = urljoin(self.base_url, href)
+                self._current_text = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._current_text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            text = " ".join("".join(self._current_text).split())
+            self.links.append((self._current_href, text))
+            self._current_href = None
+            self._current_text = []
+
+
+def main():
+    url = sys.argv[1] if len(sys.argv) > 1 else "https://example.com"
+    req = Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urlopen(req, timeout=10) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkParser(url)
+    parser.feed(html)
+
+    if not parser.links:
+        print("No links found.")
+        return
+    for href, text in parser.links:
+        print(f"{href}\n    text: {text or '(no text)'}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it**
+
+It uses only the Python standard library — no `pip install` needed (Python 3.6+).
+
+```bash
+# Save the code as link_extractor.py, then:
+python3 link_extractor.py
+
+# Or pass a different URL:
+python3 link_extractor.py https://www.python.org
+```
+
+Expected output for `https://example.com` (it has a single link):
+
+```
+https://www.iana.org/domains/example
+    text: More information...
+```
+
+Notes:
+- I used `html.parser` from the stdlib so it works anywhere. If you'd rather use `requests` + `beautifulsoup4`, I can rewrite it — that version is shorter but needs `pip install requests beautifulsoup4`.
+- Relative hrefs are resolved against the page URL via `urljoin`.

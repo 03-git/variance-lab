@@ -1,0 +1,71 @@
+Here's an async TCP echo server using Python's built-in `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    print(f"New connection from {addr}")
+
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:
+                break
+            line = data.decode()
+            print(f"{addr} -> {line!r}")
+            writer.write(data)
+            await writer.drain()
+    except asyncio.IncompleteReadError:
+        pass
+    finally:
+        print(f"Connection closed: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main() -> None:
+    server = await asyncio.start_server(handle_client, "127.0.0.1", 8888)
+    addr = server.sockets[0].getsockname()
+    print(f"Serving on {addr}")
+
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+```bash
+# Terminal 1 — start the server
+python echo_server.py
+
+# Terminal 2 — connect a client (built-in tool, no install needed)
+nc 127.0.0.1 8888
+# Type any line and press Enter — it echoes back
+
+# Terminal 3 — connect a second concurrent client
+nc 127.0.0.1 8888
+```
+
+**Or test programmatically with this one-liner:**
+
+```bash
+python -c "
+import socket, time
+s = socket.create_connection(('127.0.0.1', 8888))
+s.sendall(b'hello world\n')
+print(s.recv(1024).decode(), end='')
+s.close()
+"
+```
+
+**Key design points:**
+
+- `asyncio.start_server` spawns `handle_client` as a coroutine for each new connection — no threads needed.
+- `reader.readline()` waits for a newline-terminated message; `writer.drain()` backpressures if the send buffer is full.
+- The `finally` block ensures the writer is always closed cleanly, even on exceptions or EOF.
+- All clients are multiplexed on a single thread via the event loop — scales to thousands of concurrent connections.
+
+Requires Python 3.7+, no third-party dependencies.

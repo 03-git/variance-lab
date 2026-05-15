@@ -1,0 +1,509 @@
+You are answering questions about the Lua 5.4 source code. Use ONLY the provided context to answer. Be specific — cite file names, function names, and quote relevant code.
+
+
+## lstate.h (lines 361-400)
+  GCObject *finobjold1;  /* list of old1 objects with finalizers */
+  GCObject *finobjrold;  /* list of really old objects with finalizers */
+  struct lua_State *twups;  /* list of threads with open upvalues */
+  lua_CFunction panic;  /* to be called in unprotected errors */
+  TString *memerrmsg;  /* message for memory-allocation errors */
+  TString *tmname[TM_N];  /* array with tag-method names */
+  struct Table *mt[LUA_NUMTYPES];  /* metatables for basic types */
+  TString *strcache[STRCACHE_N][STRCACHE_M];  /* cache for strings in API */
+  lua_WarnFunction warnf;  /* warning function */
+  void *ud_warn;         /* auxiliary data to 'warnf' */
+  LX mainth;  /* main thread of this state */
+} global_State;
+
+
+#define G(L)	(L->l_G)
+#define mainthread(G)	(&(G)->mainth.l)
+
+/*
+** 'g->nilvalue' being a nil value flags that the state was completely
+** build.
+*/
+#define completestate(g)	ttisnil(&g->nilvalue)
+
+
+/*
+** Union of all collectable objects (only for conversions)
+** ISO C99, 6.5.2.3 p.5:
+** "if a union contains several structures that share a common initial
+** sequence [...], and if the union object currently contains one
+** of these structures, it is permitted to inspect the common initial
+** part of any of them anywhere that a declaration of the complete type
+** of the union is visible."
+*/
+union GCUnion {
+  GCObject gc;  /* common header */
+  struct TString ts;
+  struct Udata u;
+  union Closure cl;
+  struct Table h;
+  struct Proto p;
+
+## lmem.c (lines 121-160)
+
+/*
+** In prototypes, the size of the array is also its number of
+** elements (to save memory). So, if it cannot shrink an array
+** to its number of elements, the only option is to raise an
+** error.
+*/
+void *luaM_shrinkvector_ (lua_State *L, void *block, int *size,
+                          int final_n, unsigned size_elem) {
+  void *newblock;
+  size_t oldsize = cast_sizet(*size) * size_elem;
+  size_t newsize = cast_sizet(final_n) * size_elem;
+  lua_assert(newsize <= oldsize);
+  newblock = luaM_saferealloc_(L, block, oldsize, newsize);
+  *size = final_n;
+  return newblock;
+}
+
+/* }================================================================== */
+
+
+l_noret luaM_toobig (lua_State *L) {
+  luaG_runerror(L, "memory allocation error: block too big");
+}
+
+
+/*
+** Free memory
+*/
+void luaM_free_ (lua_State *L, void *block, size_t osize) {
+  global_State *g = G(L);
+  lua_assert((osize == 0) == (block == NULL));
+  callfrealloc(g, block, osize, 0);
+  g->GCdebt += cast(l_mem, osize);
+}
+
+
+/*
+** In case of allocation fail, this function will do an emergency
+** collection to free some memory and then try the allocation again.
+
+## ltests.c (lines 201-240)
+      lua_assert(*(cast_charp(block + 1) + size + i) == MARK);
+    mc->objcount[block->d.type]--;
+    fillmem(block, sizeof(memHeader) + size + MARKSIZE);  /* erase block */
+    free(block);  /* actually free block */
+    mc->numblocks--;  /* update counts */
+    mc->total -= size;
+  }
+}
+
+
+void *debug_realloc (void *ud, void *b, size_t oldsize, size_t size) {
+  Memcontrol *mc = cast(Memcontrol *, ud);
+  memHeader *block = cast(memHeader *, b);
+  int type;
+  if (mc->memlimit == 0) {  /* first time? */
+    char *limit = getenv("MEMLIMIT");  /* initialize memory limit */
+    mc->memlimit = limit ? strtoul(limit, NULL, 10) : ULONG_MAX;
+  }
+  if (block == NULL) {
+    type = (oldsize < LUA_NUMTYPES) ? cast_int(oldsize) : 0;
+    oldsize = 0;
+  }
+  else {
+    block--;  /* go to real header */
+    type = block->d.type;
+    lua_assert(oldsize == block->d.size);
+  }
+  if (size == 0) {
+    freeblock(mc, block);
+    return NULL;
+  }
+  if (mc->failnext) {
+    mc->failnext = 0;
+    return NULL;  /* fake a single memory allocation error */
+  }
+  if (mc->countlimit != ~0UL && size != oldsize) {  /* count limit in use? */
+    if (mc->countlimit == 0)
+      return NULL;  /* fake a memory allocation error */
+    mc->countlimit--;
+  }
+
+## liolib.c (lines 201-240)
+  LStream *p = (LStream *)lua_newuserdatauv(L, sizeof(LStream), 0);
+  p->closef = NULL;  /* mark file handle as 'closed' */
+  luaL_setmetatable(L, LUA_FILEHANDLE);
+  return p;
+}
+
+
+/*
+** Calls the 'close' function from a file handle. The 'volatile' avoids
+** a bug in some versions of the Clang compiler (e.g., clang 3.0 for
+** 32 bits).
+*/
+static int aux_close (lua_State *L) {
+  LStream *p = tolstream(L);
+  volatile lua_CFunction cf = p->closef;
+  p->closef = NULL;  /* mark stream as closed */
+  return (*cf)(L);  /* close it */
+}
+
+
+static int f_close (lua_State *L) {
+  tofile(L);  /* make sure argument is an open stream */
+  return aux_close(L);
+}
+
+
+static int io_close (lua_State *L) {
+  if (lua_isnone(L, 1))  /* no argument? */
+    lua_getfield(L, LUA_REGISTRYINDEX, IO_OUTPUT);  /* use default output */
+  return f_close(L);
+}
+
+
+static int f_gc (lua_State *L) {
+  LStream *p = tolstream(L);
+  if (!isclosed(p) && p->f != NULL)
+    aux_close(L);  /* ignore closed and incompletely open files */
+  return 0;
+}
+
+
+## ltests.c (lines 1441-1480)
+  lua_pushlightuserdata(L1, &b);
+  lua_setfield(L1, LUA_REGISTRYINDEX, "_jmpbuf");  /* store 'Aux' struct */
+  if (setjmp(b.jb) == 0) {  /* set jump buffer */
+    runC(L, L1, code);  /* run code unprotected */
+    lua_pushliteral(L, "no errors");
+  }
+  else {  /* error handling */
+    /* move error message to original state */
+    lua_pushstring(L, lua_tostring(L1, -1));
+  }
+  lua_close(L1);
+  return 1;
+}
+
+
+static int externKstr (lua_State *L) {
+  size_t len;
+  const char *s = luaL_checklstring(L, 1, &len);
+  lua_pushexternalstring(L, s, len, NULL, NULL);
+  return 1;
+}
+
+
+/*
+** Create a buffer with the content of a given string and then
+** create an external string using that buffer. Use the allocation
+** function from Lua to create and free the buffer.
+*/
+static int externstr (lua_State *L) {
+  size_t len;
+  const char *s = luaL_checklstring(L, 1, &len);
+  void *ud;
+  lua_Alloc allocf = lua_getallocf(L, &ud);  /* get allocation function */
+  /* create the buffer */
+  char *buff = cast_charp((*allocf)(ud, NULL, 0, len + 1));
+  if (buff == NULL) {  /* memory error? */
+    lua_pushliteral(L, "not enough memory");
+    lua_error(L);  /* raise a memory error */
+  }
+  /* copy string content to buffer, including ending 0 */
+
+## lmem.c (lines 161-200)
+*/
+static void *tryagain (lua_State *L, void *block,
+                       size_t osize, size_t nsize) {
+  global_State *g = G(L);
+  if (cantryagain(g)) {
+    luaC_fullgc(L, 1);  /* try to free some memory... */
+    return callfrealloc(g, block, osize, nsize);  /* try again */
+  }
+  else return NULL;  /* cannot run an emergency collection */
+}
+
+
+/*
+** Generic allocation routine.
+*/
+void *luaM_realloc_ (lua_State *L, void *block, size_t osize, size_t nsize) {
+  void *newblock;
+  global_State *g = G(L);
+  lua_assert((osize == 0) == (block == NULL));
+  newblock = firsttry(g, block, osize, nsize);
+  if (l_unlikely(newblock == NULL && nsize > 0)) {
+    newblock = tryagain(L, block, osize, nsize);
+    if (newblock == NULL)  /* still no memory? */
+      return NULL;  /* do not update 'GCdebt' */
+  }
+  lua_assert((nsize == 0) == (newblock == NULL));
+  g->GCdebt -= cast(l_mem, nsize) - cast(l_mem, osize);
+  return newblock;
+}
+
+
+void *luaM_saferealloc_ (lua_State *L, void *block, size_t osize,
+                                                    size_t nsize) {
+  void *newblock = luaM_realloc_(L, block, osize, nsize);
+  if (l_unlikely(newblock == NULL && nsize > 0))  /* allocation failed? */
+    luaM_error(L);
+  return newblock;
+}
+
+
+
+## lstring.h (lines 1-40)
+/*
+** $Id: lstring.h $
+** String table (keep all strings handled by Lua)
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lstring_h
+#define lstring_h
+
+#include "lgc.h"
+#include "lobject.h"
+#include "lstate.h"
+
+
+/*
+** Memory-allocation error message must be preallocated (it cannot
+** be created after memory is exhausted)
+*/
+#define MEMERRMSG       "not enough memory"
+
+
+/*
+** Maximum length for short strings, that is, strings that are
+** internalized. (Cannot be smaller than reserved words or tags for
+** metamethods, as these strings must be internalized;
+** #("function") = 8, #("__newindex") = 10.)
+*/
+#if !defined(LUAI_MAXSHORTLEN)
+#define LUAI_MAXSHORTLEN	40
+#endif
+
+
+/*
+** Size of a short TString: Size of the header plus space for the string
+** itself (including final '\0').
+*/
+#define sizestrshr(l)  \
+	(offsetof(TString, contents) + ((l) + 1) * sizeof(char))
+
+
+
+## ltests.c (lines 241-280)
+  if (size > oldsize && mc->total+size-oldsize > mc->memlimit)
+    return NULL;  /* fake a memory allocation error */
+  else {
+    memHeader *newblock;
+    int i;
+    size_t commonsize = (oldsize < size) ? oldsize : size;
+    size_t realsize = sizeof(memHeader) + size + MARKSIZE;
+    if (realsize < size) return NULL;  /* arithmetic overflow! */
+    newblock = cast(memHeader *, malloc(realsize));  /* alloc a new block */
+    if (newblock == NULL)
+      return NULL;  /* really out of memory? */
+    if (block) {
+      memcpy(newblock + 1, block + 1, commonsize);  /* copy old contents */
+      freeblock(mc, block);  /* erase (and check) old copy */
+    }
+    /* initialize new part of the block with something weird */
+    fillmem(cast_charp(newblock + 1) + commonsize, size - commonsize);
+    /* initialize marks after block */
+    for (i = 0; i < MARKSIZE; i++)
+      *(cast_charp(newblock + 1) + size + i) = MARK;
+    newblock->d.size = size;
+    newblock->d.type = type;
+    mc->total += size;
+    if (mc->total > mc->maxmem)
+      mc->maxmem = mc->total;
+    mc->numblocks++;
+    mc->objcount[type]++;
+    return newblock + 1;
+  }
+}
+
+
+/* }====================================================================== */
+
+
+
+/*
+** {=====================================================================
+** Functions to check memory consistency.
+** Most of these checks are done through asserts, so this code does
+
+## liolib.c (lines 161-200)
+
+static int io_type (lua_State *L) {
+  LStream *p;
+  luaL_checkany(L, 1);
+  p = (LStream *)luaL_testudata(L, 1, LUA_FILEHANDLE);
+  if (p == NULL)
+    luaL_pushfail(L);  /* not a file */
+  else if (isclosed(p))
+    lua_pushliteral(L, "closed file");
+  else
+    lua_pushliteral(L, "file");
+  return 1;
+}
+
+
+static int f_tostring (lua_State *L) {
+  LStream *p = tolstream(L);
+  if (isclosed(p))
+    lua_pushliteral(L, "file (closed)");
+  else
+    lua_pushfstring(L, "file (%p)", p->f);
+  return 1;
+}
+
+
+static FILE *tofile (lua_State *L) {
+  LStream *p = tolstream(L);
+  if (l_unlikely(isclosed(p)))
+    luaL_error(L, "attempt to use a closed file");
+  lua_assert(p->f);
+  return p->f;
+}
+
+
+/*
+** When creating file handles, always creates a 'closed' file handle
+** before opening the actual file; so, if there is a memory error, the
+** handle is in a consistent state.
+*/
+static LStream *newprefile (lua_State *L) {
+
+## lua.h (lines 121-160)
+
+/*
+** Type for memory-allocation functions
+*/
+typedef void * (*lua_Alloc) (void *ud, void *ptr, size_t osize, size_t nsize);
+
+
+/*
+** Type for warning functions
+*/
+typedef void (*lua_WarnFunction) (void *ud, const char *msg, int tocont);
+
+
+/*
+** Type used by the debug API to collect debug information
+*/
+typedef struct lua_Debug lua_Debug;
+
+
+/*
+** Functions to be called by the debugger in specific events
+*/
+typedef void (*lua_Hook) (lua_State *L, lua_Debug *ar);
+
+
+/*
+** generic extra include file
+*/
+#if defined(LUA_USER_H)
+#include LUA_USER_H
+#endif
+
+
+/*
+** RCS ident string
+*/
+extern const char lua_ident[];
+
+
+/*
+
+## lstate.c (lines 201-240)
+  setthvalue(L, &aux, L);
+  luaH_setint(L, registry, LUA_RIDX_MAINTHREAD, &aux);
+  /* registry[LUA_RIDX_GLOBALS] = new table (table of globals) */
+  sethvalue(L, &aux, luaH_new(L));
+  luaH_setint(L, registry, LUA_RIDX_GLOBALS, &aux);
+}
+
+
+/*
+** open parts of the state that may cause memory-allocation errors.
+*/
+static void f_luaopen (lua_State *L, void *ud) {
+  global_State *g = G(L);
+  UNUSED(ud);
+  stack_init(L, L);  /* init stack */
+  init_registry(L, g);
+  luaS_init(L);
+  luaT_init(L);
+  luaX_init(L);
+  g->gcstp = 0;  /* allow gc */
+  setnilvalue(&g->nilvalue);  /* now state is complete */
+  luai_userstateopen(L);
+}
+
+
+/*
+** preinitialize a thread with consistent values without allocating
+** any memory (to avoid errors)
+*/
+static void preinit_thread (lua_State *L, global_State *g) {
+  G(L) = g;
+  L->stack.p = NULL;
+  L->ci = NULL;
+  L->nci = 0;
+  L->twups = L;  /* thread has no upvalues */
+  L->nCcalls = 0;
+  L->errorJmp = NULL;
+  L->hook = NULL;
+  L->hookmask = 0;
+  L->basehookcount = 0;
+
+## lauxlib.c (lines 481-520)
+** to 0 even after it was closed. 'pushresult' may also resize it to a
+** final size that is equal to the one set when the buffer was created.)
+*/
+static void *resizebox (lua_State *L, int idx, size_t newsize) {
+  UBox *box = (UBox *)lua_touserdata(L, idx);
+  if (box->bsize == newsize)  /* not changing size? */
+    return box->box;  /* keep the buffer */
+  else {
+    void *ud;
+    lua_Alloc allocf = lua_getallocf(L, &ud);
+    void *temp = allocf(ud, box->box, box->bsize, newsize);
+    if (l_unlikely(temp == NULL && newsize > 0)) {  /* allocation error? */
+      lua_pushliteral(L, "not enough memory");
+      lua_error(L);  /* raise a memory error */
+    }
+    box->box = temp;
+    box->bsize = newsize;
+    return temp;
+  }
+}
+
+
+static int boxgc (lua_State *L) {
+  resizebox(L, 1, 0);
+  return 0;
+}
+
+
+static const luaL_Reg boxmt[] = {  /* box metamethods */
+  {"__gc", boxgc},
+  {"__close", boxgc},
+  {NULL, NULL}
+};
+
+
+static void newbox (lua_State *L) {
+  UBox *box = (UBox *)lua_newuserdatauv(L, sizeof(UBox), 0);
+  box->box = NULL;
+  box->bsize = 0;
+  if (luaL_newmetatable(L, "_UBOX*"))  /* creating metatable? */
+
+## Question
+Which files handle memory allocation and what patterns do they share?

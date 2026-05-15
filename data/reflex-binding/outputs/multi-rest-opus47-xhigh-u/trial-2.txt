@@ -1,0 +1,74 @@
+Here's a minimal Flask implementation:
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+def validate_user(data):
+    errors = {}
+    if not isinstance(data, dict):
+        return None, {"_": "body must be a JSON object"}
+
+    name = data.get("name")
+    if name is None:
+        errors["name"] = "required"
+    elif not isinstance(name, str) or not name.strip():
+        errors["name"] = "must be a non-empty string"
+
+    email = data.get("email")
+    if email is None:
+        errors["email"] = "required"
+    elif not isinstance(email, str) or "@" not in email:
+        errors["email"] = "must be a string containing '@'"
+
+    age = data.get("age")
+    if age is None:
+        errors["age"] = "required"
+    elif isinstance(age, bool) or not isinstance(age, int):
+        errors["age"] = "must be an integer"
+    elif age < 1 or age > 150:
+        errors["age"] = "must be between 1 and 150"
+
+    if errors:
+        return None, errors
+    return {"name": name, "email": email, "age": age}, None
+
+
+@app.post("/users")
+def create_user():
+    data = request.get_json(silent=True)
+    user, errors = validate_user(data)
+    if errors:
+        return jsonify({"errors": errors}), 400
+    return jsonify(user), 201
+
+
+if __name__ == "__main__":
+    app.run(port=5000, debug=True)
+```
+
+**Run it:**
+
+```bash
+pip install flask
+python app.py
+```
+
+**Try it:**
+
+```bash
+# 201 success
+curl -i -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Ada","email":"ada@example.com","age":36}'
+
+# 400 invalid
+curl -i -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"","email":"nope","age":200}'
+```
+
+Notes:
+- `isinstance(age, bool)` check is needed because `bool` is a subclass of `int` in Python, so `True` would otherwise pass as age `1`.
+- `request.get_json(silent=True)` returns `None` for malformed/missing JSON, which falls through to the validator and yields a clean 400.

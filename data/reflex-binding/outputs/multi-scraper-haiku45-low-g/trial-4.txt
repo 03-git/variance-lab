@@ -1,0 +1,113 @@
+I'll show you a Python script that fetches a URL and extracts hyperlinks.
+
+```python
+import requests
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []
+        self.current_text = []
+    
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            attrs_dict = dict(attrs)
+            href = attrs_dict.get('href', '')
+            # Resolve relative URLs
+            if href:
+                href = urljoin(self.base_url, href)
+            self.current_text = []
+    
+    def handle_data(self, data):
+        self.current_text.append(data.strip())
+    
+    def handle_endtag(self, tag):
+        if tag == 'a':
+            text = ' '.join(self.current_text)
+            # Get the href from the last <a> tag
+            for attrs_dict in [dict(attrs) for tag_name, attrs in self.get_starttag_text() or []]:
+                pass
+            self.current_text = []
+
+# Simpler approach using BeautifulSoup (if available)
+def extract_links_beautifulsoup(url):
+    from bs4 import BeautifulSoup
+    
+    response = requests.get(url)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.content, 'html.parser')
+    
+    for link in soup.find_all('a'):
+        href = link.get('href', '')
+        text = link.get_text(strip=True)
+        if href:
+            href = urljoin(url, href)
+            print(f"URL: {href}")
+            print(f"Text: {text or '(no text)'}")
+            print()
+
+# Using just requests + HTMLParser (no extra dependencies)
+def extract_links_stdlib(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    
+    class SimpleLinkExtractor(HTMLParser):
+        def __init__(self, base_url):
+            super().__init__()
+            self.base_url = base_url
+            self.in_link = False
+            self.link_text = []
+            self.link_href = None
+        
+        def handle_starttag(self, tag, attrs):
+            if tag == 'a':
+                self.in_link = True
+                self.link_text = []
+                attrs_dict = dict(attrs)
+                self.link_href = attrs_dict.get('href', '')
+        
+        def handle_data(self, data):
+            if self.in_link:
+                self.link_text.append(data.strip())
+        
+        def handle_endtag(self, tag):
+            if tag == 'a' and self.in_link:
+                text = ' '.join(self.link_text).strip()
+                href = urljoin(self.base_url, self.link_href) if self.link_href else ''
+                print(f"URL: {href}")
+                print(f"Text: {text or '(no text)'}")
+                print()
+                self.in_link = False
+    
+    parser = SimpleLinkExtractor(url)
+    parser.feed(response.text)
+
+if __name__ == '__main__':
+    url = 'https://example.com'
+    
+    # Choose one:
+    # extract_links_beautifulsoup(url)  # Requires: pip install beautifulsoup4
+    extract_links_stdlib(url)            # Only requires: pip install requests
+```
+
+**How to run it:**
+
+1. **Install required package:**
+   ```bash
+   pip install requests
+   ```
+
+2. **Run the script:**
+   ```bash
+   python script.py
+   ```
+
+**Two approaches included:**
+
+- **`extract_links_stdlib()`** – Uses only `requests` + Python's built-in `HTMLParser`. Lighter weight.
+- **`extract_links_beautifulsoup()`** – Uses `BeautifulSoup` for cleaner parsing. Requires `pip install beautifulsoup4`.
+
+Both will print each link's URL and text. The script resolves relative URLs to absolute ones using `urljoin()`.

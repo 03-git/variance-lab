@@ -1,0 +1,81 @@
+Here's a Python script that does everything you need:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create or connect to the database
+conn = sqlite3.connect('notes.db')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('First Note', 'This is the body of the first note', datetime.now().isoformat()),
+    ('Second Note', 'Here is some content for the second note', datetime.now().isoformat()),
+    ('Third Note', 'And finally, the third note with some text', datetime.now().isoformat()),
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+
+# Commit the changes
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+notes = cursor.fetchall()
+
+# Print the notes
+print("All Notes:")
+print("-" * 80)
+for note in notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 80)
+
+# Close the connection
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the code to a file (e.g., `notes.py`)
+2. Run it with: `python notes.py`
+
+**Output:**
+```
+All Notes:
+--------------------------------------------------------------------------------
+ID: 1
+Title: First Note
+Body: This is the body of the first note
+Created: 2026-05-10T14:32:45.123456
+--------------------------------------------------------------------------------
+ID: 2
+Title: Second Note
+Body: Here is some content for the second note
+Created: 2026-05-10T14:32:45.123457
+--------------------------------------------------------------------------------
+ID: 3
+Title: Third Note
+Body: And finally, the third note with some text
+Created: 2026-05-10T14:32:45.123458
+--------------------------------------------------------------------------------
+```
+
+The script uses Python's built-in `sqlite3` module, so no additional dependencies are needed. Running it multiple times will append new notes to the existing database (since we use `CREATE TABLE IF NOT EXISTS`). If you want to start fresh, just delete the `notes.db` file before running again.

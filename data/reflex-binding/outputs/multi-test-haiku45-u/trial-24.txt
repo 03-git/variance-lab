@@ -1,0 +1,54 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using the `pytest` framework.
+
+```python
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+
+import pytest
+
+
+class TestCelsiusToFahrenheit:
+    def test_zero_celsius(self):
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty(self):
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("not a number")
+```
+
+**How to run it:**
+
+1. Save the code above to a file (e.g., `test_temperature.py`)
+
+2. Install pytest if needed:
+   ```bash
+   pip install pytest
+   ```
+
+3. Run the tests:
+   ```bash
+   pytest test_temperature.py
+   ```
+
+**Expected output:**
+```
+test_temperature.py::TestCelsiusToFahrenheit::test_zero_celsius PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_negative_forty PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+
+====== 4 passed in 0.05s ======
+```
+
+**Test breakdown:**
+- **0°C → 32°F**: Freezing point of water
+- **100°C → 212°F**: Boiling point of water
+- **-40°C → -40°F**: The point where Celsius and Fahrenheit are equal
+- **Non-numeric input**: Verifies the function raises `TypeError` when passed a string (since you can't multiply a string by a number in Python)

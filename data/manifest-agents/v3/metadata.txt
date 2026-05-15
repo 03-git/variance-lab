@@ -1,0 +1,5 @@
+Sun May 10 13:02:56 UTC 2026
+repo: /Users/jns/subtract.ing
+model: claude-sonnet-4-6
+manifest: curated (same as v2)
+prediction: gap narrows with larger models

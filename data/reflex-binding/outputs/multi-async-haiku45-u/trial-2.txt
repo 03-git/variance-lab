@@ -1,0 +1,81 @@
+I'll show you an async TCP echo server using Python's `asyncio` module.
+
+Here's the complete code:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If no data, client disconnected
+            if not data:
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            print(f"Echo to {addr}: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+
+async def start_server():
+    """Start the TCP echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+
+if __name__ == "__main__":
+    asyncio.run(start_server())
+```
+
+**How to run it:**
+
+1. **Start the server** in one terminal:
+   ```bash
+   python3 echo_server.py
+   ```
+
+2. **Connect a client** in another terminal using `netcat`:
+   ```bash
+   nc localhost 8888
+   ```
+
+3. **Type messages** and press Enter—each line will be echoed back:
+   ```
+   hello world
+   hello world
+   this is a test
+   this is a test
+   ```
+
+Press `Ctrl+C` to stop the server, or `Ctrl+D` to disconnect a client.
+
+**Key features:**
+- `asyncio.start_server()` handles multiple concurrent clients automatically
+- Each client gets its own `handle_client()` coroutine
+- `reader.readline()` waits for a complete line (newline-terminated)
+- `writer.drain()` ensures data is sent before reading the next message
+- Proper cleanup with `writer.close()` and `wait_closed()`

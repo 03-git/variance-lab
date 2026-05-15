@@ -1,0 +1,47 @@
+I'll show you a simple HTTP endpoint in Node.js that returns the current time as JSON.
+
+```javascript
+const http = require('http');
+
+const server = http.createServer((req, res) => {
+  if (req.method === 'GET' && req.url === '/time') {
+    const time = new Date().toISOString();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ time }));
+  } else {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
+  }
+});
+
+const PORT = 3000;
+server.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}/time`);
+});
+```
+
+**To run it:**
+
+```bash
+node -e "
+const http = require('http');
+const server = http.createServer((req, res) => {
+  if (req.method === 'GET' && req.url === '/time') {
+    const time = new Date().toISOString();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ time }));
+  } else {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
+  }
+});
+server.listen(3000, () => console.log('Server running at http://localhost:3000/time'));
+"
+```
+
+Then test it:
+```bash
+curl http://localhost:3000/time
+```
+
+You'll get: `{"time":"2026-05-10T14:32:45.123Z"}`

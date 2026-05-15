@@ -1,0 +1,460 @@
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./variance-lab-handler-methodology.txt (lines 41-80 of 398)
+```
+# handler.sh modifications — dispatch spec
+
+You are being given a standalone implementation task. No prior conversation
+context is assumed. Respond with ONLY the bash code requested, no commentary,
+no markdown fences, no explanation before or after.
+
+## Context
+
+`handler.sh` is a subtract.ing runtime file sourced into bash/zsh startup
+(hooks/bash.sh, hooks/zsh.sh). It already defines:
+
+- `SUBTRACT_DIR="$HOME/.subtract"` exported
+- `SUBTRACT_LOOKUP="$SUBTRACT_DIR/lookdown.tsv"` exported
+- `__subtract_handle` — called from `command_not_found_handle` (bash) and
+  `command_not_found_handler` (zsh) to translate natural-language intents
+  via lookdown.tsv and execute the resolved command
+- `__subtract_capture` — runs before each prompt via `PROMPT_COMMAND` (bash)
+  or `precmd_functions` (zsh). Uses `fc -ln -1` to capture the last command
+  into `SUBTRACT_LAST_OUTPUT`
+
+Function naming convention: `__subtract_*` prefix for internal helpers.
+
+Canonical log format spec: https://subtract.ing/session-log.spec.txt
+
+## Task 1: log writer
+
+Add a function `__subtract_log` that appends one TSV row per user input to a
+per-session log file. Called from the existing hooks:
+- `__subtract_handle` at end-of-invocation (intent case, `behavior` prefix `i:`)
+- pre-prompt hook (direct command case, `behavior` prefix `c:`)
+
+Row format (tab-separated, no quoting):
+    timestamp<TAB>antecedent<TAB>behavior<TAB>consequence<TAB>next_behavior
+
+- timestamp: ISO 8601 UTC
+- antecedent: cwd=REL;last=WORD;exit=CODE
+- behavior: {i|c|m}:raw_string (any literal tab escaped as \t)
+- consequence: exit_code:outcome:resolved (outcome starts pending; resolved
+  is the command actually executed for i: case)
+
+## ./variance-lab-handler-methodology.txt (lines 1-40 of 398)
+# Variance-Lab: handler.sh Substrate-Code Selection
+## A three-gate methodology report
+
+  Canonical:  https://subtract.ing/variance-lab-handler-methodology.txt (to be signed via llms.txt manifest)
+  Harness:    /tmp artifacts preserved; reproducible under subtract.ing runtime
+  Signer:     hodori@subtract.ing
+  Namespace:  subtract.ing
+
+### Artifact paths
+
+Artifacts backing this report live under `github.com/03-git/variance-lab/data/handler/`.
+
+What survived the original `/tmp` run and is published:
+
+  data/handler/handler-dispatch-spec.txt      4,663-char dispatch prompt (Task 1 + Task 2)
+  data/handler/handler-dispatch-rubric.txt    pre-committed evaluation rubric
+
+What did not survive (original `/tmp` paths, not preserved across session boundary — see Limitations):
+
+  /tmp/impl-{opus47,sonnet45,sonnet46,sonnet46low,qwen3coder}.sh    five implementations
+  /tmp/ship-decision.txt                                             deliberative-pass prompt
+  /tmp/vote-*.txt                                                    eight voter responses
+
+### Terminology
+
+- **Effort tier** (`high` / `low` / etc.): `CLAUDE_CODE_EFFORT_LEVEL` environment variable passed to `claude -p`. Governs reasoning-depth setting for the invocation.
+- **`nba <mode>`**: local Rousseau wrapper (script at `~/scripts/nba`) that dispatches to a `nanobot agent -c ~/.nanobot/<mode>.json`. Modes: `fast` → phi-4-mini on :8081; `rag` → qwen3-32b on :8082; `reasoning` → gemma-4-26b on :8083; `code` → Qwen3-Coder-30B-A3B on :8084.
+
+---
+
+## Abstract
+
+A pre-committed rubric was applied mechanically to five implementations of a session-logging extension to `handler.sh`. Two implementations tied at the top of the rubric's weighted score; the committed tiebreak rule (lowest LoC within a 2-point tie) selected a functionally valid implementation, but the tied implementation with the higher LoC produced zero valid rows when sourced into a test shell because its output included a markdown code-fence wrapper that altered shell parse semantics. An eight-model deliberative pass, dispatched across three training lineages, converged seven-of-eight on an implementation that neither the rubric nor the functional gate would have selected on their own. The finding reported here is about the three-gate methodology — static rubric, functional verification, deliberative pass — and the interactions between them.
+
+---
+
+## Spec
+
+The following spec was dispatched verbatim to each implementation target. No per-target modification. No prior conversation context assumed.
+
+
+## ./subtracting.html (lines 1-40 of 227)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <title>subtracting — why subtract exists</title>
+    <meta name="description" content="The thesis, lineage, and evidence behind subtract.ing.">
+    <style>
+        body {
+            background: #111;
+            color: #c0c0c0;
+            font-family: monospace;
+            margin: 2rem auto;
+            max-width: 72ch;
+            padding: 0 1rem;
+            line-height: 1.5;
+        }
+        h1 { font-size: 1rem; font-weight: normal; margin: 0; }
+        h2 { font-size: 1rem; font-weight: normal; margin: 2rem 0 0.5rem; color: #8be9fd; }
+        p { margin: 0.5rem 0; }
+        hr { border: none; color: #555; margin: 1.5rem 0; }
+        hr::before { content: "* * *"; display: block; text-align: left; }
+        a { color: #8be9fd; }
+        a:visited { color: #bd93f9; }
+        .dim { color: #666; }
+        pre { margin: 0.5rem 0; white-space: pre-wrap; }
+        blockquote {
+            border-left: 2px solid #555;
+            margin: 1rem 0;
+            padding-left: 1rem;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <h1><a href="/">subtract.ing</a> / subtracting</h1>
+    <p>Theory, lineage, and evidence.</p>
+
+    <hr>
+
+## ./runtime/squared.c (lines 681-720 of 742)
+    setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = tls_mode ? htonl(INADDR_ANY) : htonl(INADDR_LOOPBACK);
+    addr.sin_port = htons(listen_port);
+
+    if (bind(listenfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        perror("bind");
+        return 1;
+    }
+    listen(listenfd, 16);
+
+    fprintf(stderr, "squared listening on %s:%d -> %s:%s%s\n",
+        tls_mode ? "0.0.0.0" : "127.0.0.1",
+        listen_port, backend_host, backend_port,
+        tls_mode ? " (tls)" : " (h2c)");
+
+    for (;;) {
+        int fd = accept(listenfd, NULL, NULL);
+        if (fd < 0) continue;
+        int flag = 1;
+        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
+
+        pid_t pid = fork();
+        if (pid == 0) {
+            close(listenfd);
+
+#ifndef NO_TLS
+            if (tls_mode) {
+                mbedtls_ssl_context ssl;
+                mbedtls_ssl_init(&ssl);
+                if (mbedtls_ssl_setup(&ssl, &tls_conf) != 0) _exit(1);
+                mbedtls_ssl_set_bio(&ssl, &fd, tls_bio_send, tls_bio_recv, NULL);
+
+                int ret = mbedtls_ssl_handshake(&ssl);
+                if (ret != 0) {
+                    mbedtls_ssl_free(&ssl);
+                    close(fd);
+                    _exit(1);
+
+## ./runtime/squared.c (lines 1-40 of 742)
+/*
+ * squared — HTTP/2 proxy for local inference multiplexing
+ *
+ * Without cert/key: h2c (cleartext HTTP/2, loopback only)
+ * With cert/key:    h2 over TLS (ALPN negotiated, all interfaces)
+ *
+ * Build:
+ *   cc -o squared squared.c $(pkg-config --cflags --libs libnghttp2) \
+ *      -lmbedtls -lmbedx509 -lmbedcrypto -lpthread
+ *
+ * Usage:
+ *   squared [port] [backend_host:port]
+ *   squared [port] [backend_host:port] cert.pem key.pem
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <signal.h>
+#include <poll.h>
+
+#include <nghttp2/nghttp2.h>
+
+#ifndef NO_TLS
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/x509_crt.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/net_sockets.h>
+#endif
+
+## ./runtime/hosuni/platform_linux.c (lines 41-80 of 359)
+
+static int kbd_fd = -1;
+static int mouse_fd = -1;
+static int tty_fd = -1;
+static int prev_kbmode = -1;
+static struct xkb_context *xkb_ctx;
+static struct xkb_keymap  *xkb_kmap;
+static struct xkb_state   *xkb_st;
+
+/* probe /dev/dri/card* for a connected display */
+static int drm_open(void) {
+    char path[64];
+    for (int i = 0; i < 8; i++) {
+        snprintf(path, sizeof(path), "/dev/dri/card%d", i);
+        int fd = open(path, O_RDWR | O_CLOEXEC);
+        if (fd < 0) continue;
+        if (!drmIsMaster(fd)) {
+            drmSetMaster(fd);
+            if (!drmIsMaster(fd)) {
+                fprintf(stderr, "hosuni: %s: display held by another process\n", path);
+                close(fd);
+                continue;
+            }
+        }
+        drmModeRes *res = drmModeGetResources(fd);
+        if (!res) { close(fd); continue; }
+        for (int c = 0; c < res->count_connectors; c++) {
+            drmModeConnector *conn = drmModeGetConnector(fd, res->connectors[c]);
+            if (!conn) continue;
+            if (conn->connection == DRM_MODE_CONNECTED && conn->count_modes > 0) {
+                conn_id = conn->connector_id;
+                mode = conn->modes[0]; /* preferred mode */
+                if (conn->encoder_id) {
+                    drmModeEncoder *enc = drmModeGetEncoder(fd, conn->encoder_id);
+                    if (enc) { crtc_id = enc->crtc_id; drmModeFreeEncoder(enc); }
+                }
+                if (!crtc_id && res->count_crtcs > 0)
+                    crtc_id = res->crtcs[0];
+                drmModeFreeConnector(conn);
+                drmModeFreeResources(res);
+
+## ./runtime/hosuni/platform_linux.c (lines 1-40 of 359)
+/*
+ * platform_linux.c — DRM dumb buffer + evdev
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+#include "hosuni.h"
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
+#include <dirent.h>
+#include <linux/input.h>
+#include <linux/kd.h>
+#include <linux/vt.h>
+#include <signal.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+#include <xkbcommon/xkbcommon.h>
+
+static int drm_fd = -1;
+static uint32_t conn_id;
+static uint32_t crtc_id;
+static drmModeModeInfo mode;
+static uint32_t pitch;
+static size_t map_size;
+
+/* double buffering: draw to back, flip shows it, swap */
+static struct {
+    uint32_t handle;
+    uint32_t fb_id;
+    uint64_t map_offset;
+    void    *map_ptr;
+} bufs[2];
+static int back = 0;  /* index we draw into */
+
+## ./runtime/hosuni/hosuni.h (lines 1-40 of 185)
+/*
+ * hosuni.h — framebuffer computing for humans
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+#ifndef HOSUNI_H
+#define HOSUNI_H
+
+#include <stdint.h>
+
+/* --- platform contract --- */
+
+typedef struct {
+    uint32_t *pixels;
+    int width;
+    int height;
+    int stride; /* bytes per row */
+} hosuni_surface;
+
+typedef enum { HOSUNI_KEY, HOSUNI_MOUSE, HOSUNI_TOUCH } hosuni_input_type;
+
+typedef struct {
+    hosuni_input_type type;
+    int code;   /* KEY_* from linux/input-event-codes.h */
+    int value;  /* 1=press 0=release 2=repeat */
+    int x, y;   /* mouse/touch coords, 0 for keys */
+} hosuni_event;
+
+int  platform_init(hosuni_surface *s);
+int  platform_event(hosuni_event *ev, int timeout_ms);
+void platform_flip(hosuni_surface *s);
+void platform_cleanup(void);
+void platform_yield(void);
+void platform_reclaim(void);
+void platform_drain_input(void);
+void platform_close_child_fds(void);
+void platform_xkb_update(int evdev_code, int value);
+int  platform_key_utf8(int evdev_code, char *out, int out_max);
+
+## ./runtime/hosuni-discord.ts (lines 121-160 of 361)
+    log(`  -> transcript fetch error: ${e}`);
+    return null;
+  }
+}
+
+async function handleMessage(channelId: string, senderId: string, senderName: string, content: string, isDm: boolean, attachments?: { id: string; filename: string; url: string; content_type?: string; size: number }[]) {
+  const source = isDm ? "DM" : `#channel`;
+  log(`[${source}] ${senderName} (${senderId}): ${content}`);
+
+  const whitelist = loadSet(WHITELIST_PATH);
+  if (!whitelist.has(senderId)) {
+    log(`  -> not in whitelist, ignoring`);
+    return;
+  }
+
+  // Check for YouTube URLs (all of them)
+  const ytRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{11})/g;
+  const ytMatches: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = ytRegex.exec(content)) !== null) ytMatches.push(m[1]);
+
+  const transcripts: string[] = [];
+  for (const videoId of ytMatches) {
+    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    log(`  -> fetching transcript for ${videoId}`);
+    const t = await fetchTranscript(videoId, videoUrl);
+    if (t) {
+      transcripts.push(t);
+      log(`  -> transcript fetched`);
+    } else {
+      log(`  -> transcript not available for ${videoId}`);
+    }
+  }
+  const transcriptJson: string | null = transcripts.length > 0 ? transcripts.join("\n\n---\n\n") : null;
+
+
+  // Check for text attachments
+  let attachmentText = "";
+  if (attachments && attachments.length > 0) {
+    for (const att of attachments) {
+
+## ./runtime/hosuni-discord.ts (lines 1-40 of 361)
+/**
+ * hosuni Discord DM daemon (Deno)
+ * - Listens for DMs and #hosuni channel messages via Gateway WebSocket
+ * - Whitelist-gated auto-reply via hosuni daemon on rousseau
+ * - YouTube URLs: fetches transcript via yt-dlp, pipes as context
+ * - Log to ~/human/sessions/hosuni-discord.log
+ */
+
+const TOKEN_PATH = `${Deno.env.get("HOME")}/.keymaster/jean-discord-token.txt`;
+const WHITELIST_PATH = `${Deno.env.get("HOME")}/.hosuni-discord-whitelist`;
+const LOG_PATH = `${Deno.env.get("HOME")}/human/sessions/hosuni-discord.log`;
+const TRANSCRIPT_DIR = `${Deno.env.get("HOME")}/human/transcripts`;
+const HOSUNI_CHANNEL_IDS = new Set(["1489355263361286204", "1483978150852559030"]);
+const API = "https://discord.com/api/v10";
+
+function log(msg: string) {
+  const ts = new Date().toISOString();
+  const line = `[${ts}] ${msg}\n`;
+  Deno.writeTextFileSync(LOG_PATH, line, { append: true });
+}
+
+function loadSet(path: string): Set<string> {
+  try {
+    return new Set(
+      Deno.readTextFileSync(path).split("\n").map((l) => l.trim()).filter(Boolean)
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+const TOKEN = Deno.readTextFileSync(TOKEN_PATH).trim();
+
+async function apiPost(path: string, body: unknown): Promise<unknown> {
+  const res = await fetch(`${API}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bot ${TOKEN}`,
+      "Content-Type": "application/json",
+    },

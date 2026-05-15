@@ -1,0 +1,57 @@
+Here's a Node.js/Express solution:
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.get('/time', (req, res) => {
+  res.json({ time: new Date().toISOString() });
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
+```
+
+**To run:**
+```bash
+npm init -y
+npm install express
+node server.js
+```
+
+Then test it:
+```bash
+curl http://localhost:3000/time
+```
+
+Response:
+```json
+{"time":"2026-05-10T14:23:45.123Z"}
+```
+
+---
+
+**Python/Flask alternative** (if you prefer):
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    return jsonify({"time": datetime.utcnow().isoformat() + 'Z'})
+
+if __name__ == '__main__':
+    app.run(port=3000)
+```
+
+**To run:**
+```bash
+pip install flask
+python app.py
+```
+
+Which language do you prefer?

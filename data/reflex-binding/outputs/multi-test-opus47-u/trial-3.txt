@@ -1,0 +1,46 @@
+Here's a pytest suite for `celsius_to_fahrenheit`:
+
+```python
+# test_temperature.py
+import pytest // wait — Python uses # for comments
+```
+
+Let me give that to you cleanly:
+
+```python
+# test_temperature.py
+import pytest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+def test_zero():
+    assert celsius_to_fahrenheit(0) == 32
+
+
+def test_boiling():
+    assert celsius_to_fahrenheit(100) == 212
+
+
+def test_negative_forty_is_fixed_point():
+    assert celsius_to_fahrenheit(-40) == -40
+
+
+def test_non_numeric_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+How to run it:
+
+```bash
+pip install pytest
+pytest test_temperature.py -v
+```
+
+Notes:
+- `-40` is the unique fixed point where Celsius equals Fahrenheit — a nice sanity check.
+- The non-numeric test expects `TypeError` because `"hot" * 9` produces a string, and adding `32` to a string raises `TypeError`. If you'd rather validate input explicitly, add a guard like `if not isinstance(c, (int, float)): raise TypeError(...)` inside the function.
+- If `celsius_to_fahrenheit` lives in another module (e.g. `temperature.py`), replace the inline `def` with `from temperature import celsius_to_fahrenheit`.

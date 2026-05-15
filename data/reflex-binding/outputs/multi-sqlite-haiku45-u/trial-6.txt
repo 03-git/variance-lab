@@ -1,0 +1,84 @@
+Here's a complete Python script that does what you're asking for:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create a connection to the SQLite database
+conn = sqlite3.connect('notes.db')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Meeting Notes', 'Discussed project timeline and deliverables', datetime.now().isoformat()),
+    ('Python Tips', 'Remember to use context managers with databases', datetime.now().isoformat()),
+    ('Grocery List', 'Milk, eggs, bread, coffee', datetime.now().isoformat()),
+]
+
+for title, body, created_at in sample_notes:
+    cursor.execute(
+        'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+        (title, body, created_at)
+    )
+
+# Commit the changes
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+# Print the notes
+print("All Notes:")
+print("=" * 80)
+for note_id, title, body, created_at in notes:
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 80)
+
+# Close the connection
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the code to a file (e.g., `notes.py`)
+2. Run it with:
+   ```bash
+   python notes.py
+   ```
+
+**Output:**
+```
+All Notes:
+================================================================================
+ID: 1
+Title: Meeting Notes
+Body: Discussed project timeline and deliverables
+Created: 2026-05-10T14:30:45.123456
+--------------------------------------------------------------------------------
+ID: 2
+Title: Python Tips
+Body: Remember to use context managers with databases
+Created: 2026-05-10T14:30:45.123457
+--------------------------------------------------------------------------------
+ID: 3
+Title: Grocery List
+Body: Milk, eggs, bread, coffee
+Created: 2026-05-10T14:30:45.123458
+--------------------------------------------------------------------------------
+```
+
+The script uses the `sqlite3` module (built-in to Python), creates a `notes.db` file in your current directory, and demonstrates basic database operations: CREATE TABLE, INSERT, and SELECT queries.

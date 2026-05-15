@@ -1,0 +1,50 @@
+```python
+# celsius_to_fahrenheit.py
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+
+# test_celsius_to_fahrenheit.py
+
+import pytest
+from celsius_to_fahrenheit import celsius_to_fahrenheit
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32.0
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212.0
+
+def test_equal_point():
+    # -40 is the point where Celsius and Fahrenheit are equal
+    assert celsius_to_fahrenheit(-40) == -40.0
+
+def test_non_numeric_input():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+**To run it:**
+
+1. Put both functions in their respective files (or one file), then install pytest if needed:
+   ```bash
+   pip install pytest
+   ```
+
+2. Run the tests:
+   ```bash
+   pytest test_celsius_to_fahrenheit.py -v
+   ```
+
+Expected output:
+```
+test_celsius_to_fahrenheit.py::test_freezing_point  PASSED
+test_celsius_to_fahrenheit.py::test_boiling_point   PASSED
+test_celsius_to_fahrenheit.py::test_equal_point     PASSED
+test_celsius_to_fahrenheit.py::test_non_numeric_input PASSED
+```
+
+**Notes:**
+- `-40` is a useful test because it's the crossover point where both scales are equal — a natural sanity check.
+- The `TypeError` test works because Python raises it automatically when `*` is applied to a string and a float — no extra validation needed in the function.

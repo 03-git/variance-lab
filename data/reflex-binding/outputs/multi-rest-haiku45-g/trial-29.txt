@@ -1,0 +1,92 @@
+I'll show you a complete REST API implementation using Flask (Python's most straightforward framework for this). Here's the code:
+
+```python
+from flask import Flask, request, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/users', methods=['POST'])
+def create_user():
+    data = request.get_json()
+    
+    # Validation
+    errors = {}
+    
+    # Check name
+    if not data or 'name' not in data:
+        errors['name'] = 'name is required'
+    elif not isinstance(data['name'], str) or not data['name'].strip():
+        errors['name'] = 'name must be a non-empty string'
+    
+    # Check email
+    if not data or 'email' not in data:
+        errors['email'] = 'email is required'
+    elif not isinstance(data['email'], str) or '@' not in data['email']:
+        errors['email'] = 'email must be a valid email (contain @)'
+    
+    # Check age
+    if 'age' not in data:
+        errors['age'] = 'age is required'
+    elif not isinstance(data['age'], int) or data['age'] < 1 or data['age'] > 150:
+        errors['age'] = 'age must be an integer between 1 and 150'
+    
+    # Return errors if any
+    if errors:
+        return jsonify({'errors': errors}), 400
+    
+    # Return validated user
+    user = {
+        'id': datetime.now().timestamp(),
+        'name': data['name'].strip(),
+        'email': data['email'],
+        'age': data['age']
+    }
+    
+    return jsonify(user), 201
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**To run it:**
+
+```bash
+# Install Flask (if not already installed)
+pip install flask
+
+# Run the server
+python app.py
+```
+
+The server starts on `http://localhost:5000`.
+
+**Test it with curl:**
+
+```bash
+# Valid request
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "john@example.com", "age": 30}'
+
+# Returns 201:
+# {"id": 1715413200.123456, "name": "John Doe", "email": "john@example.com", "age": 30}
+
+# Invalid age (too high)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Jane", "email": "jane@example.com", "age": 200}'
+
+# Returns 400:
+# {"errors": {"age": "age must be an integer between 1 and 150"}}
+
+# Missing email
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "age": 25}'
+
+# Returns 400:
+# {"errors": {"email": "email is required"}}
+```
+
+The endpoint validates all three fields and returns detailed error messages for any invalid input.

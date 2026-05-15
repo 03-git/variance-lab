@@ -1,0 +1,74 @@
+Here's a Python script that does what you need:
+
+```python
+#!/usr/bin/env python3
+import sys
+import requests
+
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: python script.py <URL>")
+        sys.exit(1)
+    
+    url = sys.argv[1]
+    
+    try:
+        response = requests.get(url, allow_redirects=True, timeout=10)
+        
+        print(f"Status Code: {response.status_code}")
+        print("\nResponse Headers:")
+        for key, value in response.headers.items():
+            print(f"  {key}: {value}")
+        
+        print("\nBody (first 500 characters):")
+        print(response.text[:500])
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+python3 script.py https://example.com
+```
+
+Or if you want to use only the standard library (no `requests` needed):
+
+```python
+#!/usr/bin/env python3
+import sys
+import urllib.request
+import urllib.error
+
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: python script.py <URL>")
+        sys.exit(1)
+    
+    url = sys.argv[1]
+    
+    try:
+        with urllib.request.urlopen(url) as response:
+            print(f"Status Code: {response.status_code}")
+            print("\nResponse Headers:")
+            for key, value in response.headers.items():
+                print(f"  {key}: {value}")
+            
+            body = response.read().decode('utf-8', errors='ignore')
+            print("\nBody (first 500 characters):")
+            print(body[:500])
+            
+    except urllib.error.URLError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+```
+
+The **requests version** is simpler and more robust. Both follow redirects automatically by default. The status code will be the final one after all redirects, and `allow_redirects=True` (requests) / `urlopen()` (urllib) handles the redirect chain automatically.

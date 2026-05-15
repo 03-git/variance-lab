@@ -1,0 +1,92 @@
+Here's a Python CLI tool that meets your requirements:
+
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Parse and validate configuration parameters'
+    )
+    parser.add_argument(
+        '--host',
+        default='localhost',
+        help='Host address (default: localhost)'
+    )
+    parser.add_argument(
+        '--port',
+        type=int,
+        default=8080,
+        help='Port number (default: 8080)'
+    )
+    parser.add_argument(
+        '--verbose',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    
+    args = parser.parse_args()
+    
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        print(
+            f"Error: Port must be between 1 and 65535, got {args.port}",
+            file=sys.stderr
+        )
+        sys.exit(1)
+    
+    # Build configuration
+    config = {
+        'host': args.host,
+        'port': args.port,
+        'verbose': args.verbose
+    }
+    
+    # Output as JSON
+    print(json.dumps(config, indent=2))
+
+if __name__ == '__main__':
+    main()
+```
+
+**How to run it:**
+
+Save as `cli_tool.py` and run:
+
+```bash
+# Default values
+python cli_tool.py
+
+# With custom host and port
+python cli_tool.py --host 0.0.0.0 --port 3000
+
+# Enable verbose
+python cli_tool.py --host example.com --port 443 --verbose
+
+# Invalid port (shows error)
+python cli_tool.py --port 99999
+```
+
+**Example outputs:**
+
+```bash
+$ python cli_tool.py
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": false
+}
+
+$ python cli_tool.py --host 0.0.0.0 --port 3000 --verbose
+{
+  "host": "0.0.0.0",
+  "port": 3000,
+  "verbose": true
+}
+
+$ python cli_tool.py --port 70000
+Error: Port must be between 1 and 65535, got 70000
+```
+
+The tool uses `argparse` for clean flag parsing, validates the port range, and outputs valid JSON with proper indentation. Invalid ports trigger an error message and exit code 1.

@@ -1,0 +1,90 @@
+Here's a Python script that creates a SQLite database with a notes table, inserts sample data, and displays it:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create or connect to the database
+conn = sqlite3.connect(':memory:')  # Use ':memory:' for in-memory DB, or 'notes.db' for a file
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Shopping List', 'Milk, eggs, bread, coffee', datetime.now().isoformat()),
+    ('Project Ideas', 'Build CLI tool, learn Rust, contribute to open source', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discussed Q2 goals, timeline for launch, team assignments', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+
+conn.commit()
+
+# Query and display all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+print("All Notes:")
+print("-" * 80)
+for note in notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 80)
+
+conn.close()
+```
+
+**How to run it:**
+
+1. **Save to a file** (e.g., `notes.py`):
+   ```bash
+   python notes.py
+   ```
+
+2. **Or run directly** in the Python REPL:
+   ```bash
+   python3 << 'EOF'
+   [paste the script above]
+   EOF
+   ```
+
+**Output:**
+```
+All Notes:
+--------------------------------------------------------------------------------
+ID: 1
+Title: Shopping List
+Body: Milk, eggs, bread, coffee
+Created: 2026-05-10T14:32:45.123456
+--------------------------------------------------------------------------------
+ID: 2
+Title: Project Ideas
+Body: Build CLI tool, learn Rust, contribute to open source
+Created: 2026-05-10T14:32:45.123789
+--------------------------------------------------------------------------------
+ID: 3
+Title: Meeting Notes
+Body: Discussed Q2 goals, timeline for launch, team assignments
+Created: 2026-05-10T14:32:45.123999
+--------------------------------------------------------------------------------
+```
+
+**To use a persistent file database** instead of in-memory, change this line:
+```python
+conn = sqlite3.connect('notes.db')  # Creates/opens notes.db file
+```

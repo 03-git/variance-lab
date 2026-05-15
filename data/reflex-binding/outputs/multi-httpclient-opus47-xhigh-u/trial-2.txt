@@ -1,0 +1,56 @@
+```python
+import sys
+import urllib.request
+import urllib.error
+
+def fetch(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    try:
+        with urllib.request.urlopen(req) as resp:
+            status = resp.status
+            headers = resp.headers
+            body = resp.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        status = e.code
+        headers = e.headers
+        body = e.read().decode("utf-8", errors="replace")
+
+    print(f"Status: {status}")
+    print("Headers:")
+    for k, v in headers.items():
+        print(f"  {k}: {v}")
+    print("Body (first 500 chars):")
+    print(body[:500])
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python fetch.py <url>", file=sys.stderr)
+        sys.exit(1)
+    fetch(sys.argv[1])
+```
+
+Run it like this:
+
+```
+python fetch.py https://example.com
+```
+
+Notes:
+- `urllib.request.urlopen` follows HTTP 301/302/303/307 redirects by default.
+- `HTTPError` is caught so 4xx/5xx responses still print status, headers, and body instead of raising.
+- A `User-Agent` header is set because some sites reject the default Python one.
+
+If you'd prefer the `requests` library (cleaner, but third-party):
+
+```python
+import sys, requests
+r = requests.get(sys.argv[1], allow_redirects=True)
+print(f"Status: {r.status_code}")
+print("Headers:")
+for k, v in r.headers.items():
+    print(f"  {k}: {v}")
+print("Body (first 500 chars):")
+print(r.text[:500])
+```
+
+Run with `pip install requests` first, then `python fetch.py <url>`.

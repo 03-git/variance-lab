@@ -1,0 +1,33 @@
+
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):
+        self.assertAlmostEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertAlmostEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_negative_40(self):
+        self.assertAlmostEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hello")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Save as `test_temp.py` and run:
+
+```bash
+python3 test_temp.py
+```
+
+Or run without saving via `python3 -c` / `python3 -m pytest` if you pipe it in.

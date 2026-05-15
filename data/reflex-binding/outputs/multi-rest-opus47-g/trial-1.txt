@@ -1,0 +1,55 @@
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, EmailStr, Field, ValidationError, field_validator
+
+app = FastAPI()
+
+class User(BaseModel):
+    name: str = Field(min_length=1)
+    email: str
+    age: int = Field(ge=1, le=150)
+
+    @field_validator("email")
+    @classmethod
+    def email_has_at(cls, v: str) -> str:
+        if "@" not in v:
+            raise ValueError("email must contain @")
+        return v
+
+@app.exception_handler(ValidationError)
+async def validation_handler(_, exc):
+    raise HTTPException(status_code=400, detail=exc.errors())
+
+@app.post("/users", status_code=201)
+async def create_user(user: User):
+    return user
+```
+
+FastAPI returns 422 by default for body validation. To force 400, override the handler:
+
+```python
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi import Request
+
+@app.exception_handler(RequestValidationError)
+async def bad_request(_: Request, exc: RequestValidationError):
+    return JSONResponse(status_code=400, content={"errors": exc.errors()})
+```
+
+Run:
+
+```
+pip install fastapi uvicorn
+uvicorn main:app --reload
+```
+
+Test:
+
+```
+curl -X POST localhost:8000/users -H 'content-type: application/json' \
+  -d '{"name":"jns","email":"j@x","age":40}'
+
+curl -X POST localhost:8000/users -H 'content-type: application/json' \
+  -d '{"name":"","email":"nope","age":200}'
+```

@@ -1,0 +1,361 @@
+## Manifest (routing table for Lua 5.4 source)
+# path	[tag]	description
+Makefile	[build]	Developer makefile; defines CWARNSCPP/CWARNGCC flag sets and platform targets (linux, macosx, mingw)
+lapi.c	[api]	Public C API implementation; lua_push*, lua_get*, lua_call*, lua_pcall, stack manipulation
+lapi.h	[api]	Internal API helpers; api_incr_top stack-overflow check macro, api_check assertion wrapper
+lauxlib.c	[aux]	Auxiliary library; luaL_loadfile, luaL_Buffer, luaL_ref, luaL_traceback, registry helpers
+lauxlib.h	[aux]	Auxiliary library header; luaL_Buffer, luaL_Reg, luaL_newstate, luaL_error declarations
+lbaselib.c	[stdlib]	Base library; luaB_print, luaB_pcall, luaB_xpcall, luaB_load, luaB_next, luaB_type
+lcode.c	[compiler]	Code generator; emits VM instructions, manages patch lists (NO_JUMP), constant folding, jump fixup
+lcode.h	[compiler]	Code generator header; BinOpr/UnOpr enums, expdesc result kinds, luaK_* function declarations
+lcorolib.c	[coroutine]	Coroutine library; luaB_cocreate, luaB_coresume, luaB_cowrap, luaB_costatus
+lctype.c	[core]	Custom ctype table; luai_ctype_[] byte array for fast lislalpha/lisdigit/etc without locale dependency
+lctype.h	[core]	Ctype macros; lislalpha, lisdigit, lisspace, lisprint defined over luai_ctype_[] table
+ldblib.c	[debug]	Debug library; lua_sethook, lua_getinfo, lua_getlocal wrappers; hook table at registry[HOOKKEY]
+ldebug.c	[debug]	Debug interface; luaG_runerror, luaG_typeerror, luaG_getfuncline, line/local/upvalue introspection
+ldebug.h	[debug]	Debug header; pcRel pc-to-offset macro, ci_func, resethookcount, ABSLINEINFO sentinel declarations
+ldo.c	[vm]	Stack and call engine; luaD_call, luaD_pcall, luaD_throw, luaD_rawrunprotected, stack reallocation
+ldo.h	[vm]	Call/stack header; luaD_checkstackaux growth macro, condmovestack HARDSTACKTESTS hook, throw/catch decls
+ldump.c	[compiler]	Bytecode serializer; DumpHeader, DumpFunction, DumpCode writing Proto to lua_Writer stream
+lfunc.c	[core]	Closure and prototype management; luaF_newCclosure, luaF_newLclosure, luaF_newUpval, open-upvalue list
+lfunc.h	[core]	Closure/upvalue header; sizeCclosure/sizeLclosure size macros, MAXUPVAL=255, isintwups check
+lgc.c	[gc]	Tri-color incremental garbage collector; mark/sweep/finalize phases, luaC_step, luaC_fullgc, barriers
+lgc.h	[gc]	GC header; white/gray/black color macros, luaC_barrier, luaC_barrierback, GC state constants
+linit.c	[core]	Standard library loader; stdlibs[] table mapping LUA_*LIBNAME to luaopen_* functions, luaL_openlibs
+liolib.c	[io]	I/O library; LuaFile userdata wrapping FILE*, io.open/close/read/write/lines/seek, popen support
+ljumptab.h	[vm]	GCC computed-goto dispatch table; disptab[] mapping NUM_OPCODES to &&L_OP_* labels for lvm.c
+llex.c	[parser]	Lexical analyzer; luaX_next token scanner, long strings, numeral parsing, reserved word table
+llex.h	[parser]	Lexer header; Token/SemInfo structs, FIRST_RESERVED boundary, LexState, luaX_* declarations
+llimits.h	[core]	Portability and type limits; l_mem/lu_mem, cast_* macros, MAXSTACK, luai_numunm, l_likely/unlikely
+lmathlib.c	[math]	Math library; math_abs through math_tointeger, random/randomseed with xoshiro256** PRNG
+lmem.c	[memory]	Memory manager; luaM_realloc_, luaM_growaux_, emergency GC on alloc failure, debt accounting
+lmem.h	[memory]	Memory header; luaM_new/newvector/growvector macros, overflow-safe luaM_limitN size check
+loadlib.c	[stdlib]	Dynamic loader; package.loadlib via dlopen/LoadLibrary, searchers for Lua/C modules, package.path
+lobject.c	[core]	Generic object operations; luaO_str2num, luaO_pushvfstring, luaO_tostring, integer/float coercion
+lobject.h	[core]	Core value/object type definitions; TValue tagged-union, GCObject CommonHeader, TString/Table/Proto layouts
+lopcodes.c	[vm]	Opcode mode table; luaP_opmodes[] encoding MM/OT/IT/T/A/format bits per opcode via opmode macro
+lopcodes.h	[vm]	VM instruction set; 32-bit iABC/iABx/isBx/iAx/isJ formats, OP_* enum, GET_OPCODE/GETARG_* macros
+lopnames.h	[vm]	Opcode name strings; opnames[] char* array parallel to OP_* enum for disassembly/error messages
+loslib.c	[stdlib]	OS library; os.time/date/clock/difftime/exit/getenv/remove/rename/tmpname, strftime format validation
+lparser.c	[parser]	Recursive-descent parser; luaY_parser entry, statement/expression/block rules, expdesc construction
+lparser.h	[parser]	Parser header; expdesc expkind enum (VVOID..VINDEXSTR), FuncState, BlockCnt, Dyndata declarations
+lprefix.h	[core]	Must-include-first header; sets _XOPEN_SOURCE=600, _LARGEFILE_SOURCE, _FILE_OFFSET_BITS=64 for POSIX
+lstate.c	[core]	Global and thread state init; lua_newstate, luaE_newthread, luaE_freethread, allgc list setup
+lstate.h	[core]	State structures; lua_State with stack/ci/twups/hookcount, global_State with GC roots and string table
+lstring.c	[string]	Interned string table; luaS_newlstr hash+dedup, short vs long string split at LUAI_MAXSHORTLEN=40
+lstring.h	[string]	String header; MEMERRMSG preallocated OOM string, LUAI_MAXSHORTLEN, luaS_new/eqlngstr declarations
+lstrlib.c	[string]	String library; string.format, pattern match/find/gmatch/gsub, string.pack/unpack/packsize
+ltable.c	[table]	Hash table; dual array+hash layout, Brent's variation chaining, luaH_set/get/resize/next
+ltable.h	[table]	Table header; gnode/gval/gnext access macros, invalidateTMcache, BITDUMMY flag, luaH_* declarations
+ltablib.c	[table]	Table library; table.insert/remove/sort (adaptive merge+quick), table.move, table.concat
+ltests.c	[debug]	Internal test module; memory limit injection, GC stress, opcode checkers, C test functions exposed to Lua
+ltests.h	[debug]	Test header; enables LUA_DEBUG/LUAI_ASSERT, redefines allocator for memory fault injection
+ltm.c	[core]	Tag method (metamethod) dispatch; luaT_typenames_, luaT_gettm, luaT_callTM, __index/__newindex chains
+ltm.h	[core]	Metamethod enum; TM_INDEX..TM_CLOSE ordered enum, TM_N count, fast-access cutoff at TM_EQ
+lua.c	[core]	Standalone interpreter; REPL loop, LUA_INIT handling, signal handler, dofile/dostring startup
+lua.h	[api]	Public API header; lua_State, TValue-free types, lua_push*/lua_to*/lua_call*/lua_pcall declarations
+luaconf.h	[build]	Master configuration; LUA_INT_TYPE, LUA_FLOAT_TYPE, LUAI_MAXSTACK, path defaults, platform detection
+lualib.h	[stdlib]	Standard library registry; LUA_*LIBNAME constants, LUA_*LIBK bitmask flags, luaopen_* declarations
+lundump.c	[compiler]	Bytecode loader; LoadHeader magic/version check, LoadFunction rebuilds Proto from luac binary format
+lundump.h	[compiler]	Undump header; LUAC_DATA/INT/INST/NUM verification constants, LUAC_VERSION nibble encoding
+lutf8lib.c	[string]	UTF-8 library; utf8.codes/codepoint/char/len/offset, MAXUNICODE=0x10FFFF decoder/encoder
+lvm.c	[vm]	Main interpreter loop; luaV_execute dispatch over all opcodes, arithmetic/comparison/metamethod calls
+lvm.h	[vm]	VM header; cvt2str/cvt2num coercion macros, luaV_execute/luaV_objcomp/luaV_idiv declarations
+lzio.c	[core]	Buffered input stream; luaZ_fill refill callback, luaZ_read block reader over ZIO
+lzio.h	[core]	ZIO stream header; zgetc single-char macro, Mbuffer dynamic buffer, luaZ_initbuffer/resetbuffer
+onelua.c	[build]	Unity build entry; #includes all core + lib sources for single-TU compilation via gcc -o lua onelua.c -lm
+
+
+## lua.c (lines 81-120 of 794)
+** interpreter.
+*/
+static void laction (int i) {
+  int flag = LUA_MASKCALL | LUA_MASKRET | LUA_MASKLINE | LUA_MASKCOUNT;
+  setsignal(i, SIG_DFL); /* if another SIGINT happens, terminate process */
+  lua_sethook(globalL, lstop, flag, 1);
+}
+
+
+static void print_usage (const char *badoption) {
+  lua_writestringerror("%s: ", progname);
+  if (badoption[1] == 'e' || badoption[1] == 'l')
+    lua_writestringerror("'%s' needs argument\n", badoption);
+  else
+    lua_writestringerror("unrecognized option '%s'\n", badoption);
+  lua_writestringerror(
+  "usage: %s [options] [script [args]]\n"
+  "Available options are:\n"
+  "  -e stat   execute string 'stat'\n"
+  "  -i        enter interactive mode after executing 'script'\n"
+  "  -l mod    require library 'mod' into global 'mod'\n"
+  "  -l g=mod  require library 'mod' into global 'g'\n"
+  "  -v        show version information\n"
+  "  -E        ignore environment variables\n"
+  "  -W        turn warnings on\n"
+  "  --        stop handling options\n"
+  "  -         stop handling options and execute stdin\n"
+  ,
+  progname);
+}
+
+
+/*
+** Prints an error message, adding the program name in front of it
+** (if present)
+*/
+static void l_message (const char *pname, const char *msg) {
+  if (pname) lua_writestringerror("%s: ", pname);
+  lua_writestringerror("%s\n", msg);
+}
+
+## lua.c (lines 1-40 of 794)
+/*
+** $Id: lua.c $
+** Lua stand-alone interpreter
+** See Copyright Notice in lua.h
+*/
+
+#define lua_c
+
+#include "lprefix.h"
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <signal.h>
+
+#include "lua.h"
+
+#include "lauxlib.h"
+#include "lualib.h"
+#include "llimits.h"
+
+
+#if !defined(LUA_PROGNAME)
+#define LUA_PROGNAME		"lua"
+#endif
+
+#if !defined(LUA_INIT_VAR)
+#define LUA_INIT_VAR		"LUA_INIT"
+#endif
+
+/* Name of the environment variable with the name of the readline library */
+#if !defined(LUA_RLLIB_VAR)
+#define LUA_RLLIB_VAR		"LUA_READLINELIB"
+#endif
+
+
+#define LUA_INITVARVERSION	LUA_INIT_VAR LUA_VERSUFFIX
+
+
+## lopnames.h (lines 1-40 of 105)
+/*
+** $Id: lopnames.h $
+** Opcode names
+** See Copyright Notice in lua.h
+*/
+
+#if !defined(lopnames_h)
+#define lopnames_h
+
+#include <stddef.h>
+
+
+/* ORDER OP */
+
+static const char *const opnames[] = {
+  "MOVE",
+  "LOADI",
+  "LOADF",
+  "LOADK",
+  "LOADKX",
+  "LOADFALSE",
+  "LFALSESKIP",
+  "LOADTRUE",
+  "LOADNIL",
+  "GETUPVAL",
+  "SETUPVAL",
+  "GETTABUP",
+  "GETTABLE",
+  "GETI",
+  "GETFIELD",
+  "SETTABUP",
+  "SETTABLE",
+  "SETI",
+  "SETFIELD",
+  "NEWTABLE",
+  "SELF",
+  "ADDI",
+  "ADDK",
+  "SUBK",
+  "MULK",
+
+## ldebug.c (lines 761-800 of 979)
+
+/*
+** Raise an error for calling a non-callable object. Try to find a name
+** for the object based on how it was called ('funcnamefromcall'); if it
+** cannot get a name there, try 'varinfo'.
+*/
+l_noret luaG_callerror (lua_State *L, const TValue *o) {
+  CallInfo *ci = L->ci;
+  const char *name = NULL;  /* to avoid warnings */
+  const char *kind = funcnamefromcall(L, ci, &name);
+  const char *extra = kind ? formatvarinfo(L, kind, name) : varinfo(L, o);
+  typeerror(L, o, "call", extra);
+}
+
+
+l_noret luaG_forerror (lua_State *L, const TValue *o, const char *what) {
+  luaG_runerror(L, "bad 'for' %s (number expected, got %s)",
+                   what, luaT_objtypename(L, o));
+}
+
+
+l_noret luaG_concaterror (lua_State *L, const TValue *p1, const TValue *p2) {
+  if (ttisstring(p1) || cvt2str(p1)) p1 = p2;
+  luaG_typeerror(L, p1, "concatenate");
+}
+
+
+l_noret luaG_opinterror (lua_State *L, const TValue *p1,
+                         const TValue *p2, const char *msg) {
+  if (!ttisnumber(p1))  /* first operand is wrong? */
+    p2 = p1;  /* now second is wrong */
+  luaG_typeerror(L, p2, msg);
+}
+
+
+/*
+** Error when both values are convertible to numbers, but not to integers
+*/
+l_noret luaG_tointerror (lua_State *L, const TValue *p1, const TValue *p2) {
+  lua_Integer temp;
+
+## ldebug.c (lines 1-40 of 979)
+/*
+** $Id: ldebug.c $
+** Debug Interface
+** See Copyright Notice in lua.h
+*/
+
+#define ldebug_c
+#define LUA_CORE
+
+#include "lprefix.h"
+
+
+#include <stdarg.h>
+#include <stddef.h>
+#include <string.h>
+
+#include "lua.h"
+
+#include "lapi.h"
+#include "lcode.h"
+#include "ldebug.h"
+#include "ldo.h"
+#include "lfunc.h"
+#include "lobject.h"
+#include "lopcodes.h"
+#include "lstate.h"
+#include "lstring.h"
+#include "ltable.h"
+#include "ltm.h"
+#include "lvm.h"
+
+
+
+#define LuaClosure(f)		((f) != NULL && (f)->c.tt == LUA_VLCL)
+
+static const char strlocal[] = "local";
+static const char strupval[] = "upvalue";
+
+static const char *funcnamefromcall (lua_State *L, CallInfo *ci,
+                                                   const char **name);
+
+## lauxlib.h (lines 41-80 of 271)
+} luaL_Reg;
+
+
+#define LUAL_NUMSIZES	(sizeof(lua_Integer)*16 + sizeof(lua_Number))
+
+LUALIB_API void (luaL_checkversion_) (lua_State *L, lua_Number ver, size_t sz);
+#define luaL_checkversion(L)  \
+	  luaL_checkversion_(L, LUA_VERSION_NUM, LUAL_NUMSIZES)
+
+LUALIB_API int (luaL_getmetafield) (lua_State *L, int obj, const char *e);
+LUALIB_API int (luaL_callmeta) (lua_State *L, int obj, const char *e);
+LUALIB_API const char *(luaL_tolstring) (lua_State *L, int idx, size_t *len);
+LUALIB_API int (luaL_argerror) (lua_State *L, int arg, const char *extramsg);
+LUALIB_API int (luaL_typeerror) (lua_State *L, int arg, const char *tname);
+LUALIB_API const char *(luaL_checklstring) (lua_State *L, int arg,
+                                                          size_t *l);
+LUALIB_API const char *(luaL_optlstring) (lua_State *L, int arg,
+                                          const char *def, size_t *l);
+LUALIB_API lua_Number (luaL_checknumber) (lua_State *L, int arg);
+LUALIB_API lua_Number (luaL_optnumber) (lua_State *L, int arg, lua_Number def);
+
+LUALIB_API lua_Integer (luaL_checkinteger) (lua_State *L, int arg);
+LUALIB_API lua_Integer (luaL_optinteger) (lua_State *L, int arg,
+                                          lua_Integer def);
+
+LUALIB_API void (luaL_checkstack) (lua_State *L, int sz, const char *msg);
+LUALIB_API void (luaL_checktype) (lua_State *L, int arg, int t);
+LUALIB_API void (luaL_checkany) (lua_State *L, int arg);
+
+LUALIB_API int   (luaL_newmetatable) (lua_State *L, const char *tname);
+LUALIB_API void  (luaL_setmetatable) (lua_State *L, const char *tname);
+LUALIB_API void *(luaL_testudata) (lua_State *L, int ud, const char *tname);
+LUALIB_API void *(luaL_checkudata) (lua_State *L, int ud, const char *tname);
+
+LUALIB_API void (luaL_where) (lua_State *L, int lvl);
+LUALIB_API int (luaL_error) (lua_State *L, const char *fmt, ...);
+
+LUALIB_API int (luaL_checkoption) (lua_State *L, int arg, const char *def,
+                                   const char *const lst[]);
+
+
+## lauxlib.h (lines 1-40 of 271)
+/*
+** $Id: lauxlib.h $
+** Auxiliary functions for building Lua libraries
+** See Copyright Notice in lua.h
+*/
+
+
+#ifndef lauxlib_h
+#define lauxlib_h
+
+
+#include <stddef.h>
+#include <stdio.h>
+
+#include "luaconf.h"
+#include "lua.h"
+
+
+/* global table */
+#define LUA_GNAME	"_G"
+
+
+typedef struct luaL_Buffer luaL_Buffer;
+
+
+/* extra error code for 'luaL_loadfilex' */
+#define LUA_ERRFILE     (LUA_ERRERR+1)
+
+
+/* key, in the registry, for table of loaded modules */
+#define LUA_LOADED_TABLE	"_LOADED"
+
+
+/* key, in the registry, for table of preloaded loaders */
+#define LUA_PRELOAD_TABLE	"_PRELOAD"
+
+
+typedef struct luaL_Reg {
+  const char *name;
+  lua_CFunction func;

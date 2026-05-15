@@ -1,0 +1,45 @@
+I'll show you a Python test suite for the `celsius_to_fahrenheit` function using `pytest`:
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    def test_freezing_point(self):
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty(self):
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("not a number")
+```
+
+**How to run it:**
+
+1. Install pytest (if not already installed):
+   ```bash
+   pip install pytest
+   ```
+
+2. Save the code to a file (e.g., `test_temperature.py`) and run:
+   ```bash
+   pytest test_temperature.py
+   ```
+
+   Or run with verbose output:
+   ```bash
+   pytest test_temperature.py -v
+   ```
+
+The test suite covers:
+- **0°C** → 32°F (freezing point)
+- **100°C** → 212°F (boiling point)
+- **-40°C** → -40°F (same in both scales)
+- **Non-numeric input** → raises `TypeError` (the function will naturally raise this when multiplying a string by a number)

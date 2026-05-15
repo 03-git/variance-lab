@@ -1,0 +1,70 @@
+Here's a minimal Flask implementation:
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+def validate(data):
+    errors = {}
+    if not isinstance(data, dict):
+        return {"_": "body must be a JSON object"}
+
+    name = data.get("name")
+    if name is None:
+        errors["name"] = "required"
+    elif not isinstance(name, str) or not name.strip():
+        errors["name"] = "must be a non-empty string"
+
+    email = data.get("email")
+    if email is None:
+        errors["email"] = "required"
+    elif not isinstance(email, str) or "@" not in email:
+        errors["email"] = "must be a string containing '@'"
+
+    age = data.get("age")
+    if age is None:
+        errors["age"] = "required"
+    elif isinstance(age, bool) or not isinstance(age, int):
+        errors["age"] = "must be an integer"
+    elif age < 1 or age > 150:
+        errors["age"] = "must be between 1 and 150"
+
+    return errors
+
+@app.post("/users")
+def create_user():
+    data = request.get_json(silent=True)
+    errors = validate(data)
+    if errors:
+        return jsonify({"error": "invalid input", "details": errors}), 400
+    return jsonify({"name": data["name"], "email": data["email"], "age": data["age"]}), 201
+
+if __name__ == "__main__":
+    app.run(port=5000, debug=True)
+```
+
+## How to run it
+
+```bash
+pip install flask
+python app.py
+```
+
+## Try it
+
+```bash
+# success → 201
+curl -i -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Ada","email":"ada@example.com","age":36}'
+
+# validation failure → 400
+curl -i -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"","email":"nope","age":200}'
+```
+
+Notes on the validation:
+- `isinstance(age, bool)` check is needed because `True`/`False` are `int` in Python.
+- `request.get_json(silent=True)` returns `None` for malformed/missing JSON, which the validator rejects cleanly.

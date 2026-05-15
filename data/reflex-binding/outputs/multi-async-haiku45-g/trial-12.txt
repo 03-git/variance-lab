@@ -1,0 +1,85 @@
+Here's an async TCP echo server in Python using `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If no data, client disconnected
+            if not data:
+                print(f"Client disconnected: {addr}")
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            print(f"[{addr}] echoed: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        5555
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**To run it:**
+
+```bash
+# Terminal 1: Start the server
+python echo_server.py
+```
+
+**To test with clients:**
+
+```bash
+# Terminal 2: Client 1
+nc localhost 5555
+# Type: hello
+# Receive: hello
+
+# Terminal 3: Client 2 (simultaneous)
+nc localhost 5555
+# Type: concurrent
+# Receive: concurrent
+```
+
+Or use `telnet` instead of `nc`:
+```bash
+telnet localhost 5555
+```
+
+**Key features:**
+- Uses `asyncio.start_server()` to handle multiple concurrent clients
+- Each client connection runs `handle_client()` concurrently
+- Reads lines with `readline()` and echoes them back with `write()`
+- Properly closes connections and handles disconnections
+- Prints connection info for debugging
+
+The server will handle hundreds of concurrent clients efficiently. Each `await` point allows other clients to be served while one is waiting for input.

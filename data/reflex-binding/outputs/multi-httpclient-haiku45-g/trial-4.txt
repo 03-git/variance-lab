@@ -1,0 +1,35 @@
+Here's a Python script that does what you need:
+
+```python
+import sys
+import requests
+
+if len(sys.argv) != 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    response = requests.get(url, allow_redirects=True, timeout=10)
+    
+    print(f"Status Code: {response.status_code}")
+    print("\nResponse Headers:")
+    for key, value in response.headers.items():
+        print(f"  {key}: {value}")
+    
+    body_preview = response.text[:500]
+    print(f"\nFirst 500 characters of body:\n{body_preview}")
+    
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+```
+
+**To run it:**
+
+```bash
+python script.py "https://example.com"
+```
+
+The script uses `requests.get()` with `allow_redirects=True` (the default) to automatically follow HTTP redirects. It prints the final status code, all response headers, and the first 500 characters of the response body. If the URL is invalid or unreachable, it catches the exception and prints the error.

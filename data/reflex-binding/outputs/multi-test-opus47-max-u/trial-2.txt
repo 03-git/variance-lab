@@ -1,0 +1,38 @@
+```python
+import unittest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_negative_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_input(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+**How to run it:**
+
+Save as `test_temp.py`, then:
+
+```bash
+python test_temp.py            # direct
+python -m unittest test_temp   # via unittest module
+python -m unittest -v test_temp  # verbose
+```
+
+You should see `Ran 4 tests ... OK`. The `-40` test is the fixed point where both scales meet, and the `TypeError` is raised naturally because `"hot" * 9` produces a string but `+ 32` then fails.

@@ -1,0 +1,96 @@
+I'll show you how to build an HTTP endpoint that returns the current time in JSON format. Here are a few options depending on your preferred language:
+
+## Node.js / Express
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.get('/time', (req, res) => {
+  res.json({ time: new Date().toISOString() });
+});
+
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
+```
+
+**To run:**
+```bash
+npm install express
+node app.js
+```
+
+Then visit `http://localhost:3000/time` or `curl http://localhost:3000/time`
+
+---
+
+## Python / Flask
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    return jsonify({'time': datetime.utcnow().isoformat() + 'Z'})
+
+if __name__ == '__main__':
+    app.run(port=3000, debug=True)
+```
+
+**To run:**
+```bash
+pip install flask
+python app.py
+```
+
+Then visit `http://localhost:3000/time` or `curl http://localhost:3000/time`
+
+---
+
+## Go
+
+```go
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"time"
+)
+
+func getTime(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]string{"time": time.Now().UTC().Format(time.RFC3339)}
+	json.NewEncoder(w).Encode(response)
+}
+
+func main() {
+	http.HandleFunc("/time", getTime)
+	port := ":3000"
+	fmt.Printf("Server running at http://localhost%s\n", port)
+	log.Fatal(http.ListenAndServe(port, nil))
+}
+```
+
+**To run:**
+```bash
+go run main.go
+```
+
+Then visit `http://localhost:3000/time` or `curl http://localhost:3000/time`
+
+---
+
+All three options will return a response like:
+```json
+{"time":"2026-05-10T14:32:45.123Z"}
+```
+
+Pick whichever language you're most comfortable with!

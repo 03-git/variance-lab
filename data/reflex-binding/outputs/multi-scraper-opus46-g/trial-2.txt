@@ -1,0 +1,88 @@
+Health check is clean (good signature, no drift). Here's the script — stdlib only, no `pip install` needed (`urllib.request` is the thin wrapper over the socket/HTTP layer; `html.parser` ships with Python).
+
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print every <a> tag's href and link text."""
+import sys
+from html.parser import HTMLParser
+from urllib.request import urlopen, Request
+
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []          # list of [href, text]
+        self._href = None        # href of the <a> we're currently inside
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            self._href = dict(attrs).get("href")
+            if self._href is not None:
+                self.links.append([self._href, ""])
+
+    def handle_data(self, data):
+        if self._href is not None and self.links:
+            self.links[-1][1] += data
+
+    def handle_endtag(self, tag):
+        if tag == "a":
+            self._href = None
+
+
+def main(url):
+    req = Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urlopen(req, timeout=10) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkExtractor()
+    parser.feed(html)
+
+    if not parser.links:
+        print("(no <a> tags found)")
+        return
+    for href, text in parser.links:
+        print(f"{href}\t{text.strip()}")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1] if len(sys.argv) > 1 else "https://example.com")
+```
+
+How to run:
+
+```bash
+# save it, then:
+python3 link_extractor.py
+# or point it at any other page:
+python3 link_extractor.py https://news.ycombinator.com
+```
+
+Or run it without saving a file at all — pipe it straight into Python:
+
+```bash
+python3 - <<'EOF'
+from html.parser import HTMLParser
+from urllib.request import urlopen, Request
+
+class L(HTMLParser):
+    def __init__(self): super().__init__(); self.links=[]; self._h=None
+    def handle_starttag(self,t,a):
+        if t=="a":
+            self._h=dict(a).get("href")
+            if self._h is not None: self.links.append([self._h,""])
+    def handle_data(self,d):
+        if self._h is not None and self.links: self.links[-1][1]+=d
+    def handle_endtag(self,t):
+        if t=="a": self._h=None
+
+req=Request("https://example.com",headers={"User-Agent":"x"})
+with urlopen(req,timeout=10) as r: html=r.read().decode(r.headers.get_content_charset() or "utf-8","replace")
+p=L(); p.feed(html)
+for href,text in p.links: print(href,"\t",text.strip())
+EOF
+```
+
+For `https://example.com` you'll get one link: `https://www.iana.org/domains/example` with text `More information...`.
+
+Notes: `html.parser` is lenient but not a full DOM — for messy real-world HTML or JS-rendered pages you'd reach for `beautifulsoup4` (parsing) or a headless browser (JS). For a static page like example.com, stdlib is enough.

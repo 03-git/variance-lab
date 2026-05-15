@@ -1,0 +1,56 @@
+I'll show you a Python test suite for that function using `pytest`. Here's the code:
+
+```python
+# test_temperature.py
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+def test_freezing_point():
+    """Test that 0°C converts to 32°F"""
+    assert celsius_to_fahrenheit(0) == 32
+
+def test_boiling_point():
+    """Test that 100°C converts to 212°F"""
+    assert celsius_to_fahrenheit(100) == 212
+
+def test_forty_below():
+    """Test that -40°C converts to -40°F (same in both scales)"""
+    assert celsius_to_fahrenheit(-40) == -40
+
+def test_non_numeric_input():
+    """Test that non-numeric input raises TypeError"""
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("not a number")
+```
+
+**How to run it:**
+
+```bash
+# Install pytest if you don't have it
+pip install pytest
+
+# Run the tests
+pytest test_temperature.py
+
+# Run with verbose output
+pytest test_temperature.py -v
+
+# Run a specific test
+pytest test_temperature.py::test_freezing_point
+```
+
+The test suite covers:
+- **0°C → 32°F** (freezing point)
+- **100°C → 212°F** (boiling point)
+- **-40°C → -40°F** (the point where both scales intersect)
+- **Non-numeric input** (string raises `TypeError`)
+
+When you run `pytest -v`, you'll see output like:
+```
+test_temperature.py::test_freezing_point PASSED
+test_temperature.py::test_boiling_point PASSED
+test_temperature.py::test_forty_below PASSED
+test_temperature.py::test_non_numeric_input PASSED
+```

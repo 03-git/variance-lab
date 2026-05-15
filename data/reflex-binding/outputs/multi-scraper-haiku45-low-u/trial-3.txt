@@ -1,0 +1,79 @@
+I'll show you a Python script that fetches a URL and extracts hyperlinks. Here's the code:
+
+```python
+import requests
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []
+        self.current_text = []
+        self.in_anchor = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.in_anchor = True
+            self.current_text = []
+            for attr, value in attrs:
+                if attr == 'href':
+                    self.href = value
+                    break
+
+    def handle_data(self, data):
+        if self.in_anchor:
+            self.current_text.append(data.strip())
+
+    def handle_endtag(self, tag):
+        if tag == 'a' and self.in_anchor:
+            self.in_anchor = False
+            link_text = ' '.join(self.current_text)
+            # Resolve relative URLs to absolute URLs
+            absolute_url = urljoin(self.base_url, self.href)
+            self.links.append((absolute_url, link_text))
+
+def extract_links(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        parser = LinkExtractor(url)
+        parser.feed(response.text)
+        
+        return parser.links
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return []
+
+if __name__ == "__main__":
+    url = "https://example.com"
+    links = extract_links(url)
+    
+    print(f"Found {len(links)} links:\n")
+    for href, text in links:
+        print(f"URL: {href}")
+        print(f"Text: {text}")
+        print()
+```
+
+**To run it:**
+
+1. Install the required library:
+   ```bash
+   pip install requests
+   ```
+
+2. Run the script:
+   ```bash
+   python script.py
+   ```
+
+**How it works:**
+- Uses `requests` to fetch the webpage
+- Custom `HTMLParser` subclass to extract anchor tags and their text content
+- `urljoin()` converts relative URLs to absolute URLs
+- Prints each link's href and the anchor text
+
+The script handles relative URLs correctly and includes basic error handling for network issues.

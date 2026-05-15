@@ -1,0 +1,67 @@
+I'll show you a Python async TCP echo server using `asyncio`. Here's the complete implementation:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line of text from the client
+            data = await reader.readuntil(b'\n')
+            if not data:
+                break
+            
+            # Echo it back
+            writer.write(data)
+            await writer.drain()
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    except asyncio.IncompleteReadError:
+        pass
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server running on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+1. Save the code to a file (e.g., `echo_server.py`)
+2. Run the server: `python echo_server.py`
+3. In another terminal, test it with `netcat`:
+   ```bash
+   nc localhost 8888
+   ```
+4. Type a message and press Enter—it'll be echoed back
+5. Connect multiple clients in separate terminals simultaneously; each is handled concurrently
+
+**Key features:**
+- `asyncio.start_server()` handles the listening socket
+- `handle_client()` runs concurrently for each connection
+- `readuntil(b'\n')` reads until a newline, supporting line-based input
+- `writer.drain()` ensures the write buffer is flushed before continuing
+- Proper cleanup with `writer.close()` and `wait_closed()`
+
+The server can handle thousands of concurrent connections efficiently because `asyncio` uses a single event loop and non-blocking I/O.

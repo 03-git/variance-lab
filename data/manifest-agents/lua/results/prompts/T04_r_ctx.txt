@@ -1,0 +1,504 @@
+
+## lprefix.h (lines 1-40)
+/*
+** $Id: lprefix.h $
+** Definitions for Lua code that must come before any other header file
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lprefix_h
+#define lprefix_h
+
+
+/*
+** Allows POSIX/XSI stuff
+*/
+#if !defined(LUA_USE_C89)	/* { */
+
+#if !defined(_XOPEN_SOURCE)
+#define _XOPEN_SOURCE           600
+#elif _XOPEN_SOURCE == 0
+#undef _XOPEN_SOURCE  /* use -D_XOPEN_SOURCE=0 to undefine it */
+#endif
+
+/*
+** Allows manipulation of large files in gcc and some other compilers
+*/
+#if !defined(LUA_32BITS) && !defined(_FILE_OFFSET_BITS)
+#define _LARGEFILE_SOURCE       1
+#define _FILE_OFFSET_BITS       64
+#endif
+
+#endif				/* } */
+
+
+/*
+** Windows stuff
+*/
+#if defined(_WIN32)	/* { */
+
+#if !defined(_CRT_SECURE_NO_WARNINGS)
+#define _CRT_SECURE_NO_WARNINGS  /* avoid warnings about ISO C functions */
+#endif
+
+## lapi.c (lines 561-600)
+  ts = luaS_newextlstr (L, s, len, falloc, ud);
+  setsvalue2s(L, L->top.p, ts);
+  api_incr_top(L);
+  luaC_checkGC(L);
+  lua_unlock(L);
+  return getstr(ts);
+}
+
+
+LUA_API const char *lua_pushstring (lua_State *L, const char *s) {
+  lua_lock(L);
+  if (s == NULL)
+    setnilvalue2s(L->top.p);
+  else {
+    TString *ts;
+    ts = luaS_new(L, s);
+    setsvalue2s(L, L->top.p, ts);
+    s = getstr(ts);  /* internal copy's address */
+  }
+  api_incr_top(L);
+  luaC_checkGC(L);
+  lua_unlock(L);
+  return s;
+}
+
+
+LUA_API const char *lua_pushvfstring (lua_State *L, const char *fmt,
+                                      va_list argp) {
+  const char *ret;
+  lua_lock(L);
+  ret = luaO_pushvfstring(L, fmt, argp);
+  luaC_checkGC(L);
+  lua_unlock(L);
+  return ret;
+}
+
+
+LUA_API const char *lua_pushfstring (lua_State *L, const char *fmt, ...) {
+  const char *ret;
+  va_list argp;
+
+## lapi.c (lines 481-520)
+  return (!ttisthread(o)) ? NULL : thvalue(o);
+}
+
+
+/*
+** Returns a pointer to the internal representation of an object.
+** Note that ISO C does not allow the conversion of a pointer to
+** function to a 'void*', so the conversion here goes through
+** a 'size_t'. (As the returned pointer is only informative, this
+** conversion should not be a problem.)
+*/
+LUA_API const void *lua_topointer (lua_State *L, int idx) {
+  const TValue *o = index2value(L, idx);
+  switch (ttypetag(o)) {
+    case LUA_VLCF: return cast_voidp(cast_sizet(fvalue(o)));
+    case LUA_VUSERDATA: case LUA_VLIGHTUSERDATA:
+      return touserdata(o);
+    default: {
+      if (iscollectable(o))
+        return gcvalue(o);
+      else
+        return NULL;
+    }
+  }
+}
+
+
+
+/*
+** push functions (C -> stack)
+*/
+
+
+LUA_API void lua_pushnil (lua_State *L) {
+  lua_lock(L);
+  setnilvalue2s(L->top.p);
+  api_incr_top(L);
+  lua_unlock(L);
+}
+
+
+## liolib.c (lines 801-840)
+  luaL_setfuncs(L, meth, 0);  /* add file methods to method table */
+  lua_setfield(L, -2, "__index");  /* metatable.__index = method table */
+  lua_pop(L, 1);  /* pop metatable */
+}
+
+
+/*
+** function to (not) close the standard files stdin, stdout, and stderr
+*/
+static int io_noclose (lua_State *L) {
+  LStream *p = tolstream(L);
+  p->closef = &io_noclose;  /* keep file opened */
+  luaL_pushfail(L);
+  lua_pushliteral(L, "cannot close standard file");
+  return 2;
+}
+
+
+static void createstdfile (lua_State *L, FILE *f, const char *k,
+                           const char *fname) {
+  LStream *p = newprefile(L);
+  p->f = f;
+  p->closef = &io_noclose;
+  if (k != NULL) {
+    lua_pushvalue(L, -1);
+    lua_setfield(L, LUA_REGISTRYINDEX, k);  /* add file to registry */
+  }
+  lua_setfield(L, -2, fname);  /* add file to module */
+}
+
+
+LUAMOD_API int luaopen_io (lua_State *L) {
+  luaL_newlib(L, iolib);  /* new module */
+  createmeta(L);
+  /* create (and set) default files */
+  createstdfile(L, stdin, IO_INPUT, "stdin");
+  createstdfile(L, stdout, IO_OUTPUT, "stdout");
+  createstdfile(L, stderr, NULL, "stderr");
+  return 1;
+}
+
+## ltests.h (lines 1-40)
+/*
+** $Id: ltests.h $
+** Internal Header for Debugging of the Lua Implementation
+** See Copyright Notice in lua.h
+*/
+
+#ifndef ltests_h
+#define ltests_h
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+/* test Lua with compatibility code */
+#define LUA_COMPAT_MATHLIB
+#undef LUA_COMPAT_GLOBAL
+#define LUA_COMPAT_GLOBAL	0
+
+
+#define LUA_DEBUG
+
+
+/* turn on assertions */
+#define LUAI_ASSERT
+
+
+/* to avoid warnings, and to make sure value is really unused */
+#define UNUSED(x)       (x=0, (void)(x))
+
+
+/* test for sizes in 'l_sprintf' (make sure whole buffer is available) */
+#undef l_sprintf
+#if !defined(LUA_USE_C89)
+#define l_sprintf(s,sz,f,i)	(memset(s,0xAB,sz), snprintf(s,sz,f,i))
+#else
+#define l_sprintf(s,sz,f,i)	(memset(s,0xAB,sz), sprintf(s,f,i))
+#endif
+
+
+/* get a chance to test code without jump tables */
+
+## lapi.c (lines 1161-1200)
+
+
+LUA_API int lua_status (lua_State *L) {
+  return APIstatus(L->status);
+}
+
+
+/*
+** Garbage-collection function
+*/
+LUA_API int lua_gc (lua_State *L, int what, ...) {
+  va_list argp;
+  int res = 0;
+  global_State *g = G(L);
+  if (g->gcstp & (GCSTPGC | GCSTPCLS))  /* internal stop? */
+    return -1;  /* all options are invalid when stopped */
+  lua_lock(L);
+  va_start(argp, what);
+  switch (what) {
+    case LUA_GCSTOP: {
+      g->gcstp = GCSTPUSR;  /* stopped by the user */
+      break;
+    }
+    case LUA_GCRESTART: {
+      luaE_setdebt(g, 0);
+      g->gcstp = 0;  /* (other bits must be zero here) */
+      break;
+    }
+    case LUA_GCCOLLECT: {
+      luaC_fullgc(L, 0);
+      break;
+    }
+    case LUA_GCCOUNT: {
+      /* GC values are expressed in Kbytes: #bytes/2^10 */
+      res = cast_int(gettotalbytes(g) >> 10);
+      break;
+    }
+    case LUA_GCCOUNTB: {
+      res = cast_int(gettotalbytes(g) & 0x3ff);
+      break;
+
+## luaconf.h (lines 641-680)
+#include <stdint.h>
+#if defined(INTPTR_MAX)  /* even in C99 this type is optional */
+#undef LUA_KCONTEXT
+#define LUA_KCONTEXT	intptr_t
+#endif
+#endif
+
+
+/*
+@@ lua_getlocaledecpoint gets the locale "radix character" (decimal point).
+** Change that if you do not want to use C locales. (Code using this
+** macro must include the header 'locale.h'.)
+*/
+#if !defined(lua_getlocaledecpoint)
+#define lua_getlocaledecpoint()		(localeconv()->decimal_point[0])
+#endif
+
+
+/*
+** macros to improve jump prediction, used mostly for error handling
+** and debug facilities. (Some macros in the Lua API use these macros.
+** Define LUA_NOBUILTIN if you do not want '__builtin_expect' in your
+** code.)
+*/
+#if !defined(luai_likely)
+
+#if !defined(LUA_NOBUILTIN) && defined(__GNUC__) && (__GNUC__ >= 3)
+#define luai_likely(x)		(__builtin_expect(((x) != 0), 1))
+#define luai_unlikely(x)	(__builtin_expect(((x) != 0), 0))
+#else
+#define luai_likely(x)		(x)
+#define luai_unlikely(x)	(x)
+#endif
+
+#endif
+
+
+
+/* }================================================================== */
+
+
+## lstate.h (lines 1-40)
+/*
+** $Id: lstate.h $
+** Global State
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lstate_h
+#define lstate_h
+
+#include "lua.h"
+
+
+/* Some header files included here need this definition */
+typedef struct CallInfo CallInfo;
+
+
+#include "lobject.h"
+#include "ltm.h"
+#include "lzio.h"
+
+
+/*
+** Some notes about garbage-collected objects: All objects in Lua must
+** be kept somehow accessible until being freed, so all objects always
+** belong to one (and only one) of these lists, using field 'next' of
+** the 'CommonHeader' for the link:
+**
+** 'allgc': all objects not marked for finalization;
+** 'finobj': all objects marked for finalization;
+** 'tobefnz': all objects ready to be finalized;
+** 'fixedgc': all objects that are not to be collected (currently
+** only small strings, such as reserved words).
+**
+** For the generational collector, some of these lists have marks for
+** generations. Each mark points to the first element in the list for
+** that particular generation; that generation goes until the next mark.
+**
+** 'allgc' -> 'survival': new objects;
+** 'survival' -> 'old': objects that survived one collection;
+** 'old1' -> 'reallyold': objects that became old in last collection;
+
+## lua.h (lines 201-240)
+LUA_API lua_Integer     (lua_tointegerx) (lua_State *L, int idx, int *isnum);
+LUA_API int             (lua_toboolean) (lua_State *L, int idx);
+LUA_API const char     *(lua_tolstring) (lua_State *L, int idx, size_t *len);
+LUA_API lua_Unsigned    (lua_rawlen) (lua_State *L, int idx);
+LUA_API lua_CFunction   (lua_tocfunction) (lua_State *L, int idx);
+LUA_API void	       *(lua_touserdata) (lua_State *L, int idx);
+LUA_API lua_State      *(lua_tothread) (lua_State *L, int idx);
+LUA_API const void     *(lua_topointer) (lua_State *L, int idx);
+
+
+/*
+** Comparison and arithmetic functions
+*/
+
+#define LUA_OPADD	0	/* ORDER TM, ORDER OP */
+#define LUA_OPSUB	1
+#define LUA_OPMUL	2
+#define LUA_OPMOD	3
+#define LUA_OPPOW	4
+#define LUA_OPDIV	5
+#define LUA_OPIDIV	6
+#define LUA_OPBAND	7
+#define LUA_OPBOR	8
+#define LUA_OPBXOR	9
+#define LUA_OPSHL	10
+#define LUA_OPSHR	11
+#define LUA_OPUNM	12
+#define LUA_OPBNOT	13
+
+LUA_API void  (lua_arith) (lua_State *L, int op);
+
+#define LUA_OPEQ	0
+#define LUA_OPLT	1
+#define LUA_OPLE	2
+
+LUA_API int   (lua_rawequal) (lua_State *L, int idx1, int idx2);
+LUA_API int   (lua_compare) (lua_State *L, int idx1, int idx2, int op);
+
+
+/*
+
+## lua.h (lines 441-480)
+
+/* }============================================================== */
+
+/*
+** {======================================================================
+** Debug API
+** =======================================================================
+*/
+
+
+/*
+** Event codes
+*/
+#define LUA_HOOKCALL	0
+#define LUA_HOOKRET	1
+#define LUA_HOOKLINE	2
+#define LUA_HOOKCOUNT	3
+#define LUA_HOOKTAILCALL 4
+
+
+/*
+** Event masks
+*/
+#define LUA_MASKCALL	(1 << LUA_HOOKCALL)
+#define LUA_MASKRET	(1 << LUA_HOOKRET)
+#define LUA_MASKLINE	(1 << LUA_HOOKLINE)
+#define LUA_MASKCOUNT	(1 << LUA_HOOKCOUNT)
+
+
+LUA_API int (lua_getstack) (lua_State *L, int level, lua_Debug *ar);
+LUA_API int (lua_getinfo) (lua_State *L, const char *what, lua_Debug *ar);
+LUA_API const char *(lua_getlocal) (lua_State *L, const lua_Debug *ar, int n);
+LUA_API const char *(lua_setlocal) (lua_State *L, const lua_Debug *ar, int n);
+LUA_API const char *(lua_getupvalue) (lua_State *L, int funcindex, int n);
+LUA_API const char *(lua_setupvalue) (lua_State *L, int funcindex, int n);
+
+LUA_API void *(lua_upvalueid) (lua_State *L, int fidx, int n);
+LUA_API void  (lua_upvaluejoin) (lua_State *L, int fidx1, int n1,
+                                               int fidx2, int n2);
+
+
+## lua.h (lines 361-400)
+
+
+/*
+** miscellaneous functions
+*/
+
+LUA_API int   (lua_error) (lua_State *L);
+
+LUA_API int   (lua_next) (lua_State *L, int idx);
+
+LUA_API void  (lua_concat) (lua_State *L, int n);
+LUA_API void  (lua_len)    (lua_State *L, int idx);
+
+#define LUA_N2SBUFFSZ	64
+LUA_API unsigned  (lua_numbertocstring) (lua_State *L, int idx, char *buff);
+LUA_API size_t  (lua_stringtonumber) (lua_State *L, const char *s);
+
+LUA_API lua_Alloc (lua_getallocf) (lua_State *L, void **ud);
+LUA_API void      (lua_setallocf) (lua_State *L, lua_Alloc f, void *ud);
+
+LUA_API void (lua_toclose) (lua_State *L, int idx);
+LUA_API void (lua_closeslot) (lua_State *L, int idx);
+
+
+/*
+** {==============================================================
+** some useful macros
+** ===============================================================
+*/
+
+#define lua_getextraspace(L)	((void *)((char *)(L) - LUA_EXTRASPACE))
+
+#define lua_tonumber(L,i)	lua_tonumberx(L,(i),NULL)
+#define lua_tointeger(L,i)	lua_tointegerx(L,(i),NULL)
+
+#define lua_pop(L,n)		lua_settop(L, -(n)-1)
+
+#define lua_newtable(L)		lua_createtable(L, 0, 0)
+
+#define lua_register(L,n,f) (lua_pushcfunction(L, (f)), lua_setglobal(L, (n)))
+
+## lauxlib.h (lines 81-120)
+LUALIB_API int (luaL_fileresult) (lua_State *L, int stat, const char *fname);
+LUALIB_API int (luaL_execresult) (lua_State *L, int stat);
+
+LUALIB_API void *(luaL_alloc) (void *ud, void *ptr, size_t osize,
+                                                    size_t nsize);
+
+
+/* predefined references */
+#define LUA_NOREF       (-2)
+#define LUA_REFNIL      (-1)
+
+LUALIB_API int (luaL_ref) (lua_State *L, int t);
+LUALIB_API void (luaL_unref) (lua_State *L, int t, int ref);
+
+LUALIB_API int (luaL_loadfilex) (lua_State *L, const char *filename,
+                                               const char *mode);
+
+#define luaL_loadfile(L,f)	luaL_loadfilex(L,f,NULL)
+
+LUALIB_API int (luaL_loadbufferx) (lua_State *L, const char *buff, size_t sz,
+                                   const char *name, const char *mode);
+LUALIB_API int (luaL_loadstring) (lua_State *L, const char *s);
+
+LUALIB_API lua_State *(luaL_newstate) (void);
+
+LUALIB_API unsigned (luaL_makeseed) (lua_State *L);
+
+LUALIB_API lua_Integer (luaL_len) (lua_State *L, int idx);
+
+LUALIB_API void (luaL_addgsub) (luaL_Buffer *b, const char *s,
+                                     const char *p, const char *r);
+LUALIB_API const char *(luaL_gsub) (lua_State *L, const char *s,
+                                    const char *p, const char *r);
+
+LUALIB_API void (luaL_setfuncs) (lua_State *L, const luaL_Reg *l, int nup);
+
+LUALIB_API int (luaL_getsubtable) (lua_State *L, int idx, const char *fname);
+
+LUALIB_API void (luaL_traceback) (lua_State *L, lua_State *L1,
+                                  const char *msg, int level);

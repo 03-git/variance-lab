@@ -1,0 +1,84 @@
+I'll show you a REST API endpoint in Node.js/Express that validates and returns user data.
+
+```javascript
+// server.js
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+// POST /users endpoint
+app.post('/users', (req, res) => {
+  const { name, email, age } = req.body;
+  const errors = [];
+
+  // Validate name
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    errors.push('name is required and must be a non-empty string');
+  }
+
+  // Validate email
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    errors.push('email is required and must contain @');
+  }
+
+  // Validate age
+  if (age === undefined || typeof age !== 'number') {
+    errors.push('age is required and must be an integer');
+  } else if (age < 1 || age > 150 || !Number.isInteger(age)) {
+    errors.push('age must be an integer between 1 and 150');
+  }
+
+  // Return errors if validation failed
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  // Return validated user
+  res.status(201).json({
+    name: name.trim(),
+    email: email.trim(),
+    age
+  });
+});
+
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+```
+
+**To run it:**
+
+1. Create a project folder and install Express:
+```bash
+mkdir api-demo && cd api-demo
+npm init -y
+npm install express
+```
+
+2. Save the code above as `server.js` and start:
+```bash
+node server.js
+```
+
+3. Test with curl:
+
+**Success (201):**
+```bash
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+```
+
+**Invalid input (400):**
+```bash
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "email": "bob-invalid", "age": 200}'
+```
+
+Returns:
+```json
+{"errors":["email is required and must contain @","age must be an integer between 1 and 150"]}
+```

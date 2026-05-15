@@ -1,0 +1,69 @@
+I'll create a Python script that does what you're asking for. Here's the code:
+
+```python
+import sys
+import requests
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python script.py <URL>")
+        sys.exit(1)
+    
+    url = sys.argv[1]
+    
+    try:
+        response = requests.get(url, allow_redirects=True)
+        
+        # Print status code
+        print(f"Status Code: {response.status_code}")
+        
+        # Print response headers
+        print("\nResponse Headers:")
+        for header, value in response.headers.items():
+            print(f"  {header}: {value}")
+        
+        # Print first 500 characters of body
+        print("\nBody (first 500 characters):")
+        body = response.text[:500]
+        print(body)
+        if len(response.text) > 500:
+            print("\n... (truncated)")
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error making request: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+1. **Install requests library** (if you don't have it):
+   ```bash
+   pip install requests
+   ```
+
+2. **Run the script**:
+   ```bash
+   python script.py https://example.com
+   ```
+
+**Example output:**
+```
+Status Code: 200
+
+Response Headers:
+  Content-Type: text/html; charset=UTF-8
+  Content-Length: 1256
+  Server: Apache
+
+Body (first 500 characters):
+<!doctype html>
+<html>
+<head>
+    <title>Example Domain</title>
+...
+```
+
+The script uses the `requests` library which automatically follows redirects by default (with `allow_redirects=True`). It handles errors gracefully and prints the status code, headers, and first 500 characters of the response body.

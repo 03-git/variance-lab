@@ -1,0 +1,287 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./runtime/subtract.sh (lines 41-80 of 1405)
+    if [ -f "$SUBTRACT_STATE" ]; then
+        local val
+        val=$(grep "^${key}=" "$SUBTRACT_STATE" 2>/dev/null | cut -d= -f2-)
+        [ -n "$val" ] && echo "$val" || echo "$default"
+    else
+        echo "$default"
+    fi
+}
+
+__subtract_state_write() {
+    # write key=value to state file
+    local key="$1" value="$2"
+    mkdir -p "$(dirname "$SUBTRACT_STATE")"
+    if [ -f "$SUBTRACT_STATE" ]; then
+        # remove existing key, append new
+        grep -v "^${key}=" "$SUBTRACT_STATE" > "${SUBTRACT_STATE}.tmp" 2>/dev/null || true
+        mv "${SUBTRACT_STATE}.tmp" "$SUBTRACT_STATE"
+    fi
+    echo "${key}=${value}" >> "$SUBTRACT_STATE"
+}
+
+__subtract_is_intent() {
+    # returns 0 if input looks like intent (2+ words AND 10+ chars)
+    local input="$1"
+    local words chars
+    words=$(echo "$input" | wc -w | tr -d ' ')
+    chars=${#input}
+    [ "$words" -ge 2 ] && [ "$chars" -ge 10 ]
+}
+
+__subtract_upgrade_hint() {
+    # called on intent miss: track strikes, maybe suggest upgrade
+    local input="$1"
+    local now misses last_miss suggested no_nags decay_days
+
+    # check flags first
+    no_nags=$(__subtract_state_read "no_nags" "false")
+    [ "$no_nags" = "true" ] && return
+
+    suggested=$(__subtract_state_read "suggested" "false")
+
+## ./runtime/subtract.sh (lines 1-40 of 1405)
+# subtract -- translation layer
+# type what you mean. the computer figures out the command.
+#
+# T0: lookup table. instant, local, no dependencies.
+# T0.5: man page routing (direct command match) + apropos fallback (discovery queries).
+# T1: embedding similarity (optional).
+# T2: local generative model (optional). requires ollama + a pulled model.
+# T4: cloud escalation (optional). requires claude CLI.
+# kiwix: questions (input ending in ?) route to local kiwix corpus.
+#
+# everything lives in ~/.subtract/. read it, edit it, delete it.
+
+SUBTRACT_DIR="${SUBTRACT_DIR:-$HOME/.subtract}"
+
+# bash hangs on unclosed quotes (what's, don't, can't) with a bare "> " prompt.
+# user doesn't know what happened. replace PS2 with an explanation.
+PS2="(unclosed quote -- press ctrl-c and rephrase without apostrophes) "
+SUBTRACT_LOOKUP_HOST="$SUBTRACT_DIR/lookdown.$(hostname -s).tsv"
+SUBTRACT_LOOKUP_UNIVERSAL="$SUBTRACT_DIR/lookdown.universal.tsv"
+SUBTRACT_SKILLS="$SUBTRACT_DIR/skills"
+SUBTRACT_KIWIX="${SUBTRACT_KIWIX:-http://localhost:8888}"
+SUBTRACT_LAST_OUTPUT=""
+SUBTRACT_MAX_CONTEXT=20
+
+# skills prefix patterns: procedural queries ("how do I X", "teach me X")
+# matched after T0, before kiwix. triggers grep against skills index.
+SUBTRACT_SKILLS_PREFIXES="how do i |how to |teach me |steps to |guide to |tutorial |tutorial for "
+
+# destructive verbs that always gate behind explicit confirmation
+# array, not string: zsh doesn't word-split unquoted $var
+SUBTRACT_DESTRUCTIVE=(rm rmdir dd mkfs chmod chown shred truncate)
+
+# upgrade injection state file
+SUBTRACT_STATE="$SUBTRACT_DIR/.state"
+
+# --- state helpers (upgrade injection) ---
+
+__subtract_state_read() {
+    # read key from state file, default to $2 if missing
+    local key="$1" default="${2:-}"
+
+## ./runtime/hosuni-discord.sh (lines 1-40 of 126)
+#!/bin/bash
+# hosuni-discord — poll Discord channels, pipe to hosuni.sh
+set -uo pipefail
+
+PIDFILE="$HOME/.hosuni/discord-poller.pid"
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    echo "already running (pid $(cat "$PIDFILE"))" >&2
+    exit 0
+fi
+echo $$ > "$PIDFILE"
+trap 'rm -f "$PIDFILE"' EXIT
+
+TOKEN=$(cat "$HOME/.keymaster/jean-discord-token.txt")
+WHITELIST="$HOME/.hosuni-discord-whitelist"
+HOSUNI="$HOME/.subtract/hosuni.sh"
+LOG="$HOME/human/sessions/hosuni-discord.log"
+STATE="$HOME/.hosuni/discord-state"
+API="https://discord.com/api/v10"
+POLL_INTERVAL=5
+CHANNELS="1489355263361286204 1483978150852559030"
+
+mkdir -p "$STATE"
+
+log() { printf "[%s] %s\n" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" >> "$LOG"; }
+
+is_whitelisted() { grep -qx "$1" "$WHITELIST" 2>/dev/null; }
+
+get_last_id() { cat "$STATE/$1" 2>/dev/null || echo "0"; }
+set_last_id() { printf '%s' "$2" > "$STATE/$1"; }
+
+send_reply() {
+    local channel="$1" content="$2"
+    while [ -n "$content" ]; do
+        local chunk
+        chunk=$(printf '%s' "$content" | head -c 2000)
+        content=$(printf '%s' "$content" | tail -c +2001)
+        curl -s -X POST "$API/channels/$channel/messages" \
+            -H "Authorization: Bot $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg c "$chunk" '{content: $c}')" >/dev/null
+
+## ./runtime/hooks/zsh.sh (lines 1-17 of 17)
+# subtract zsh hook
+# sources shared handler, sets up zsh-specific hooks
+
+# pass unmatched globs as literals (fixes "do?" being parsed as glob)
+setopt nonomatch
+
+[ -f ~/.subtract/subtract.sh ] && source ~/.subtract/subtract.sh
+
+# capture last command output before each prompt
+precmd_functions+=(__subtract_capture)
+
+# zsh command-not-found hook
+# return 0 unconditionally: zsh prints "command not found" on non-zero
+command_not_found_handler() {
+    __subtract_handle "$@"
+    return 0
+}
+
+## ./runtime/hooks/bash.sh (lines 1-11 of 11)
+# subtract bash hook
+# sources shared handler, sets up bash-specific hooks
+[ -f ~/.subtract/subtract.sh ] && source ~/.subtract/subtract.sh
+
+# capture last command output before each prompt
+PROMPT_COMMAND="__subtract_capture;${PROMPT_COMMAND:+$PROMPT_COMMAND}"
+
+# bash command-not-found hook
+command_not_found_handle() {
+    __subtract_handle "$@"
+}
+
+## ./runtime/syna_poll.c (lines 1-40 of 278)
+/*
+ * syna_poll — i2c-hid polling for GPIO-locked touchpads
+ *
+ * When BIOS locks the interrupt pin in native mode, the i2c-hid
+ * device registers but never fires interrupts. This module polls
+ * the HID input report register on a timer and injects the data
+ * into the existing i2c-hid pipeline.
+ *
+ * Build:
+ *   make -C /lib/modules/$(uname -r)/build M=$(pwd) modules
+ *
+ * Usage:
+ *   insmod syna_poll.ko [poll_ms=10] [vendor=0x06cb] [product=0xcd41]
+ */
+
+#include <linux/module.h>
+#include <linux/i2c.h>
+#include <linux/hid.h>
+#include <linux/input.h>
+#include <linux/timer.h>
+#include <linux/workqueue.h>
+#include <linux/slab.h>
+#include <linux/atomic.h>
+#include <linux/delay.h>
+
+#define DEFAULT_POLL_MS  10
+#define MIN_POLL_MS       1
+#define MAX_REPORT_SIZE  64
+#define HID_DESC_REG     0x0020
+
+static int poll_ms = DEFAULT_POLL_MS;
+module_param(poll_ms, int, 0444);
+MODULE_PARM_DESC(poll_ms, "Polling interval in milliseconds (default 10)");
+
+static int vendor = 0x06CB;
+module_param(vendor, int, 0444);
+MODULE_PARM_DESC(vendor, "I2C HID vendor ID");
+
+static int product = 0xCD41;
+module_param(product, int, 0444);
+
+## ./runtime/squared.c (lines 1-40 of 742)
+/*
+ * squared — HTTP/2 proxy for local inference multiplexing
+ *
+ * Without cert/key: h2c (cleartext HTTP/2, loopback only)
+ * With cert/key:    h2 over TLS (ALPN negotiated, all interfaces)
+ *
+ * Build:
+ *   cc -o squared squared.c $(pkg-config --cflags --libs libnghttp2) \
+ *      -lmbedtls -lmbedx509 -lmbedcrypto -lpthread
+ *
+ * Usage:
+ *   squared [port] [backend_host:port]
+ *   squared [port] [backend_host:port] cert.pem key.pem
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <signal.h>
+#include <poll.h>
+
+#include <nghttp2/nghttp2.h>
+
+#ifndef NO_TLS
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/x509_crt.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/net_sockets.h>
+#endif
+
+## Question
+What shell hooks exist in runtime/hooks/ and what do they intercept?

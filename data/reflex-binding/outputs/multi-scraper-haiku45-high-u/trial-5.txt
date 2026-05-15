@@ -1,0 +1,77 @@
+I'll show you a Python script that fetches a webpage and extracts hyperlinks:
+
+```python
+import requests
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []
+        self.current_text = []
+        self.in_anchor = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.in_anchor = True
+            self.current_text = []
+            for attr, value in attrs:
+                if attr == 'href':
+                    self.href = value
+                    break
+
+    def handle_data(self, data):
+        if self.in_anchor:
+            self.current_text.append(data.strip())
+
+    def handle_endtag(self, tag):
+        if tag == 'a' and self.in_anchor:
+            self.in_anchor = False
+            text = ' '.join(self.current_text)
+            # Convert relative URLs to absolute
+            absolute_url = urljoin(self.base_url, self.href)
+            self.links.append((absolute_url, text))
+
+def extract_links(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return
+
+    parser = LinkExtractor(url)
+    parser.feed(response.text)
+
+    print(f"\nLinks found on {url}:\n")
+    for href, text in parser.links:
+        print(f"URL: {href}")
+        print(f"Text: {text if text else '(empty)'}")
+        print()
+
+if __name__ == '__main__':
+    extract_links('https://example.com')
+```
+
+**How to run it:**
+
+1. **Install the required package:**
+   ```bash
+   pip install requests
+   ```
+
+2. **Run the script:**
+   ```bash
+   python script.py
+   ```
+
+**What it does:**
+- Uses `requests` to fetch the HTML from the URL
+- Uses Python's built-in `HTMLParser` to parse anchor tags
+- Extracts the `href` attribute and the link text
+- Converts relative URLs to absolute URLs using `urljoin`
+- Prints each URL and its associated link text
+
+**Note:** Example.com has very few links, so you'll get minimal output. To test with a more link-rich site, change the URL in the `extract_links()` call at the bottom.

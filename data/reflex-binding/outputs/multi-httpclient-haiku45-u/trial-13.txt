@@ -1,0 +1,76 @@
+Here's a Python script that does what you need:
+
+```python
+import sys
+import requests
+
+if len(sys.argv) < 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    response = requests.get(url, allow_redirects=True)
+    
+    print(f"Status Code: {response.status_code}")
+    print("\nResponse Headers:")
+    for key, value in response.headers.items():
+        print(f"  {key}: {value}")
+    
+    body_preview = response.text[:500]
+    print(f"\nFirst 500 characters of body:")
+    print(body_preview)
+    
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+```
+
+**How to run it:**
+
+```bash
+python script.py https://example.com
+```
+
+**Requirements:**
+This uses the `requests` library. Install it if needed:
+```bash
+pip install requests
+```
+
+---
+
+**Alternative using only built-in libraries** (no pip install needed):
+
+```python
+import sys
+import urllib.request
+import urllib.error
+
+if len(sys.argv) < 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    with urllib.request.urlopen(url) as response:
+        status_code = response.status
+        headers = response.headers
+        body = response.read().decode('utf-8', errors='ignore')
+        
+        print(f"Status Code: {status_code}")
+        print("\nResponse Headers:")
+        for key, value in headers.items():
+            print(f"  {key}: {value}")
+        
+        print(f"\nFirst 500 characters of body:")
+        print(body[:500])
+        
+except urllib.error.URLError as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+```
+
+The `requests` version is cleaner and more user-friendly, but the `urllib` version works without any external dependencies.

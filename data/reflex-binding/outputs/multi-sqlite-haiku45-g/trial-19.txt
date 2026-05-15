@@ -1,0 +1,83 @@
+Here's a Python script that creates a SQLite notes database, inserts sample notes, and displays them:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create an in-memory database (or use 'notes.db' for a file)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Meeting Notes', 'Discussed Q2 roadmap and priorities', datetime.now().isoformat()),
+    ('Python Tips', 'Remember to use context managers with sqlite3', datetime.now().isoformat()),
+    ('Shopping List', 'Milk, eggs, bread, coffee', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+rows = cursor.fetchall()
+
+# Print the results
+print("Notes in Database:")
+print("-" * 70)
+for row in rows:
+    note_id, title, body, created_at = row
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 70)
+
+conn.close()
+```
+
+**How to run it:**
+
+1. Save it as `notes.py` (or any `.py` filename)
+2. Run: `python notes.py`
+
+**Output:**
+```
+Notes in Database:
+----------------------------------------------------------------------
+ID: 1
+Title: Meeting Notes
+Body: Discussed Q2 roadmap and priorities
+Created: 2026-05-10T...
+----------------------------------------------------------------------
+ID: 2
+Title: Python Tips
+Body: Remember to use context managers with sqlite3
+Created: 2026-05-10T...
+----------------------------------------------------------------------
+ID: 3
+Title: Shopping List
+Body: Milk, eggs, bread, coffee
+Created: 2026-05-10T...
+----------------------------------------------------------------------
+```
+
+**Key points:**
+- `:memory:` creates a temporary database in RAM (use `'notes.db'` to persist to disk)
+- `executemany()` inserts multiple rows at once
+- `?` placeholders prevent SQL injection
+- `conn.commit()` saves changes
+- `conn.close()` releases the connection

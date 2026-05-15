@@ -1,0 +1,81 @@
+Here's a complete Python script that does everything you need:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create a connection to a SQLite database
+conn = sqlite3.connect(':memory:')  # Use ':memory:' for in-memory, or 'notes.db' for a file
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('My First Note', 'This is the body of my first note', datetime.now().isoformat()),
+    ('Shopping List', 'Milk, eggs, bread, cheese', datetime.now().isoformat()),
+    ('Project Ideas', 'Build a CLI tool, write a game, learn Rust', datetime.now().isoformat()),
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+# Print the notes
+print("All Notes:")
+print("=" * 70)
+for note_id, title, body, created_at in notes:
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 70)
+
+# Close the connection
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the code to a file (e.g., `notes.py`)
+2. Run it with: `python notes.py`
+
+**Output:**
+```
+All Notes:
+======================================================================
+ID: 1
+Title: My First Note
+Body: This is the body of my first note
+Created: 2026-05-10T14:32:45.123456
+----------------------------------------------------------------------
+ID: 2
+Title: Shopping List
+Body: Milk, eggs, bread, cheese
+Created: 2026-05-10T14:32:45.123457
+----------------------------------------------------------------------
+ID: 3
+Title: Project Ideas
+Body: Build a CLI tool, write a game, learn Rust
+Created: 2026-05-10T14:32:45.123458
+----------------------------------------------------------------------
+```
+
+**To persist the database to a file instead of memory**, change:
+```python
+conn = sqlite3.connect('notes.db')
+```

@@ -1,0 +1,88 @@
+Here's a complete async TCP echo server in Python using `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    client_addr = writer.get_extra_info('peername')
+    print(f"Client connected: {client_addr}")
+    
+    try:
+        while True:
+            # Read a line of text from the client
+            data = await reader.readline()
+            
+            # If client closes connection, data will be empty
+            if not data:
+                print(f"Client disconnected: {client_addr}")
+                break
+            
+            # Echo the data back to the client
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"[{client_addr}] Echoed: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error handling client {client_addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+async def main():
+    """Start the async TCP echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        9999
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server started on {addr[0]}:{addr[1]}")
+    print("Listening for connections...")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+   ```bash
+   python echo_server.py
+   ```
+
+2. **Test with a client** (in another terminal):
+   ```bash
+   telnet 127.0.0.1 9999
+   ```
+   
+   Then type messages and press Enter. Each line will be echoed back.
+
+3. **Or use netcat for testing:**
+   ```bash
+   echo "Hello, server!" | nc 127.0.0.1 9999
+   ```
+
+4. **Or a simple Python client:**
+   ```python
+   import socket
+   
+   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+   sock.connect(('127.0.0.1', 9999))
+   sock.sendall(b"Hello, async server!\n")
+   response = sock.recv(1024)
+   print(f"Response: {response.decode()}")
+   sock.close()
+   ```
+
+**Key features:**
+- Uses `asyncio.start_server()` for clean async handling
+- Handles multiple concurrent clients automatically
+- Reads complete lines with `readline()`
+- Properly closes connections and cleans up resources
+- Shows client addresses and echoed messages in the console

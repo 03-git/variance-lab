@@ -1,0 +1,81 @@
+I'll show you a complete Python script that creates a SQLite database with a notes table, inserts sample data, and queries it:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create an in-memory database (or use 'notes.db' for a file)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('First Note', 'This is my first note about Python databases', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discussed project roadmap and timelines', datetime.now().isoformat()),
+    ('Todo List', 'Remember to review PR, update docs, and test', datetime.now().isoformat())
+]
+
+cursor.executemany('''
+    INSERT INTO notes (title, body, created_at)
+    VALUES (?, ?, ?)
+''', sample_notes)
+
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+# Print the results
+print("All Notes:")
+print("-" * 60)
+for note in notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 60)
+
+conn.close()
+```
+
+**To run it:**
+
+Save the code to a file (e.g., `notes_db.py`) and run:
+```bash
+python notes_db.py
+```
+
+**Output:**
+```
+All Notes:
+------------------------------------------------------------
+ID: 1
+Title: First Note
+Body: This is my first note about Python databases
+Created: 2026-05-10T14:23:45.123456
+------------------------------------------------------------
+ID: 2
+Title: Meeting Notes
+Body: Discussed project roadmap and timelines
+Created: 2026-05-10T14:23:45.234567
+------------------------------------------------------------
+ID: 3
+Title: Todo List
+Body: Remember to review PR, update docs, and test
+Created: 2026-05-10T14:23:45.345678
+------------------------------------------------------------
+```
+
+If you want to persist the database to disk instead of using in-memory storage, change the first line from `sqlite3.connect(':memory:')` to `sqlite3.connect('notes.db')`.

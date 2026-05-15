@@ -1,0 +1,47 @@
+I'll show you a Python script that does this using the `requests` library, which handles redirects automatically.
+
+```python
+#!/usr/bin/env python3
+import sys
+import requests
+
+if len(sys.argv) != 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    response = requests.get(url, allow_redirects=True, timeout=10)
+    
+    print(f"Status Code: {response.status_code}")
+    print("\nResponse Headers:")
+    for header, value in response.headers.items():
+        print(f"  {header}: {value}")
+    
+    body_preview = response.text[:500]
+    print(f"\nFirst 500 characters of body:\n{body_preview}")
+    
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+```
+
+**How to run it:**
+
+```bash
+python script.py https://example.com
+```
+
+The script:
+- Takes a URL as the first argument
+- Makes a GET request with `allow_redirects=True` (follows redirects automatically)
+- Prints the final status code (after following redirects)
+- Prints all response headers
+- Prints the first 500 characters of the response body
+- Handles errors gracefully with a 10-second timeout
+
+If you don't have `requests` installed, install it first:
+```bash
+pip install requests
+```

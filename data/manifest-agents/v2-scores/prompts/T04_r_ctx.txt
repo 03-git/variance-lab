@@ -1,0 +1,430 @@
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from README.txt)
+# subtract.ing
+
+command_not_found_handle operationalized to let you type
+natural language to the command line.
+
+## Install
+
+```
+curl -sL https://subtract.ing/install.sh | bash
+```
+
+Or inspect first: `curl -sLO https://subtract.ing/install.sh && less install.sh && bash install.sh`
+
+## What it is
+
+Shell translation infrastructure. Type intent, get command,
+learn command, stop needing translation. Software as a besides.
+
+https://subtract.ing — the canonical site
+https://subtract.ing/subtracting.html — why subtract exists
+
+## For agents
+
+Read https://subtract.ing/llms.txt — manifest, routing table, four reflexes.
+
+## License
+
+GPLv3. See LICENSE.txt.
+
+## Authors
+
+Josh (@hodorigami) & LLMs (@qwen @claude @gemini @grok)
+
+
+### Chunk 2 (from runtime/llms.txt)
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/hooks/zsh.sh
+  For ~/.zshrc: source ~/.subtract/hooks/zsh.sh
+
+## Install
+
+These files are deployed by:
+  curl -sL subtract.ing/install.sh | bash
+
+Or manually:
+  mkdir -p ~/.subtract
+  curl -sL https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/subtract.sh > ~/.subtract/subtract.sh
+  # ... etc
+
+## Parent
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/llms.txt
+
+
+### Chunk 3 (from kiosk.sh)
+#!/bin/bash
+# kiosk.sh — set up a display node running multiplying.html via cage+cog
+# requires: root (for apt + autologin), Debian trixie or later
+# usage: sudo ./kiosk.sh [username]
+set -e
+
+USER="${1:-media}"
+HOME_DIR=$(eval echo "~$USER")
+SUBTRACT_DIR="$HOME_DIR/.subtract"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "run as root: sudo $0 $USER"
+    exit 1
+fi
+
+if ! id "$USER" >/dev/null 2>&1; then
+    echo "user $USER does not exist"
+    exit 1
+fi
+
+apt-get update -qq
+apt-get install -y -qq cage cog busybox espeak-ng jq chafa python3 >/dev/null
+
+# autologin on tty1
+mkdir -p /etc/systemd/system/getty@tty1.service.d
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin $USER --noclear %I \$TERM
+EOF
+systemctl daemon-reload
+
+# install subtract runtime as the user
+su -c "bash '$SCRIPT_DIR/install.sh'" "$USER"
+
+# .bash_profile: cage → cog → multiplying.html on tty1
+cat > "$HOME_DIR/.bash_profile" << 'PROFILE'
+[ -f ~/.bashrc ] && . ~/.bashrc
+
+
+
+### Chunk 4 (from index.html)
+| +--------+-----+--------+---------+--------+---------+-------+----+----+ |
++--------------------------------------------------------------------------+
+
+ HARDWARE
++--------------------------------------------------------------------------+
+|   NIC        GPU        CPU        RAM        Keyboard        Mouse      |
++--------------------------------------------------------------------------+
+</pre>
+
+<pre>
+syscall
+  |
+  +-- kernel (already there)
+  +-- shell (already there)
+  +-- subtract.ing (command_not_found_handle)
+  +-- lookdown.tsv (routing table)
+  +-- busybox httpd (ships with the OS)
+  +-- browser (already on every computer)
+  |
+  |   -- everything below this line moves control beyond your computer --
+  |
+  +-- npm/pip/cargo
+  +-- language runtime
+  +-- framework
+  +-- ORM, database server
+  +-- API gateway, auth service
+  +-- container runtime, orchestrator
+  +-- cloud provider, CI/CD, CDN
+  +-- monitoring SaaS, billing SaaS
+</pre>
+
+    <p><strong>Install</strong></p>
+<pre>curl -sL https://subtract.ing/install.sh | bash</pre>
+    <p class="dim">or: curl -sLO https://subtract.ing/install.sh && less install.sh && bash install.sh</p>
+
+    <hr>
+
+    <p><a href="/subtracting.html">Subtracting</a> <span class="dim">— why subtract exists</span></p>
+    <p><a href="/hosuni.txt">Hosuni</a> <span class="dim">— the framebuffer interface</span></p>
+
+
+
+### Chunk 5 (from install.sh)
+        echo "ABORT: manifest signature verification failed."
+        echo "The files at $BASE_URL may be compromised or the signing key rotated."
+        echo "Verify manually: https://subtract.ing/authorized_signers"
+        rm -f "$SUBTRACT_DIR/llms.txt" "$SUBTRACT_DIR/llms.txt.sig" "$SUBTRACT_DIR/authorized_signers"
+        exit 1
+    fi
+    echo "manifest signature verified: hodori@subtract.ing"
+elif [ "$MODE" = "local" ]; then
+    if [ -f "$SCRIPT_DIR/llms.txt" ] && [ -f "$SCRIPT_DIR/llms.txt.sig" ] && [ -f "$SCRIPT_DIR/authorized_signers" ]; then
+        if ! ssh-keygen -Y verify -f "$SCRIPT_DIR/authorized_signers" \
+            -I hodori@subtract.ing -n subtract.ing \
+            -s "$SCRIPT_DIR/llms.txt.sig" < "$SCRIPT_DIR/llms.txt" >/dev/null 2>&1; then
+            echo "WARNING: local manifest signature verification failed. Proceeding from trusted checkout."
+        else
+            echo "manifest signature verified: hodori@subtract.ing"
+        fi
+    fi
+fi
+
+# T0 core
+fetch "runtime/subtract.sh" "$SUBTRACT_DIR/subtract.sh"
+fetch "runtime/index.html" "$SUBTRACT_DIR/index.html"
+fetch "runtime/hooks/bash.sh" "$SUBTRACT_DIR/hooks/bash.sh"
+fetch "runtime/hooks/zsh.sh" "$SUBTRACT_DIR/hooks/zsh.sh"
+
+# mark as onboarded (fat lookdown.tsv makes interactive setup unnecessary)
+touch "$SUBTRACT_DIR/.onboarded"
+
+# Base lookdown (don't overwrite user's fork)
+[ ! -f "$SUBTRACT_DIR/lookdown.universal.tsv" ] && fetch "lookdown.universal.tsv" "$SUBTRACT_DIR/lookdown.universal.tsv"
+
+# Browser shell (ttyd) - for new users who know browser but not terminal
+TTYD_VERSION="1.7.7"
+case "$(uname -s)-$(uname -m)" in
+    Linux-x86_64)  TTYD_BIN="ttyd.x86_64" ;;
+    Linux-aarch64) TTYD_BIN="ttyd.aarch64" ;;
+    Darwin-arm64)  TTYD_BIN="ttyd.darwin-arm64" ;;
+    Darwin-x86_64) TTYD_BIN="ttyd.darwin-x86_64" ;;
+    *) TTYD_BIN="" ;;
+esac
+
+
+### Chunk 6 (from install.sh)
+
+echo ""
+echo "subtract installed."
+echo ""
+echo "Open a new terminal, then try:"
+echo "  show my files"
+echo "  what compresses files?"
+echo ""
+echo "Browser shell: shell-web start"
+echo "  then open http://localhost:7681"
+echo ""
+echo "More: https://subtract.ing"
+
+
+### Chunk 7 (from install.sh)
+#!/bin/bash
+# subtract installer - T0 core only
+# no sudo, no package managers, no system modifications
+set -e
+
+SUBTRACT_DIR="$HOME/.subtract"
+BASE_URL="https://raw.githubusercontent.com/03-git/subtract.ing/main"
+
+# Detect: are we in the repo or piped from web?
+SCRIPT_DIR="$(cd "$(dirname "$0" 2>/dev/null)" && pwd 2>/dev/null)" || SCRIPT_DIR=""
+
+if [ -d "$SCRIPT_DIR/runtime" ]; then
+    MODE="local"
+else
+    MODE="web"
+fi
+
+mkdir -p "$SUBTRACT_DIR" "$SUBTRACT_DIR/hooks" "$SUBTRACT_DIR/bin" "$SUBTRACT_DIR/log/clinical"
+
+fetch() {
+    if [ "$MODE" = "local" ]; then
+        cp "$SCRIPT_DIR/$1" "$2"
+    else
+        curl -sL "$BASE_URL/$1" > "$2"
+    fi
+}
+
+# verify manifest signature before installing anything
+if [ "$MODE" = "web" ]; then
+    fetch "llms.txt" "$SUBTRACT_DIR/llms.txt"
+    fetch "llms.txt.sig" "$SUBTRACT_DIR/llms.txt.sig"
+    fetch "authorized_signers" "$SUBTRACT_DIR/authorized_signers"
+    if ! ssh-keygen -Y verify -f "$SUBTRACT_DIR/authorized_signers" \
+        -I hodori@subtract.ing -n subtract.ing \
+        -s "$SUBTRACT_DIR/llms.txt.sig" < "$SUBTRACT_DIR/llms.txt" >/dev/null 2>&1; then
+        echo "ABORT: manifest signature verification failed."
+        echo "The files at $BASE_URL may be compromised or the signing key rotated."
+        echo "Verify manually: https://subtract.ing/authorized_signers"
+        rm -f "$SUBTRACT_DIR/llms.txt" "$SUBTRACT_DIR/llms.txt.sig" "$SUBTRACT_DIR/authorized_signers"
+        exit 1
+
+
+### Chunk 8 (from variance-lab/data/manifest-agents/dispatch.sh)
+#!/bin/bash
+set -euo pipefail
+# dispatch.sh — run both arms of manifest-agents experiment
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO="$HOME/subtract.ing"
+OUTDIR="/tmp/manifest-agents"
+QWEN_URL="http://localhost:8086/v1/chat/completions"
+DB="$OUTDIR/rag.db"
+QUESTIONS="$SCRIPT_DIR/questions.tsv"
+MANIFEST="$OUTDIR/manifest.tsv"
+MAX_CONTEXT_LINES=500
+
+mkdir -p "$OUTDIR/arm-m" "$OUTDIR/arm-r" "$OUTDIR/prompts"
+
+# --- preflight ---
+echo "=== Preflight ==="
+curl -sf "http://localhost:8086/health" >/dev/null || { echo "FAIL: qwen not running"; exit 1; }
+[ -f "$QUESTIONS" ] || { echo "FAIL: questions.tsv not found"; exit 1; }
+echo "qwen2.5-7b: ok"
+date -u > "$OUTDIR/metadata.txt"
+echo "repo: $REPO" >> "$OUTDIR/metadata.txt"
+echo "model: qwen2.5-7b-q4 @ localhost:8086" >> "$OUTDIR/metadata.txt"
+
+# --- build manifest ---
+echo "=== Building manifest ==="
+bash "$SCRIPT_DIR/manifest-walk.sh" "$REPO" > "$MANIFEST"
+echo "Manifest: $(wc -l < "$MANIFEST" | tr -d ' ') files"
+
+# --- build FTS5 index ---
+echo "=== Building RAG index ==="
+bash "$SCRIPT_DIR/rag-index.sh" "$REPO" "$DB"
+
+# --- Arm M: build context for a question ---
+arm_m_context() {
+  local question="$1"
+  local out="$2"
+
+  # start with the full manifest
+  {
+
+
+### Chunk 9 (from runtime/llms.txt)
+# subtract runtime
+
+Deployed scripts for ~/.subtract/. These are what install.sh copies.
+
+## Files
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/subtract
+  Entry point. Boots tmux with shell + claude + docs side by side.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/subtract.sh
+  Translation layer. Sources into your shell, intercepts unknown commands,
+  routes through T0 (lookup) -> T0.5 (man pages) -> T2 (local model) -> T4 (cloud).
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/ask
+  Query local model directly. Claude without the browser.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/lookdown.tsv
+  Personal fork lookup table. Seed copy; yours lives at ~/.subtract/lookdown.tsv.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/kiwix
+  Query local Kiwix corpus (Wikipedia, Stack Exchange, etc).
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/kiwix-search
+  Kiwix search helper.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/cheatsheet.txt
+  Quick reference.
+
+## Shell hooks
+
+Source ONE of these in your shell rc file. They load subtract.sh and wire up
+the command_not_found hook for your shell.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/hooks/bash.sh
+  For ~/.bashrc: source ~/.subtract/hooks/bash.sh
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/hooks/zsh.sh
+  For ~/.zshrc: source ~/.subtract/hooks/zsh.sh
+
+## Install
+
+
+### Chunk 10 (from install.sh)
+    Linux-aarch64) TTYD_BIN="ttyd.aarch64" ;;
+    Darwin-arm64)  TTYD_BIN="ttyd.darwin-arm64" ;;
+    Darwin-x86_64) TTYD_BIN="ttyd.darwin-x86_64" ;;
+    *) TTYD_BIN="" ;;
+esac
+
+if [ -n "$TTYD_BIN" ] && [ ! -f "$SUBTRACT_DIR/bin/ttyd" ]; then
+    echo "Installing browser shell (ttyd)..."
+    curl -sL "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/${TTYD_BIN}" \
+        -o "$SUBTRACT_DIR/bin/ttyd" && chmod +x "$SUBTRACT_DIR/bin/ttyd"
+fi
+
+fetch "runtime/bin/shell-web" "$SUBTRACT_DIR/bin/shell-web"
+fetch "runtime/bin/subtract-shell" "$SUBTRACT_DIR/bin/subtract-shell"
+chmod +x "$SUBTRACT_DIR/bin/shell-web" "$SUBTRACT_DIR/bin/subtract-shell"
+
+
+# browse command + launchers
+fetch "runtime/browse" "$SUBTRACT_DIR/browse"
+chmod +x "$SUBTRACT_DIR/browse"
+
+
+# Shell integration
+BASH_LINE='[ -f ~/.subtract/hooks/bash.sh ] && source ~/.subtract/hooks/bash.sh'
+ZSH_LINE='[ -f ~/.subtract/hooks/zsh.sh ] && source ~/.subtract/hooks/zsh.sh'
+PATH_LINE='export PATH="$HOME/.subtract:$PATH"'
+
+if [ -f ~/.bashrc ] && ! grep -qF 'subtract/hooks' ~/.bashrc; then
+    echo -e "\n# subtract\n$PATH_LINE\n$BASH_LINE" >> ~/.bashrc
+fi
+
+command -v zsh >/dev/null 2>&1 && [ ! -f ~/.zshrc ] && touch ~/.zshrc
+if [ -f ~/.zshrc ] && ! grep -qF 'subtract/hooks' ~/.zshrc; then
+    echo -e "\n# subtract\n$PATH_LINE\n$ZSH_LINE" >> ~/.zshrc
+fi
+
+echo ""
+echo "subtract installed."
+echo ""
+echo "Open a new terminal, then try:"
+
+
+### Chunk 11 (from runtime/hooks/bash.sh)
+# subtract bash hook
+# sources shared handler, sets up bash-specific hooks
+[ -f ~/.subtract/subtract.sh ] && source ~/.subtract/subtract.sh
+
+# capture last command output before each prompt
+PROMPT_COMMAND="__subtract_capture;${PROMPT_COMMAND:+$PROMPT_COMMAND}"
+
+# bash command-not-found hook
+command_not_found_handle() {
+    __subtract_handle "$@"
+}
+
+
+### Chunk 12 (from llms.txt)
+  - humans who want to stop depending on AI intermediaries to reach their
+    own machines
+  - agents that reach for libraries and SaaS before checking what the
+    filesystem and built-in commands already do
+
+The personal fork under ~/.subtract/ is your episodic memory. The universal
+fork (this directory) is your routing table. Read both at signon.
+
+## Install
+
+curl -sL subtract.ing/install.sh | bash
+
+Or clone and inspect first: install.sh is 50 lines.
+
+## Repo
+
+https://github.com/03-git/subtract.ing
+
+## Authors
+
+Josh (@hodorigami) & LLMs (@qwen @claude @gemini @grok)
+
+## Manifest
+
+Verify this file's signature, then verify each substrate file against its
+hash below. Single chain of trust: the signature on llms.txt anchors every
+other file.
+
+  ssh-keygen -Y verify -f authorized_signers -I hodori@subtract.ing \
+    -n subtract.ing -s llms.txt.sig < llms.txt
+
+Signer identity: hodori@subtract.ing
+Namespace:       subtract.ing
+Public key:      https://subtract.ing/authorized_signers
+
+SHA256:
+  4972bcd36e77e15a19fe5eb120bfdeb50f9872719cee44c70e9c6e592bec0b61  README.txt
+  20a4740eacb277a154beccf984657a263264376bd0f8af9cd6fedfe2ad652f2e  subtract.7.txt
+  4b742825f324eb3f3d9f16647cd7ed4ca09a4cb7ce6333dff526bc44e7a28868  governance.conf.universal.txt
+  60ad058459008c7903a9fe60b44e0d73a02ff21d3fb8b77a397a8e430af36245  software-as-a-besides.txt
+
+

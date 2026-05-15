@@ -1,0 +1,73 @@
+Here's a minimal implementation using Python's standard library (no dependencies needed):
+
+```python
+# time_server.py
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/time":
+            body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        else:
+            self.send_error(404, "Not Found")
+
+    def log_message(self, *args):  # silence default request logging (optional)
+        pass
+
+if __name__ == "__main__":
+    server = HTTPServer(("0.0.0.0", 8000), TimeHandler)
+    print("Listening on http://localhost:8000  (GET /time)")
+    server.serve_forever()
+```
+
+## How to run it
+
+```bash
+python3 time_server.py
+```
+
+Then in another terminal:
+
+```bash
+curl http://localhost:8000/time
+```
+
+Example response:
+
+```json
+{"time": "2026-05-10T14:23:51.482931+00:00"}
+```
+
+---
+
+If you'd rather use Node.js (also zero dependencies):
+
+```javascript
+// time_server.js
+const http = require("http");
+
+http.createServer((req, res) => {
+  if (req.method === "GET" && req.url === "/time") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ time: new Date().toISOString() }));
+  } else {
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Not Found" }));
+  }
+}).listen(8000, () => console.log("Listening on http://localhost:8000 (GET /time)"));
+```
+
+Run with:
+
+```bash
+node time_server.js
+```
+
+Both return an ISO 8601 timestamp — the Python version includes microseconds and an explicit `+00:00` offset; the Node version uses the `Z` suffix form (`2026-05-10T14:23:51.482Z`). Want me to adjust the format, port, or add anything else?

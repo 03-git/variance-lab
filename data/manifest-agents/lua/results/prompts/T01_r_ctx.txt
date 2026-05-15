@@ -1,0 +1,502 @@
+
+## lparser.c (lines 2161-2200)
+*/
+static void mainfunc (LexState *ls, FuncState *fs) {
+  BlockCnt bl;
+  Upvaldesc *env;
+  open_func(ls, fs, &bl);
+  setvararg(fs);  /* main function is always vararg */
+  env = allocupvalue(fs);  /* ...set environment upvalue */
+  env->instack = 1;
+  env->idx = 0;
+  env->kind = VDKREG;
+  env->name = ls->envn;
+  luaC_objbarrier(ls->L, fs->f, env->name);
+  luaX_next(ls);  /* read first token */
+  statlist(ls);  /* parse main body */
+  check(ls, TK_EOS);
+  close_func(ls);
+}
+
+
+LClosure *luaY_parser (lua_State *L, ZIO *z, Table *anchor, Mbuffer *buff,
+                       Dyndata *dyd, const char *name, int firstchar) {
+  LexState lexstate;
+  FuncState funcstate;
+  LClosure *cl;
+  lexstate.h = anchor;  /* table for scanner */
+  cl = luaF_newLclosure(L, 1);  /* create main closure */
+  luaD_anchorobj(L, anchor, obj2gco(cl));  /* anchor it in scanner table */
+  funcstate.f = cl->p = luaF_newproto(L);
+  luaC_objbarrier(L, cl, cl->p);
+  funcstate.f->source = luaS_new(L, name);  /* create and anchor TString */
+  luaC_objbarrier(L, funcstate.f, funcstate.f->source);
+  lexstate.buff = buff;
+  lexstate.dyd = dyd;
+  dyd->actvar.n = dyd->gt.n = dyd->label.n = 0;
+  luaX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
+  mainfunc(&lexstate, &funcstate);
+  lua_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
+  /* all scopes should be correctly finished */
+  lua_assert(dyd->actvar.n == 0 && dyd->gt.n == 0 && dyd->label.n == 0);
+  return cl;
+
+## lprefix.h (lines 1-40)
+/*
+** $Id: lprefix.h $
+** Definitions for Lua code that must come before any other header file
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lprefix_h
+#define lprefix_h
+
+
+/*
+** Allows POSIX/XSI stuff
+*/
+#if !defined(LUA_USE_C89)	/* { */
+
+#if !defined(_XOPEN_SOURCE)
+#define _XOPEN_SOURCE           600
+#elif _XOPEN_SOURCE == 0
+#undef _XOPEN_SOURCE  /* use -D_XOPEN_SOURCE=0 to undefine it */
+#endif
+
+/*
+** Allows manipulation of large files in gcc and some other compilers
+*/
+#if !defined(LUA_32BITS) && !defined(_FILE_OFFSET_BITS)
+#define _LARGEFILE_SOURCE       1
+#define _FILE_OFFSET_BITS       64
+#endif
+
+#endif				/* } */
+
+
+/*
+** Windows stuff
+*/
+#if defined(_WIN32)	/* { */
+
+#if !defined(_CRT_SECURE_NO_WARNINGS)
+#define _CRT_SECURE_NO_WARNINGS  /* avoid warnings about ISO C functions */
+#endif
+
+## llex.h (lines 41-80)
+  TK_DBCOLON, TK_EOS,
+  TK_FLT, TK_INT, TK_NAME, TK_STRING
+};
+
+/* number of reserved words */
+#define NUM_RESERVED	(cast_int(TK_WHILE-FIRST_RESERVED + 1))
+
+
+typedef union {
+  lua_Number r;
+  lua_Integer i;
+  TString *ts;
+} SemInfo;  /* semantics information */
+
+
+typedef struct Token {
+  int token;
+  SemInfo seminfo;
+} Token;
+
+
+/* state of the scanner plus state of the parser when shared by all
+   functions */
+typedef struct LexState {
+  int current;  /* current character (charint) */
+  int linenumber;  /* input line counter */
+  int lastline;  /* line of last token 'consumed' */
+  Token t;  /* current token */
+  Token lookahead;  /* look ahead token */
+  struct FuncState *fs;  /* current function (parser) */
+  struct lua_State *L;
+  ZIO *z;  /* input stream */
+  Mbuffer *buff;  /* buffer for tokens */
+  Table *h;  /* to avoid collection/reuse strings */
+  struct Dyndata *dyd;  /* dynamic structures used by the parser */
+  TString *source;  /* current source name */
+  TString *envn;  /* environment variable name */
+  TString *brkn;  /* "break" name (used as a label) */
+  TString *glbn;  /* "global" name (when not a reserved word) */
+} LexState;
+
+## ldebug.c (lines 241-280)
+}
+
+
+LUA_API const char *lua_setlocal (lua_State *L, const lua_Debug *ar, int n) {
+  StkId pos = NULL;  /* to avoid warnings */
+  const char *name;
+  lua_lock(L);
+  name = luaG_findlocal(L, ar->i_ci, n, &pos);
+  if (name) {
+    api_checkpop(L, 1);
+    setobjs2s(L, pos, L->top.p - 1);
+    L->top.p--;  /* pop value */
+  }
+  lua_unlock(L);
+  return name;
+}
+
+
+static void funcinfo (lua_Debug *ar, Closure *cl) {
+  if (!LuaClosure(cl)) {
+    ar->source = "=[C]";
+    ar->srclen = LL("=[C]");
+    ar->linedefined = -1;
+    ar->lastlinedefined = -1;
+    ar->what = "C";
+  }
+  else {
+    const Proto *p = cl->l.p;
+    if (p->source) {
+      ar->source = getlstr(p->source, ar->srclen);
+    }
+    else {
+      ar->source = "=?";
+      ar->srclen = LL("=?");
+    }
+    ar->linedefined = p->linedefined;
+    ar->lastlinedefined = p->lastlinedefined;
+    ar->what = (ar->linedefined == 0) ? "main" : "Lua";
+  }
+  luaO_chunkid(ar->short_src, ar->source, ar->srclen);
+
+## lobject.c (lines 681-718)
+
+void luaO_chunkid (char *out, const char *source, size_t srclen) {
+  size_t bufflen = LUA_IDSIZE;  /* free space in buffer */
+  if (*source == '=') {  /* 'literal' source */
+    if (srclen <= bufflen)  /* small enough? */
+      memcpy(out, source + 1, srclen * sizeof(char));
+    else {  /* truncate it */
+      addstr(out, source + 1, bufflen - 1);
+      *out = '\0';
+    }
+  }
+  else if (*source == '@') {  /* file name */
+    if (srclen <= bufflen)  /* small enough? */
+      memcpy(out, source + 1, srclen * sizeof(char));
+    else {  /* add '...' before rest of name */
+      addstr(out, RETS, LL(RETS));
+      bufflen -= LL(RETS);
+      memcpy(out, source + 1 + srclen - bufflen, bufflen * sizeof(char));
+    }
+  }
+  else {  /* string; format as [string "source"] */
+    const char *nl = strchr(source, '\n');  /* find first new line (if any) */
+    addstr(out, PRE, LL(PRE));  /* add prefix */
+    bufflen -= LL(PRE RETS POS) + 1;  /* save space for prefix+suffix+'\0' */
+    if (srclen < bufflen && nl == NULL) {  /* small one-line source? */
+      addstr(out, source, srclen);  /* keep it */
+    }
+    else {
+      if (nl != NULL)
+        srclen = ct_diff2sz(nl - source);  /* stop at first newline */
+      if (srclen > bufflen) srclen = bufflen;
+      addstr(out, source, srclen);
+      addstr(out, RETS, LL(RETS));
+    }
+    memcpy(out, POS, (LL(POS) + 1) * sizeof(char));
+  }
+}
+
+
+## lstate.h (lines 1-40)
+/*
+** $Id: lstate.h $
+** Global State
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lstate_h
+#define lstate_h
+
+#include "lua.h"
+
+
+/* Some header files included here need this definition */
+typedef struct CallInfo CallInfo;
+
+
+#include "lobject.h"
+#include "ltm.h"
+#include "lzio.h"
+
+
+/*
+** Some notes about garbage-collected objects: All objects in Lua must
+** be kept somehow accessible until being freed, so all objects always
+** belong to one (and only one) of these lists, using field 'next' of
+** the 'CommonHeader' for the link:
+**
+** 'allgc': all objects not marked for finalization;
+** 'finobj': all objects marked for finalization;
+** 'tobefnz': all objects ready to be finalized;
+** 'fixedgc': all objects that are not to be collected (currently
+** only small strings, such as reserved words).
+**
+** For the generational collector, some of these lists have marks for
+** generations. Each mark points to the first element in the list for
+** that particular generation; that generation goes until the next mark.
+**
+** 'allgc' -> 'survival': new objects;
+** 'survival' -> 'old': objects that survived one collection;
+** 'old1' -> 'reallyold': objects that became old in last collection;
+
+## lparser.h (lines 1-40)
+/*
+** $Id: lparser.h $
+** Lua Parser
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lparser_h
+#define lparser_h
+
+#include "llimits.h"
+#include "lobject.h"
+#include "lzio.h"
+
+
+/*
+** Expression and variable descriptor.
+** Code generation for variables and expressions can be delayed to allow
+** optimizations; An 'expdesc' structure describes a potentially-delayed
+** variable/expression. It has a description of its "main" value plus a
+** list of conditional jumps that can also produce its value (generated
+** by short-circuit operators 'and'/'or').
+*/
+
+/* kinds of variables/expressions */
+typedef enum {
+  VVOID,  /* when 'expdesc' describes the last expression of a list,
+             this kind means an empty list (so, no expression) */
+  VNIL,  /* constant nil */
+  VTRUE,  /* constant true */
+  VFALSE,  /* constant false */
+  VK,  /* constant in 'k'; info = index of constant in 'k' */
+  VKFLT,  /* floating constant; nval = numerical float value */
+  VKINT,  /* integer constant; ival = numerical integer value */
+  VKSTR,  /* string constant; strval = TString address;
+             (string is fixed by the scanner) */
+  VNONRELOC,  /* expression has its value in a fixed register;
+                 info = result register */
+  VLOCAL,  /* local variable; var.ridx = register index;
+              var.vidx = relative index in 'actvar.arr'  */
+  VVARGVAR,  /* vararg parameter; var.ridx = register index;
+
+## lmem.c (lines 81-120)
+
+
+/*
+** {==================================================================
+** Functions to allocate/deallocate arrays for the Parser
+** ===================================================================
+*/
+
+/*
+** Minimum size for arrays during parsing, to avoid overhead of
+** reallocating to size 1, then 2, and then 4. All these arrays
+** will be reallocated to exact sizes or erased when parsing ends.
+*/
+#define MINSIZEARRAY	4
+
+
+void *luaM_growaux_ (lua_State *L, void *block, int nelems, int *psize,
+                     unsigned size_elems, int limit, const char *what) {
+  void *newblock;
+  int size = *psize;
+  if (nelems + 1 <= size)  /* does one extra element still fit? */
+    return block;  /* nothing to be done */
+  if (size >= limit / 2) {  /* cannot double it? */
+    if (l_unlikely(size >= limit))  /* cannot grow even a little? */
+      luaG_runerror(L, "too many %s (limit is %d)", what, limit);
+    size = limit;  /* still have at least one free place */
+  }
+  else {
+    size *= 2;
+    if (size < MINSIZEARRAY)
+      size = MINSIZEARRAY;  /* minimum size */
+  }
+  lua_assert(nelems + 1 <= size && size <= limit);
+  /* 'limit' ensures that multiplication will not overflow */
+  newblock = luaM_saferealloc_(L, block, cast_sizet(*psize) * size_elems,
+                                         cast_sizet(size) * size_elems);
+  *psize = size;  /* update only when everything else is OK */
+  return newblock;
+}
+
+
+## loslib.c (lines 121-160)
+#else				/* }{ */
+
+/* ISO C definitions */
+#define LUA_TMPNAMBUFSIZE	L_tmpnam
+#define lua_tmpnam(b,e)		{ e = (tmpnam(b) == NULL); }
+
+#endif				/* } */
+
+#endif				/* } */
+/* }================================================================== */
+
+
+#if !defined(l_system)
+#if defined(LUA_USE_IOS)
+/* Despite claiming to be ISO C, iOS does not implement 'system'. */
+#define l_system(cmd) ((cmd) == NULL ? 0 : -1)
+#else
+#define l_system(cmd)	system(cmd)  /* default definition */
+#endif
+#endif
+
+
+static int os_execute (lua_State *L) {
+  const char *cmd = luaL_optstring(L, 1, NULL);
+  int stat;
+  errno = 0;
+  stat = l_system(cmd);
+  if (cmd != NULL)
+    return luaL_execresult(L, stat);
+  else {
+    lua_pushboolean(L, stat);  /* true if there is a shell */
+    return 1;
+  }
+}
+
+
+static int os_remove (lua_State *L) {
+  const char *filename = luaL_checkstring(L, 1);
+  errno = 0;
+  return luaL_fileresult(L, remove(filename) == 0, filename);
+
+## lparser.c (lines 41-80)
+/* because all strings are unified by the scanner, the parser
+   can use pointer equality for string equality */
+#define eqstr(a,b)	((a) == (b))
+
+
+/*
+** nodes for block list (list of active blocks)
+*/
+typedef struct BlockCnt {
+  struct BlockCnt *previous;  /* chain */
+  int firstlabel;  /* index of first label in this block */
+  int firstgoto;  /* index of first pending goto in this block */
+  short nactvar;  /* number of active declarations at block entry */
+  lu_byte upval;  /* true if some variable in the block is an upvalue */
+  lu_byte isloop;  /* 1 if 'block' is a loop; 2 if it has pending breaks */
+  lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
+} BlockCnt;
+
+
+
+/*
+** prototypes for recursive non-terminal functions
+*/
+static void statement (LexState *ls);
+static void expr (LexState *ls, expdesc *v);
+
+
+static l_noret error_expected (LexState *ls, int token) {
+  luaX_syntaxerror(ls,
+      luaO_pushfstring(ls->L, "%s expected", luaX_token2str(ls, token)));
+}
+
+
+static l_noret errorlimit (FuncState *fs, int limit, const char *what) {
+  lua_State *L = fs->ls->L;
+  const char *msg;
+  int line = fs->f->linedefined;
+  const char *where = (line == 0)
+                      ? "main function"
+                      : luaO_pushfstring(L, "function at line %d", line);
+
+## ldo.c (lines 1081-1120)
+}
+
+
+/*
+** Call the C function 'func' in protected mode, restoring basic
+** thread information ('allowhook', etc.) and in particular
+** its stack level in case of errors.
+*/
+TStatus luaD_pcall (lua_State *L, Pfunc func, void *u, ptrdiff_t old_top,
+                                  ptrdiff_t ef) {
+  TStatus status;
+  CallInfo *old_ci = L->ci;
+  lu_byte old_allowhooks = L->allowhook;
+  ptrdiff_t old_errfunc = L->errfunc;
+  L->errfunc = ef;
+  status = luaD_rawrunprotected(L, func, u);
+  if (l_unlikely(status != LUA_OK)) {  /* an error occurred? */
+    L->ci = old_ci;
+    L->allowhook = old_allowhooks;
+    status = luaD_closeprotected(L, old_top, status);
+    luaD_seterrorobj(L, status, restorestack(L, old_top));
+    luaD_shrinkstack(L);   /* restore stack size in case of overflow */
+  }
+  L->errfunc = old_errfunc;
+  return status;
+}
+
+
+
+/*
+** Execute a protected parser.
+*/
+struct SParser {  /* data to 'f_parser' */
+  ZIO *z;
+  Mbuffer buff;  /* dynamic structure used by the scanner */
+  Dyndata dyd;  /* dynamic structures used by the parser */
+  const char *mode;
+  const char *name;
+};
+
+
+## lundump.c (lines 201-240)
+
+static void loadFunction(LoadState *S, Proto *f);
+
+
+static void loadConstants (LoadState *S, Proto *f) {
+  int i;
+  int n = loadInt(S);
+  f->k = luaM_newvectorchecked(S->L, n, TValue);
+  f->sizek = n;
+  for (i = 0; i < n; i++)
+    setnilvalue(&f->k[i]);
+  for (i = 0; i < n; i++) {
+    TValue *o = &f->k[i];
+    int t = loadByte(S);
+    switch (t) {
+      case LUA_VNIL:
+        setnilvalue(o);
+        break;
+      case LUA_VFALSE:
+        setbfvalue(o);
+        break;
+      case LUA_VTRUE:
+        setbtvalue(o);
+        break;
+      case LUA_VNUMFLT:
+        setfltvalue(o, loadNumber(S));
+        break;
+      case LUA_VNUMINT:
+        setivalue(o, loadInteger(S));
+        break;
+      case LUA_VSHRSTR:
+      case LUA_VLNGSTR: {
+        lua_assert(f->source == NULL);
+        loadString(S, f, &f->source);  /* use 'source' to anchor string */
+        if (f->source == NULL)
+          error(S, "bad format for constant string");
+        setsvalue2n(S->L, o, f->source);  /* save it in the right place */
+        f->source = NULL;
+        break;
+      }

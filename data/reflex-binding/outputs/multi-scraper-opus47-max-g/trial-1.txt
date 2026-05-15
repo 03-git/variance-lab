@@ -1,0 +1,70 @@
+Stdlib only, no dependencies:
+
+```python
+#!/usr/bin/env python3
+import urllib.request
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+URL = "https://example.com"
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base):
+        super().__init__()
+        self.base = base
+        self.links = []
+        self._current_href = None
+        self._text_buf = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href:
+                self._current_href = urljoin(self.base, href)
+                self._text_buf = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._text_buf.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            text = "".join(self._text_buf).strip()
+            self.links.append((self._current_href, text))
+            self._current_href = None
+            self._text_buf = []
+
+req = urllib.request.Request(URL, headers={"User-Agent": "link-extractor/1.0"})
+with urllib.request.urlopen(req, timeout=10) as resp:
+    html = resp.read().decode(resp.headers.get_content_charset() or "utf-8")
+
+parser = LinkExtractor(URL)
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"{href}\t{text!r}")
+```
+
+Run it:
+
+```bash
+python3 extract_links.py
+```
+
+Or pipe it via stdin without saving:
+
+```bash
+python3 - <<'PY'
+# (paste the script body here)
+PY
+```
+
+Expected output for `example.com` (one link):
+
+```
+https://www.iana.org/domains/example	'More information...'
+```
+
+Notes:
+- `urljoin` resolves relative hrefs against the page URL.
+- Swap to `requests` + `bs4` if you want fragment/CSS-selector handling; stdlib is enough for plain anchor extraction.

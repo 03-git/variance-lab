@@ -1,0 +1,46 @@
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    addr = writer.get_extra_info('peername')
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:
+                break
+            writer.write(data)
+            await writer.drain()
+    except ConnectionResetError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+async def main(host='127.0.0.1', port=8888):
+    server = await asyncio.start_server(handle_client, host, port)
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+Run it:
+
+```
+python3 server.py
+```
+
+Test with multiple concurrent clients:
+
+```
+nc 127.0.0.1 8888
+```
+
+Or with a quick concurrent load check:
+
+```
+for i in 1 2 3; do (echo "hello $i" | nc -q1 127.0.0.1 8888) & done; wait
+```
+
+Each client gets its own coroutine; the event loop multiplexes them on one thread.

@@ -1,0 +1,85 @@
+I'll show you a Node.js/Express solution with input validation:
+
+```javascript
+// server.js
+import express from 'express';
+
+const app = express();
+app.use(express.json());
+
+const validateUser = (body) => {
+  const errors = [];
+
+  if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
+    errors.push('name is required and must be a non-empty string');
+  }
+
+  if (!body.email || typeof body.email !== 'string' || !body.email.includes('@')) {
+    errors.push('email is required and must contain @');
+  }
+
+  if (body.age === undefined || body.age === null) {
+    errors.push('age is required');
+  } else if (!Number.isInteger(body.age) || body.age < 1 || body.age > 150) {
+    errors.push('age must be an integer between 1 and 150');
+  }
+
+  return errors;
+};
+
+app.post('/users', (req, res) => {
+  const errors = validateUser(req.body);
+
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  const user = {
+    id: Date.now(),
+    name: req.body.name.trim(),
+    email: req.body.email.trim(),
+    age: req.body.age
+  };
+
+  res.status(201).json(user);
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
+```
+
+**To run:**
+```bash
+# Initialize project
+npm init -y
+npm install express
+
+# Create server.js with the code above, then run:
+node server.js
+```
+
+**Test it:**
+```bash
+# Valid request (returns 201)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Alice","email":"alice@example.com","age":30}'
+
+# Missing name (returns 400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email":"bob@example.com","age":25}'
+
+# Invalid email (returns 400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Charlie","email":"invalid-email","age":35}'
+
+# Age out of range (returns 400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Dave","email":"dave@example.com","age":200}'
+```
+
+The validation catches all issues upfront and returns a `400` with an `errors` array describing what's wrong. Valid requests return `201` with the created user object including an `id`.

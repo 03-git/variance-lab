@@ -1,0 +1,84 @@
+Here's a complete Python script that demonstrates SQLite database operations with a notes table:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create database (use ':memory:' for in-memory, or 'notes.db' for persistent file)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+notes = [
+    ('Shopping List', 'Milk, eggs, bread, cheese', datetime.now().isoformat()),
+    ('Project Ideas', 'Build a todo app, learn Rust, contribute to open source', datetime.now().isoformat()),
+    ('Python Tips', 'Use list comprehensions for cleaner code, context managers for resource handling', datetime.now().isoformat())
+]
+
+cursor.executemany('''
+    INSERT INTO notes (title, body, created_at) 
+    VALUES (?, ?, ?)
+''', notes)
+
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+all_notes = cursor.fetchall()
+
+# Print results
+print("All Notes:")
+print("-" * 70)
+for note_id, title, body, created_at in all_notes:
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 70)
+
+conn.close()
+```
+
+**How to run it:**
+
+```bash
+python script.py
+```
+
+**Expected output:**
+```
+All Notes:
+----------------------------------------------------------------------
+ID: 1
+Title: Shopping List
+Body: Milk, eggs, bread, cheese
+Created: 2026-05-10T...
+----------------------------------------------------------------------
+ID: 2
+Title: Project Ideas
+Body: Build a todo app, learn Rust, contribute to open source
+Created: 2026-05-10T...
+----------------------------------------------------------------------
+ID: 3
+Title: Python Tips
+Body: Use list comprehensions for cleaner code, context managers for resource handling
+Created: 2026-05-10T...
+----------------------------------------------------------------------
+```
+
+**Key points:**
+- `':memory:'` creates a temporary in-memory database (data is lost when the script exits)
+- Replace with `'notes.db'` to persist the database to a file
+- `executemany()` inserts multiple rows efficiently
+- `?` placeholders prevent SQL injection
+- `commit()` saves changes to the database

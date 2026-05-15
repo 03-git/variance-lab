@@ -1,0 +1,124 @@
+Here's a clean implementation using **Python + FastAPI** (Pydantic handles validation automatically):
+
+```python
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, EmailStr, field_validator, ValidationError
+import uvicorn
+
+app = FastAPI()
+
+class User(BaseModel):
+    name: str
+    email: str
+    age: int
+
+    @field_validator("name")
+    @classmethod
+    def name_not_empty(cls, v):
+        if not v.strip():
+            raise ValueError("name cannot be empty")
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def email_contains_at(cls, v):
+        if "@" not in v:
+            raise ValueError("email must contain @")
+        return v
+
+    @field_validator("age")
+    @classmethod
+    def age_in_range(cls, v):
+        if not (1 <= v <= 150):
+            raise ValueError("age must be between 1 and 150")
+        return v
+
+@app.post("/users", status_code=201)
+async def create_user(user: User):
+    return user.model_dump()
+
+@app.exception_handler(422)
+async def validation_exception_handler(request, exc):
+    errors = [
+        {"field": e["loc"][-1], "message": e["msg"]}
+        for e in exc.errors()
+    ]
+    return JSONResponse(status_code=400, content={"errors": errors})
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
+**Install and run:**
+```bash
+pip install fastapi uvicorn
+python main.py
+```
+
+---
+
+**Test it:**
+
+Success (201):
+```bash
+curl -s -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}' | python -m json.tool
+```
+```json
+{"name": "Alice", "email": "alice@example.com", "age": 30}
+```
+
+Failure (400):
+```bash
+curl -s -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "", "email": "notanemail", "age": 200}' | python -m json.tool
+```
+```json
+{
+  "errors": [
+    {"field": "name", "message": "Value error, name cannot be empty"},
+    {"field": "email", "message": "Value error, email must contain @"},
+    {"field": "age", "message": "Value error, age must be between 1 and 150"}
+  ]
+}
+```
+
+---
+
+If you prefer **Node.js + Express**, here's the equivalent:
+
+```js
+const express = require("express");
+const app = express();
+app.use(express.json());
+
+app.post("/users", (req, res) => {
+  const { name, email, age } = req.body;
+  const errors = [];
+
+  if (!name || typeof name !== "string" || !name.trim())
+    errors.push({ field: "name", message: "name is required and must be a non-empty string" });
+
+  if (!email || !email.includes("@"))
+    errors.push({ field: "email", message: "email must contain @" });
+
+  if (!Number.isInteger(age) || age < 1 || age > 150)
+    errors.push({ field: "age", message: "age must be an integer between 1 and 150" });
+
+  if (errors.length) return res.status(400).json({ errors });
+
+  res.status(201).json({ name: name.trim(), email, age });
+});
+
+app.listen(8000, () => console.log("Listening on :8000"));
+```
+
+```bash
+npm install express
+node server.js
+```
+
+Both behave identically. FastAPI is the better choice if you want automatic OpenAPI docs at `http://localhost:8000/docs`.

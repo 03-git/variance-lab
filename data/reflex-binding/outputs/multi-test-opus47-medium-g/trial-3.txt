@@ -1,0 +1,45 @@
+Kernel primitive here is `assert`; `unittest` is just the stdlib harness around it. Using `unittest` since you asked for a "suite" and it gives you the runner for free.
+
+```python
+# test_temp.py
+import unittest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_40(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run it:
+
+```
+python -m unittest test_temp.py -v
+```
+
+or, if you keep the `if __name__ == "__main__"` block:
+
+```
+python test_temp.py -v
+```
+
+Note: `"hot" * 9` is actually valid in Python (string repetition) — it's the subsequent `/ 5` that raises `TypeError`, so the test passes. If you swap in a type that fails earlier (e.g. `None`), it still raises `TypeError`, so the test holds either way.
+
+(Replace the inline `celsius_to_fahrenheit` def with an import from your real module when you have one.)

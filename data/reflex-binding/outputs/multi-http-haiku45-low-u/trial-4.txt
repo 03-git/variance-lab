@@ -1,0 +1,97 @@
+I'll show you a simple HTTP endpoint that returns the current time as JSON. Here are a few options depending on your preferred language:
+
+## Node.js/Express
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.get('/time', (req, res) => {
+  res.json({ time: new Date().toISOString() });
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
+```
+
+**To run:**
+```bash
+npm install express
+node app.js
+```
+
+Then visit `http://localhost:3000/time`
+
+---
+
+## Python/Flask
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    return jsonify(time=datetime.now().isoformat())
+
+if __name__ == '__main__':
+    app.run(port=3000)
+```
+
+**To run:**
+```bash
+pip install flask
+python app.py
+```
+
+---
+
+## Go
+
+```go
+package main
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"time"
+)
+
+func timeHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"time": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+func main() {
+	http.HandleFunc("/time", timeHandler)
+	log.Println("Server running on http://localhost:3000")
+	log.Fatal(http.ListenAndServe(":3000", nil))
+}
+```
+
+**To run:**
+```bash
+go run app.go
+```
+
+---
+
+## Testing
+
+Once running, test with:
+```bash
+curl http://localhost:3000/time
+```
+
+You should get a response like:
+```json
+{"time": "2026-05-10T14:35:22.123Z"}
+```
+
+Pick whichever language you prefer—all three will work identically!

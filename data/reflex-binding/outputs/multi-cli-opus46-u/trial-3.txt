@@ -1,0 +1,68 @@
+```python
+#!/usr/bin/env python3
+"""A small CLI tool that parses --host, --port, and --verbose flags."""
+
+import argparse
+import json
+import sys
+
+
+def port_type(value):
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value!r}")
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError(f"port must be between 1 and 65535, got {port}")
+    return port
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Print the parsed configuration as JSON.")
+    parser.add_argument("--host", default="localhost", help="Hostname to bind to (default: localhost)")
+    parser.add_argument("--port", type=port_type, default=8080, help="Port number, 1-65535 (default: 8080)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+
+    args = parser.parse_args(argv)
+
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+### How to run it
+
+Save it as `config_cli.py`, then:
+
+```bash
+# Defaults
+python3 config_cli.py
+# {
+#   "host": "localhost",
+#   "port": 8080,
+#   "verbose": false
+# }
+
+# With flags
+python3 config_cli.py --host example.com --port 9000 --verbose
+# {
+#   "host": "example.com",
+#   "port": 9000,
+#   "verbose": true
+# }
+
+# Invalid port -> argparse prints an error and exits with status 2
+python3 config_cli.py --port 70000
+# error: argument --port: port must be between 1 and 65535, got 70000
+
+python3 config_cli.py --port abc
+# error: argument --port: port must be an integer, got 'abc'
+```
+
+Notes:
+- `port_type` does the validation: it rejects non-integers and anything outside 1–65535, so by the time `args.port` exists it's already valid.
+- `action="store_true"` makes `--verbose` a boolean that defaults to `False`.
+- `argparse` gives you `-h/--help` for free.

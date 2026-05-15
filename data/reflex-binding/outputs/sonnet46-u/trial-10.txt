@@ -1,0 +1,65 @@
+Here's a minimal HTTP server in Python using only the standard library:
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime, timezone
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(body)
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, *args):
+        pass  # suppress default request logging
+
+if __name__ == '__main__':
+    server = HTTPServer(('', 8000), TimeHandler)
+    print('Listening on http://localhost:8000')
+    server.serve_forever()
+```
+
+**To run it:**
+
+```bash
+python3 server.py
+```
+
+**To test it:**
+
+```bash
+curl http://localhost:8000/time
+```
+
+**Example response:**
+
+```json
+{"time": "2026-05-10T14:32:01.123456+00:00"}
+```
+
+No dependencies — runs with any Python 3.x. The timestamp is UTC with timezone offset (`+00:00`), which is valid ISO 8601.
+
+If you'd prefer Node.js instead:
+
+```js
+const http = require('http');
+
+http.createServer((req, res) => {
+  if (req.method === 'GET' && req.url === '/time') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ time: new Date().toISOString() }));
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+}).listen(8000, () => console.log('Listening on http://localhost:8000'));
+```
+
+Run with `node server.js`, test the same way.

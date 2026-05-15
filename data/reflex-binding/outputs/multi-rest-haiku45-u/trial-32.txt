@@ -1,0 +1,139 @@
+I'll show you a complete REST API endpoint implementation with validation. Here's a Node.js/Express solution:
+
+```javascript
+// server.js
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+// Validation helper
+function validateUser(data) {
+  const errors = {};
+  
+  if (!data.name || typeof data.name !== 'string' || !data.name.trim()) {
+    errors.name = 'name is required and must be a non-empty string';
+  }
+  
+  if (!data.email || typeof data.email !== 'string') {
+    errors.email = 'email is required and must be a string';
+  } else if (!data.email.includes('@')) {
+    errors.email = 'email must contain @';
+  }
+  
+  if (data.age === undefined || data.age === null) {
+    errors.age = 'age is required';
+  } else if (!Number.isInteger(data.age)) {
+    errors.age = 'age must be an integer';
+  } else if (data.age < 1 || data.age > 150) {
+    errors.age = 'age must be between 1 and 150';
+  }
+  
+  return Object.keys(errors).length > 0 ? errors : null;
+}
+
+app.post('/users', (req, res) => {
+  const errors = validateUser(req.body);
+  
+  if (errors) {
+    return res.status(400).json({ errors });
+  }
+  
+  const user = {
+    id: Date.now(),
+    name: req.body.name.trim(),
+    email: req.body.email,
+    age: req.body.age
+  };
+  
+  res.status(201).json(user);
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
+```
+
+**To run it:**
+
+```bash
+# Install dependencies
+npm init -y
+npm install express
+
+# Run the server
+node server.js
+```
+
+**Test it with curl:**
+
+```bash
+# Valid request (201)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "john@example.com", "age": 30}'
+
+# Missing name (400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "john@example.com", "age": 30}'
+
+# Invalid email (400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "invalid", "age": 30}'
+
+# Age out of range (400)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "john@example.com", "age": 200}'
+```
+
+**Alternative Python/Flask version:**
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+def validate_user(data):
+    errors = {}
+    
+    if not data.get('name') or not isinstance(data['name'], str) or not data['name'].strip():
+        errors['name'] = 'name is required and must be a non-empty string'
+    
+    if not data.get('email') or not isinstance(data['email'], str):
+        errors['email'] = 'email is required and must be a string'
+    elif '@' not in data['email']:
+        errors['email'] = 'email must contain @'
+    
+    if 'age' not in data:
+        errors['age'] = 'age is required'
+    elif not isinstance(data['age'], int) or isinstance(data['age'], bool):
+        errors['age'] = 'age must be an integer'
+    elif not (1 <= data['age'] <= 150):
+        errors['age'] = 'age must be between 1 and 150'
+    
+    return errors if errors else None
+
+@app.post('/users')
+def create_user():
+    errors = validate_user(request.json or {})
+    
+    if errors:
+        return {'errors': errors}, 400
+    
+    user = {
+        'id': int(time.time() * 1000),
+        'name': request.json['name'].strip(),
+        'email': request.json['email'],
+        'age': request.json['age']
+    }
+    
+    return user, 201
+
+if __name__ == '__main__':
+    app.run(debug=True, port=3000)
+```
+
+Both implementations validate all fields, return 400 with detailed error messages on failure, and return 201 with the validated user object on success.

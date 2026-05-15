@@ -1,0 +1,74 @@
+I'll show you an async TCP echo server using Python's `asyncio` module:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # Check if client disconnected
+            if not data:
+                print(f"Client disconnected: {addr}")
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    
+    except asyncio.CancelledError:
+        print(f"Client {addr} connection cancelled")
+    except Exception as e:
+        print(f"Error handling client {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+async def start_server(host='127.0.0.1', port=9999):
+    """Start the TCP echo server."""
+    server = await asyncio.start_server(handle_client, host, port)
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(start_server())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+   ```bash
+   python echo_server.py
+   ```
+
+2. **Connect clients in separate terminals:**
+   ```bash
+   nc 127.0.0.1 9999
+   ```
+   or using telnet:
+   ```bash
+   telnet 127.0.0.1 9999
+   ```
+
+3. **Send text:**
+   Type any line and press Enter. It will be echoed back immediately.
+
+**What's happening:**
+- `handle_client()` processes each connected client concurrently
+- `reader.readline()` waits for a full line (newline-terminated)
+- `writer.write()` and `await writer.drain()` send data back
+- The server spawns a new task per client, so multiple clients run simultaneously without blocking each other
+- `asyncio.run()` runs the event loop until the server shuts down (Ctrl+C)
+
+You can test with multiple clients at once—each will echo independently without interfering with the others.

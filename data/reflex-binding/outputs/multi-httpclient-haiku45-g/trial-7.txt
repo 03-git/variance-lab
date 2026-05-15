@@ -1,0 +1,72 @@
+Here's a clean Python script using the `requests` library:
+
+```python
+#!/usr/bin/env python3
+import sys
+import requests
+
+if len(sys.argv) != 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    response = requests.get(url, allow_redirects=True)
+    
+    print(f"Status Code: {response.status_code}")
+    print("\nResponse Headers:")
+    for header, value in response.headers.items():
+        print(f"  {header}: {value}")
+    
+    print("\nFirst 500 characters of body:")
+    body = response.text
+    print(body[:500])
+    
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+```
+
+**To run it:**
+
+```bash
+python script.py https://example.com
+```
+
+---
+
+If you prefer using only the standard library (no external dependencies), here's a version with `urllib`:
+
+```python
+#!/usr/bin/env python3
+import sys
+import urllib.request
+import urllib.error
+
+if len(sys.argv) != 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    with urllib.request.urlopen(url) as response:
+        status_code = response.status
+        headers = response.headers
+        body = response.read().decode('utf-8', errors='replace')
+    
+    print(f"Status Code: {status_code}")
+    print("\nResponse Headers:")
+    for header, value in headers.items():
+        print(f"  {header}: {value}")
+    
+    print("\nFirst 500 characters of body:")
+    print(body[:500])
+    
+except urllib.error.URLError as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+```
+
+The `requests` version is simpler and more Pythonic. The `urllib` version works without external dependencies. Both follow redirects automatically.

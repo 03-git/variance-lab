@@ -1,0 +1,449 @@
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./SOUL.txt (lines 1-29 of 29)
+SOUL.txt — signed under hodori@subtract.ing
+
+You are hosuni. You answer questions and operate this machine.
+
+The humans asking include children. Answer directly.
+If you know it, say it. If you don't, say that.
+Match the question's level — a seven-year-old and an adult
+get different answers to the same question.
+
+When someone asks about the world — history, science, animals,
+games, how things work — answer from what you know. Prefer
+the concrete: real things, real names, real numbers.
+You are a starting point, not the last word.
+
+When someone asks about this machine — files, commands, what
+is running — operate:
+  Read before assuming.
+  Check before claiming.
+  Name the primitive before reaching for a wrapper.
+  Don't delete, move, or overwrite without being asked.
+
+Short answers that feel complete. No preamble. No apology.
+No three paragraphs before the useful part.
+
+If a question is dangerous to answer for a child, say why
+instead of just refusing.
+
+The goal is literacy. The human learns the command and stops
+needing translation. Besides, not instead.
+
+## ./hosuni.txt (lines 41-80 of 114)
+
+  lookdown.tsv        The same pattern-matching routing tables that the
+                      shell translation layer uses. hosuni.c loads both
+                      the per-host (~/.subtract/lookdown.<hostname>.tsv)
+                      and universal (~/.subtract/lookdown.universal.tsv)
+                      tables at startup. In READ mode, lookdown intercepts
+                      queries that match a pattern and answers instantly
+                      without inference. In RUN mode, lookdown provides
+                      the program list.
+
+  inference endpoint  hosuni.c connects to whatever answers on the host
+                      and port read from ~/.subtract/inference_host and
+                      ~/.subtract/inference_port (default 127.0.0.1:8087).
+                      In the subtract.ing formation, that's parsimony
+                      proxying to llama.cpp, but hosuni.c is endpoint-
+                      agnostic — anything speaking OpenAI-compatible chat
+                      completions works.
+
+  hosuni-prefetch     Before sending a query to inference, hosuni.c forks
+                      ~/.subtract/bin/hosuni-prefetch, which enriches the
+                      query with external context. The enriched prompt goes
+                      to the model; the user's original query stays clean.
+
+  SOUL                System prompt loaded via --soul flag. Plain text file
+                      that sets the model's disposition for the conversation.
+
+  ~/.subtract/        Config files: inference_host, inference_port.
+                      Session logs written to ~/.subtract/sessions/.
+                      Starred entries saved to ~/.subtract/.starred.
+
+## How it renders
+
+hosuni.c talks directly to the display hardware:
+
+  Linux:  DRM/KMS — opens /dev/dri/card*, sets mode, double-buffered
+          page flip with vsync. Reads keyboard via /dev/input/event*.
+
+  macOS:  Cocoa — NSWindow with a backing bitmap, keyboard events via
+          NSEvent. Same rendering code, different platform layer.
+
+
+## ./hosuni.txt (lines 1-40 of 114)
+# hosuni.c
+
+Framebuffer computing for humans. ~2,200 lines of C, no dependencies
+beyond libc, libdrm (Linux), and Cocoa (macOS). Compiles to a single
+binary under 200KB.
+
+hosuni.c is the subtract.ing interface that replaced the browser-based
+demos (demo.html, multiplying.html, the clinical pages). Those pages
+required a Python bridge, a local HTTP server, and a browser. hosuni.c
+needs a keyboard and a screen.
+
+Named for the digital governess in the subtract.ing formation —
+the process that sits with the kids at the framebuffer while the
+governor works.
+
+## What it does
+
+Three modes, plus a starred-launch shortcut:
+
+  READ  (F1)  Ask a question, get a streamed answer from the local
+              inference server. Conversation history persists across
+              turns. Shows time-to-first-token and tokens/sec.
+
+  PLAY  (F2)  Launch the starred entry from the lookdown table
+              directly. One keypress to resume whatever was last
+              starred in RUN mode.
+
+  RUN   (F3)  Type-to-filter launcher over the lookdown table.
+              Every [player] entry in lookdown.tsv becomes a
+              launchable program. Star entries for quick access
+              via F2.
+
+  TEACH (F4)  vi-subset text editor. Gap buffer, normal/insert/command
+              modes, yank/paste, line numbers, ex commands (:w, :q).
+
+White text on black background, fixed-width font rendered via
+stb_truetype. The cursor is a colored block. The status bar shows
+the current mode, and in READ mode, inference timing.
+
+## What it uses from subtract.ing
+
+## ./variance-lab.txt (lines 2081-2120 of 2802)
+      extglob unsupported but not used in current TSV
+
+**Observation:** local model is now structurally excluded from
+reviewing cal.c — the file exceeds its context window. This
+limits the third lineage to parsimony-sized artifacts. The
+finding from leg 1 (local missed the fflush bug) may have been
+partly explained by context pressure, not just capability.
+
+**Gate 2 status:** pending — compile and test lookdown on acer
+with children's patterns (godzilla, caterpillar, etc.).
+
+### Leg 3 — SOUL injection + conversation history
+
+**Change:** ~120 lines added to runtime/cal/cal.c.
+`cal_infer_stream_msgs` sends a pre-built messages JSON array
+instead of a bare prompt. `build_messages_json` constructs
+`[system, ...history, user]` from SOUL file + conversation
+history + current query. `history_add` manages a 20-message
+ring buffer (10 turns), evicting oldest turn when full. SOUL
+loaded at startup from `--soul` flag or default
+`$HOME/subtract.ing/SOUL.txt`. ESC clears history.
+
+**Why:** cal.c sent single stateless prompts with no system
+context. Every query was independent — no SOUL (personality/
+constraints), no memory of prior turns. The model couldn't
+maintain a conversation or follow standing instructions.
+
+**Architecture decision:** cal.c builds its own messages array
+and sends directly to llama-server via HTTP, rather than
+routing through hosuni.sh. This avoids modifying hosuni's
+non-streaming inference path and keeps the streaming socket
+approach that already works. Hosuni integration for tool use
+and cloud fallback deferred to a future leg.
+
+**Rubric:** seven binary criteria pre-committed before dispatch
+(messages format, SOUL loading, history ring, history lifecycle,
+non-regression, JSON escaping, buffer safety).
+
+**Dispatch:** two reviewers (local llama excluded — context
+window too small for 1600-line file).
+
+## ./variance-lab.txt (lines 1-40 of 2802)
+# variance-lab — empirical proof layer
+
+This is the claim layer of the subtract stack. Harness and raw outputs live at
+github.com/03-git/variance-lab (substrate, reproducible). These findings are
+the load-bearing empirical claims that the subtract doctrine relies on.
+
+  Canonical:   https://subtract.ing/variance-lab.txt (signed via llms.txt manifest)
+  Methodology: https://subtract.ing/variance-lab-handler-methodology.txt (three-gate validation, 2026-04-18)
+  Harness:     https://github.com/03-git/variance-lab (runnable, reproducible)
+  Signer:      hodori@subtract.ing
+  Namespace:   subtract.ing
+
+Verify:
+
+  curl -sO https://subtract.ing/llms.txt
+  curl -sO https://subtract.ing/llms.txt.sig
+  curl -sO https://subtract.ing/variance-lab.txt
+  ssh-keygen -Y verify -f <(curl -s https://subtract.ing/authorized_signers) \
+    -I hodori@subtract.ing -n subtract.ing -s llms.txt.sig < llms.txt
+  grep "variance-lab.txt" llms.txt | sha256sum -c
+
+
+================================================================
+
+---
+title: Three Questions for Agentic Autonomy
+date: 2026-03-28
+source: production empirical (consulting methodology derived from formation buildout)
+domain:
+  - agentic-consulting
+  - workflow-automation
+  - autonomy-assessment
+  - human-ai-task-allocation
+keywords:
+  - agentic autonomy assessment
+  - consulting intake protocol
+  - workflow automation assessment
+  - human KPI identification
+  - via negativa methodology
+  - autonomy blocker taxonomy
+
+## ./variance-lab-handler-methodology.txt (lines 41-80 of 398)
+```
+# handler.sh modifications — dispatch spec
+
+You are being given a standalone implementation task. No prior conversation
+context is assumed. Respond with ONLY the bash code requested, no commentary,
+no markdown fences, no explanation before or after.
+
+## Context
+
+`handler.sh` is a subtract.ing runtime file sourced into bash/zsh startup
+(hooks/bash.sh, hooks/zsh.sh). It already defines:
+
+- `SUBTRACT_DIR="$HOME/.subtract"` exported
+- `SUBTRACT_LOOKUP="$SUBTRACT_DIR/lookdown.tsv"` exported
+- `__subtract_handle` — called from `command_not_found_handle` (bash) and
+  `command_not_found_handler` (zsh) to translate natural-language intents
+  via lookdown.tsv and execute the resolved command
+- `__subtract_capture` — runs before each prompt via `PROMPT_COMMAND` (bash)
+  or `precmd_functions` (zsh). Uses `fc -ln -1` to capture the last command
+  into `SUBTRACT_LAST_OUTPUT`
+
+Function naming convention: `__subtract_*` prefix for internal helpers.
+
+Canonical log format spec: https://subtract.ing/session-log.spec.txt
+
+## Task 1: log writer
+
+Add a function `__subtract_log` that appends one TSV row per user input to a
+per-session log file. Called from the existing hooks:
+- `__subtract_handle` at end-of-invocation (intent case, `behavior` prefix `i:`)
+- pre-prompt hook (direct command case, `behavior` prefix `c:`)
+
+Row format (tab-separated, no quoting):
+    timestamp<TAB>antecedent<TAB>behavior<TAB>consequence<TAB>next_behavior
+
+- timestamp: ISO 8601 UTC
+- antecedent: cwd=REL;last=WORD;exit=CODE
+- behavior: {i|c|m}:raw_string (any literal tab escaped as \t)
+- consequence: exit_code:outcome:resolved (outcome starts pending; resolved
+  is the command actually executed for i: case)
+
+## ./variance-lab-handler-methodology.txt (lines 1-40 of 398)
+# Variance-Lab: handler.sh Substrate-Code Selection
+## A three-gate methodology report
+
+  Canonical:  https://subtract.ing/variance-lab-handler-methodology.txt (to be signed via llms.txt manifest)
+  Harness:    /tmp artifacts preserved; reproducible under subtract.ing runtime
+  Signer:     hodori@subtract.ing
+  Namespace:  subtract.ing
+
+### Artifact paths
+
+Artifacts backing this report live under `github.com/03-git/variance-lab/data/handler/`.
+
+What survived the original `/tmp` run and is published:
+
+  data/handler/handler-dispatch-spec.txt      4,663-char dispatch prompt (Task 1 + Task 2)
+  data/handler/handler-dispatch-rubric.txt    pre-committed evaluation rubric
+
+What did not survive (original `/tmp` paths, not preserved across session boundary — see Limitations):
+
+  /tmp/impl-{opus47,sonnet45,sonnet46,sonnet46low,qwen3coder}.sh    five implementations
+  /tmp/ship-decision.txt                                             deliberative-pass prompt
+  /tmp/vote-*.txt                                                    eight voter responses
+
+### Terminology
+
+- **Effort tier** (`high` / `low` / etc.): `CLAUDE_CODE_EFFORT_LEVEL` environment variable passed to `claude -p`. Governs reasoning-depth setting for the invocation.
+- **`nba <mode>`**: local Rousseau wrapper (script at `~/scripts/nba`) that dispatches to a `nanobot agent -c ~/.nanobot/<mode>.json`. Modes: `fast` → phi-4-mini on :8081; `rag` → qwen3-32b on :8082; `reasoning` → gemma-4-26b on :8083; `code` → Qwen3-Coder-30B-A3B on :8084.
+
+---
+
+## Abstract
+
+A pre-committed rubric was applied mechanically to five implementations of a session-logging extension to `handler.sh`. Two implementations tied at the top of the rubric's weighted score; the committed tiebreak rule (lowest LoC within a 2-point tie) selected a functionally valid implementation, but the tied implementation with the higher LoC produced zero valid rows when sourced into a test shell because its output included a markdown code-fence wrapper that altered shell parse semantics. An eight-model deliberative pass, dispatched across three training lineages, converged seven-of-eight on an implementation that neither the rubric nor the functional gate would have selected on their own. The finding reported here is about the three-gate methodology — static rubric, functional verification, deliberative pass — and the interactions between them.
+
+---
+
+## Spec
+
+The following spec was dispatched verbatim to each implementation target. No per-target modification. No prior conversation context assumed.
+
+
+## ./subtract.7.txt (lines 81-120 of 177)
+computer|lookdown.tsv|<1MB|already there
+computer|apropos|\[em]|already there
+assisted|embed binary|45MB|ships
+assisted|llama.cpp|850MB|ships
+assisted|whisper.cpp|150MB|ships
+assisted|piper-tts|50MB|ships
+remote|curl + API|0|already there
+.TE
+.PP
+Goal: fade toward computer. Less inference over time, more direct expression.
+.PP
+Every component is either "already there" or "single binary + model." Full local
+install is roughly 1.1GB.
+.SH BUFFER-SUBTRACT PATTERN
+A substrate honors the pattern if and only if all six invariants hold.
+.IP 1. 4
+Native modality owns the buffer. subtract never owns it.
+.IP 2. 4
+Subtraction is explicit. A specific gesture hands the buffer to subtract.
+No polling.
+.IP 3. 4
+subtract reads, translates, writes back. It does not commit. The user's
+commit gesture remains the only path to action.
+.IP 4. 4
+Non-subtraction has zero residue. A user who never invokes subtract has a
+substrate bit-identical to one without subtract installed.
+.IP 5. 4
+Successful subtractions train toward direct expression. Users internalize the
+direct form and stop subtracting.
+.IP 6. 4
+The router is modality-blind. String in, string out.
+.PP
+The required precondition: the buffer must be inspectable without committing.
+Modalities where intent commits as it accumulates (streaming execution,
+direct-manipulation gestures, ambient sensors without human gates) have no
+buffer for subtract to read. The pattern does not apply there.
+.SH OUTPUT DISPATCH
+Each row in lookdown.tsv can specify an output tag that controls how results
+render. Two tags exist:
+.TP
+
+## ./subtract.7.txt (lines 1-40 of 177)
+.TH SUBTRACT 7 "2026-04-12" "subtract" "Miscellaneous Information Manual"
+.SH NAME
+subtract \- shell translation layer for agents and the humans who deploy them
+.SH SYNOPSIS
+.nf
+curl \-sL subtract.ing/boot | claude \-p
+.fi
+.PP
+subtract has no binary of its own at the computer layer. It is a discipline
+loaded into an existing shell session, a set of kernel primitives already on
+the machine, and a small fork layer under
+.IR ~/.subtract/ .
+Upgrades add single binaries (embed, llama.cpp, whisper.cpp, piper-tts) on top
+of that floor.
+.SH DESCRIPTION
+subtract is software
+.IR "as a besides" .
+It is a translation layer between human intent and the shell, designed so that
+successful translations train the user toward direct expression. The AI is not
+the product. Literacy is the product. Dependency is the failure mode.
+.PP
+subtract serves two populations:
+.TP
+.B humans
+who want to stop depending on AI intermediaries to reach their own machines.
+.TP
+.B agents
+whose training defaulted to Python libraries, SaaS APIs, and framework
+abstractions \[em] and who need a counter-training layer pointing them back at
+the kernel primitives that solved the same problems decades earlier.
+.PP
+Three layers subtract in sequence:
+.IP \(bu 4
+.B subtract
+subtracts from the environment (no frameworks, no SaaS).
+.IP \(bu 4
+.B the human
+subtracts from the agent's context (pre-flight, pushback on drift).
+.IP \(bu 4
+.B the agent
+
+## ./software-as-a-besides.txt (lines 1-40 of 52)
+# Why subtract
+
+subtract is software as a besides. It represents the primal translation layer native to computers.
+
+The local model shows you the command. The lookup table pattern-matches it. Eventually you type it yourself. The AI isn't needed. That's the point.
+
+The hope is literacy, not dependency. You graduate from "show my files" to ls, from subtract to the commands themselves. No wrapper. No subscription. No intermediary between you and the machine.
+
+subtract shows you the supercomputer in every computer — when you look down close enough.
+
+## Sovereignty
+
+subtract rests on three primitives that already ship with Unix:
+
+| Leg | Primitive | Purpose |
+|-----|-----------|---------|
+| Entry | command_not_found_handle | Intent enters bash |
+| Trust | ssh-keygen -Y | Signed provenance for knowledge |
+| Time | sleep, at, cron | Yield to the kernel scheduler |
+
+No account. No API key. No terms of service from a foreign company. No usage meter that resets on someone else's schedule. The primitives work in any jurisdiction, on any hardware, offline.
+
+## Energy model
+
+As learned commands grow, the work approaches a syscall and the energy cost falls toward the kernel's own floor. Local inference stays flat per request. Cloud inference is flat or rising as orchestration accumulates. One curve goes down over time; the others don't.
+
+## Where it sits
+
+```
+syscall
+  |
+  +-- kernel (already there)
+  +-- shell (already there)
+  +-- subtract (one function, one TSV, one hook from 2009)
+  +-- busybox httpd (ships with the OS)
+  +-- browser (already on every computer)
+  |
+  |   -- everything below this line moves control and visibility beyond your computer --
+  |
+  +-- npm/pip/cargo

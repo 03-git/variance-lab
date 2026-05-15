@@ -1,0 +1,68 @@
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._capture = False
+        self._text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            attrs = dict(attrs)
+            self._current_href = attrs.get("href")
+            self._capture = True
+            self._text = []
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._capture:
+            self.links.append((self._current_href, "".join(self._text).strip()))
+            self._capture = False
+
+    def handle_data(self, data):
+        if self._capture:
+            self._text.append(data)
+
+with urllib.request.urlopen("https://example.com") as resp:
+    html = resp.read().decode()
+
+parser = LinkParser()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"{text!r:30} -> {href}")
+```
+
+**How to run** (no dependencies beyond stdlib):
+
+```bash
+python3 script.py
+```
+
+Or inline without a file:
+
+```bash
+python3 -c "
+import urllib.request
+from html.parser import HTMLParser
+
+class LP(HTMLParser):
+    def __init__(self):
+        super().__init__(); self.links=[]; self._h=None; self._c=False; self._t=[]
+    def handle_starttag(self,tag,attrs):
+        if tag=='a': self._h=dict(attrs).get('href'); self._c=True; self._t=[]
+    def handle_endtag(self,tag):
+        if tag=='a' and self._c: self.links.append((self._h,''.join(self._t).strip())); self._c=False
+    def handle_data(self,d):
+        if self._c: self._t.append(d)
+
+with urllib.request.urlopen('https://example.com') as r: html=r.read().decode()
+p=LP(); p.feed(html)
+for h,t in p.links: print(f'{t!r:30} -> {h}')
+"
+```
+
+`example.com` has one link — `"More information..."` pointing to `https://www.iana.org/domains/reserved`.

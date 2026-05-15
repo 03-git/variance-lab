@@ -1,0 +1,74 @@
+I'll show you a Python script that fetches a URL and extracts hyperlinks from the HTML.
+
+```python
+import requests
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self.current_text = []
+    
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            attrs_dict = dict(attrs)
+            href = attrs_dict.get('href', '')
+            self.current_text = []
+    
+    def handle_data(self, data):
+        self.current_text.append(data.strip())
+    
+    def handle_endtag(self, tag):
+        if tag == 'a':
+            text = ' '.join(self.current_text)
+            # Get the last href from starttag
+            if hasattr(self, '_last_href'):
+                self.links.append({
+                    'href': self._last_href,
+                    'text': text
+                })
+    
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            attrs_dict = dict(attrs)
+            self._last_href = attrs_dict.get('href', '')
+            self.current_text = []
+
+try:
+    response = requests.get('https://example.com')
+    response.raise_for_status()
+    
+    parser = LinkExtractor()
+    parser.feed(response.text)
+    
+    print(f"Found {len(parser.links)} links:\n")
+    for link in parser.links:
+        href = link['href']
+        text = link['text'] if link['text'] else "(no text)"
+        print(f"  href: {href}")
+        print(f"  text: {text}\n")
+
+except requests.exceptions.RequestException as e:
+    print(f"Error fetching the URL: {e}")
+```
+
+**How to run it:**
+
+1. **Install dependencies** (if you don't have them):
+   ```bash
+   pip install requests
+   ```
+
+2. **Run the script**:
+   ```bash
+   python script.py
+   ```
+
+The script:
+- Fetches the HTML from the URL using `requests`
+- Uses `HTMLParser` to parse the HTML and extract `<a>` tags
+- Captures both the `href` attribute and the link text
+- Prints each link with its href and text content
+
+If a link has no text, it prints "(no text)" as a placeholder.

@@ -1,0 +1,38 @@
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32.0)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212.0)
+
+    def test_negative_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40.0)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Save as `test_temp.py` and run with:
+
+```
+python test_temp.py
+```
+
+Or for verbose output:
+
+```
+python -m unittest -v test_temp.py
+```
+
+Note: the non-numeric test expects a `TypeError`, which Python raises naturally when you try to multiply a string by a float — no extra validation needed in the function.

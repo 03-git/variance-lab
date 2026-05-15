@@ -1,0 +1,51 @@
+Here's a Python script that fetches a website and extracts all hyperlinks:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+url = "https://example.com"
+
+try:
+    response = requests.get(url, timeout=10)
+    response.raise_for_status()
+    
+    soup = BeautifulSoup(response.content, 'html.parser')
+    
+    links = soup.find_all('a')
+    
+    if not links:
+        print("No links found.")
+    else:
+        print(f"Found {len(links)} link(s):\n")
+        for link in links:
+            href = link.get('href')
+            text = link.get_text(strip=True)
+            print(f"Text: {text}")
+            print(f"URL:  {href}\n")
+            
+except requests.exceptions.RequestException as e:
+    print(f"Error fetching the URL: {e}")
+```
+
+**How to run it:**
+
+1. **Install dependencies:**
+   ```bash
+   pip install requests beautifulsoup4
+   ```
+
+2. **Save and run** (or just paste into a Python shell):
+   ```bash
+   python script.py
+   ```
+
+**What it does:**
+- Fetches the HTML from the URL using `requests`
+- Parses it with BeautifulSoup
+- Finds all `<a>` tags
+- Extracts the `href` attribute and the link text
+- Prints each pair with clear formatting
+- Handles errors gracefully
+
+You can modify the `url` variable to scrape any website. For sites with more complex structures, you might need to adjust the BeautifulSoup parser or add more sophisticated filtering.

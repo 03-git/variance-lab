@@ -1,0 +1,86 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using pytest.
+
+```python
+# test_celsius_to_fahrenheit.py
+
+import pytest
+
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+
+class TestCelsiusToFahrenheit:
+    """Test suite for celsius_to_fahrenheit function."""
+    
+    def test_zero_celsius(self):
+        """0°C should be 32°F."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """100°C should be 212°F."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty(self):
+        """−40°C should be −40°F (same in both scales)."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input_string(self):
+        """Non-numeric input should raise TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("not a number")
+    
+    def test_non_numeric_input_none(self):
+        """None input should raise TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit(None)
+    
+    def test_float_input(self):
+        """Float values should work correctly."""
+        assert celsius_to_fahrenheit(37.5) == pytest.approx(99.5)
+    
+    def test_negative_temperature(self):
+        """Negative temperatures should convert correctly."""
+        assert celsius_to_fahrenheit(-10) == 14
+
+
+# To run the tests:
+# 1. Install pytest: pip install pytest
+# 2. Run: pytest test_celsius_to_fahrenheit.py -v
+# 
+# Example output:
+# test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_zero_celsius PASSED
+# test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+# test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_negative_forty PASSED
+# test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_non_numeric_input_string PASSED
+# test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_non_numeric_input_none PASSED
+# test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_float_input PASSED
+# test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_negative_temperature PASSED
+```
+
+**How to run it:**
+
+```bash
+# Install pytest if you don't have it
+pip install pytest
+
+# Run the full test suite with verbose output
+pytest test_celsius_to_fahrenheit.py -v
+
+# Run a specific test
+pytest test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_zero_celsius -v
+
+# Run with short summary
+pytest test_celsius_to_fahrenheit.py
+```
+
+**Key test cases:**
+- **0°C** → 32°F (freezing point)
+- **100°C** → 212°F (boiling point)
+- **-40°C** → -40°F (same in both scales)
+- **Non-numeric inputs** (string and None) → TypeError
+- **Float inputs** → works correctly
+- **Negative temperatures** → converts properly
+
+The test uses `pytest.approx()` for floating-point comparisons to avoid precision issues, and `pytest.raises(TypeError)` to verify that invalid inputs throw the expected error.

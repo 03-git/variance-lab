@@ -1,0 +1,502 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from runtime/subtract.sh)
+            return 1
+        fi
+    else
+        # multi-match: return list for handler to display
+        local list=""
+        local n=1
+        while IFS= read -r match; do
+            list="${list}${n}. ${match}"$'\n'
+            n=$((n+1))
+        done <<< "$candidates"
+        # cache for "show N" retrieval
+        echo "$candidates" > ${TMPDIR:-/tmp}/.subtract-skills-lastmatch.${USER:-$$}
+        echo "list:${count}"$'\n'"${list}"
+        return 0
+    fi
+}
+
+# --- T0: lookup table ---
+
+__subtract_lookup_file() {
+    local input_lower
+    input_lower=$(__subtract_lower "$1")
+    local pattern tag cmd rest pattern_lower
+    while IFS=$'\t' read -r pattern rest; do
+        [[ "$pattern" =~ ^#.*$ || -z "$pattern" ]] && continue
+        pattern_lower=$(__subtract_lower "$pattern")
+        # shellcheck disable=SC2254
+        if [ -n "$ZSH_VERSION" ]; then
+            [[ "$input_lower" == $~pattern_lower ]] || continue
+        else
+            [[ "$input_lower" == $pattern_lower ]] || continue
+        fi
+        if [[ "$rest" =~ ^\[([a-z]+)\] ]]; then
+            if [ -n "$ZSH_VERSION" ]; then tag="${match[1]}"; else tag="${BASH_REMATCH[1]}"; fi
+            cmd="${rest#*	}"
+        else
+            tag="stdout"
+            cmd="$rest"
+        fi
+        echo "${tag}	${cmd}"
+
+
+### Chunk 2 (from variance-lab.txt)
+
+Three tiers, governed by `~/.subtract/LOOKDOWN.txt`:
+
+```
+lookdown.universal.tsv  — Lindy knowledge, QLoRA-portable,
+                          helpful to every household
+lookdown.<hostname>.tsv — host-specific services, hardware,
+                          paths
+lookdown.<user>.tsv     — that user's confessions and taste
+```
+
+**Universal entry test:** would including this entry in a
+QLoRA fine-tune improve a local model for any subtract user?
+If yes, universal. If only for this household, name it after
+the user.
+
+### 3. Glob pattern tightening
+
+225 greedy `*word*` patterns converted to `what*is*word*` +
+`what*word` pairs. 71 patterns with 3+ words left as-is
+(specific enough not to swallow exploratory queries).
+
+**Before:** `*caterpillar*` matches "caterpillar", "tell me
+minecraft tricks about caterpillars", "caterpillar stock price"
+**After:** `what*is*caterpillar*` + `what*caterpillar` matches
+"what is a caterpillar" but lets "tell me about caterpillar
+lifecycles in detail" fall through to Gemma-4.
+
+**Discipline:** globs match the specific phrasings the entry
+was authored for. Wider matches fall through to inference.
+
+### 4. Content migration
+
+13 livingledger entries (DePaul professors, governor's
+formation authors) moved from `lookdown.universal.tsv` to
+`lookdown.hodori.tsv`. These are confessions, not portable
+knowledge.
+
+18 minecraft entries deleted — Gemma-4 handles minecraft
+questions without confabulation.
+
+
+### Chunk 3 (from runtime/hosuni/hosuni.c)
+                    flags = LOOKDOWN_EXEC;
+                cmd = tab2 + 1;
+            } else continue;
+        }
+        if (!*cmd) continue;
+        snprintf(lookdown_table[lookdown_count].pattern, LOOKDOWN_PAT_MAX, "%s", line);
+        snprintf(lookdown_table[lookdown_count].command, LOOKDOWN_CMD_MAX, "%s", cmd);
+        lookdown_table[lookdown_count].flags = flags;
+        snprintf(lookdown_table[lookdown_count].source_file, 256, "%s", path);
+        lookdown_table[lookdown_count].source_line = line_num;
+        lookdown_count++;
+    }
+    fclose(fp);
+}
+
+static int lookdown_check(const char *input, char *output, int output_max,
+                          int *exec_out, int *match_idx) {
+    char lower[4096];
+    int i;
+    for (i = 0; input[i] && i < (int)sizeof(lower) - 1; i++)
+        lower[i] = (input[i] >= 'A' && input[i] <= 'Z') ? input[i] + 32 : input[i];
+    lower[i] = '\0';
+    if (exec_out) *exec_out = 0;
+    if (match_idx) *match_idx = -1;
+
+    for (int j = 0; j < lookdown_count; j++) {
+        if (lookdown_table[j].flags & LOOKDOWN_EXEC) continue;
+        if (fnmatch(lookdown_table[j].pattern, lower, 0) == 0) {
+            if (match_idx) *match_idx = j;
+            FILE *fp = popen(lookdown_table[j].command, "r");
+            if (!fp) return -1;
+            int len = fread(output, 1, output_max - 1, fp);
+            output[len] = '\0';
+            pclose(fp);
+            while (len > 0 && output[len - 1] == '\n') output[--len] = '\0';
+            return len;
+        }
+    }
+    return -1;
+}
+
+
+### Chunk 4 (from runtime/hosuni.sh)
+
+ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+log_daemon() { printf "[%s] %s\n" "$(ts)" "$1" >> "$DAEMON_LOG"; }
+
+log_session() {
+    local channel="$1" role="$2" content="$3"
+    local safe; safe=$(printf '%s' "$content" | tr '\t\n' '  ' | cut -c1-500)
+    printf "%s\t%s\t%s\n" "$(ts)" "$role" "$safe" >> "$LOG_DIR/hosuni-${channel}.log"
+}
+
+# --- lookdown check ---
+
+check_lookdown() {
+    local input; input=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+    local line pattern cmd
+    for file in "$LOOKDOWN_NODE" "$LOOKDOWN_UNIVERSAL"; do
+        [ -f "$file" ] || continue
+        while IFS=$'\t' read -r pattern cmd rest; do
+            [ -z "$pattern" ] && continue
+            [[ "$pattern" == \#* ]] && continue
+            # glob match
+            case "$input" in
+                $pattern) echo "$cmd"; return 0 ;;
+            esac
+        done < "$file"
+    done
+    return 1
+}
+
+# --- tool loading ---
+
+load_tools() {
+    local tools="[]"
+    [ -f "$TOOLS_FILE" ] || { echo "$tools"; return; }
+    while IFS=$'\t' read -r name desc template; do
+        [ -z "$name" ] && continue
+        [[ "$name" == \#* ]] && continue
+        # check if the command exists on this system
+        local bin; bin=$(echo "$template" | awk '{print $1}')
+
+
+### Chunk 5 (from runtime/subtract.sh)
+            fi
+            local lastmatch="${TMPDIR:-/tmp}/.subtract-apropos-lastmatch.${USER:-$$}"
+            if [ -f "$lastmatch" ]; then
+                local match
+                match=$(sed -n "${num}p" "$lastmatch")
+                if [ -n "$match" ]; then
+                    echo "[T0.5] man $match"
+                    LC_ALL=C man "$match"
+                    SUBTRACT_LAST_OUTPUT="man page for '$match' (from apropos selection)"
+                else
+                    echo "no match at position $num"
+                fi
+            else
+                echo "no recent apropos search to select from"
+            fi
+            _SUBTRACT_FROM_HANDLER=1
+            return 0
+            ;;
+        [0-9]|[0-9][0-9])
+            # bare number: select from apropos results
+            local num="$input_lower"
+            local lastmatch="${TMPDIR:-/tmp}/.subtract-apropos-lastmatch.${USER:-$$}"
+            if [ -f "$lastmatch" ]; then
+                local match
+                match=$(sed -n "${num}p" "$lastmatch")
+                if [ -n "$match" ]; then
+                    echo "[T0.5] man $match"
+                    LC_ALL=C man "$match"
+                    SUBTRACT_LAST_OUTPUT="man page for '$match' (from apropos selection)"
+                else
+                    echo "no match at position $num"
+                fi
+            else
+                echo "not found: $input"
+            fi
+            _SUBTRACT_FROM_HANDLER=1
+            return 0
+            ;;
+        "ask sub "*)
+            __subtract_handle "ask llama.cpp ${input#ask sub }"
+
+
+### Chunk 6 (from lookdown.example.tsv)
+# lookdown.<hostname>.tsv — host-specific overrides
+# copy to ~/.subtract/lookdown.<hostname>.tsv
+# these entries are checked BEFORE lookdown.universal.tsv
+# first match wins. use this for:
+#   - machine-specific commands (services, hardware, paths)
+#   - personal shortcuts
+#   - child-specific or user-specific content
+#
+# format: glob_pattern<TAB>command
+#   or:   glob_pattern<TAB>[tag]<TAB>command
+
+# --- host-specific services ---
+start*jellyfin	sudo systemctl start jellyfin
+stop*jellyfin	sudo systemctl stop jellyfin
+restart*jellyfin	sudo systemctl restart jellyfin
+*jellyfin*status*	systemctl is-active jellyfin && echo "running" || echo "stopped"
+
+# --- hardware this machine has ---
+*gpu*status*	nvidia-smi 2>/dev/null || echo "no nvidia gpu found"
+*temperature*	sensors 2>/dev/null || echo "install lm-sensors: sudo apt install lm-sensors"
+
+# --- personal shortcuts ---
+*my*projects*	ls ~/repos/
+*work*notes*	cat ~/human/via-negativa/notes.txt 2>/dev/null || echo "no notes yet"
+
+# --- note on children's entries ---
+# children's entries go in lookdown.universal.tsv, not here.
+# every node should answer a child's question. the village helps.
+
+
+### Chunk 7 (from runtime/hosuni/hosuni.c)
+    char lower[256];
+    int j = 0;
+    for (int i = 0; pattern[i] && j < 255; i++)
+        if (pattern[i] != '*') lower[j++] = (pattern[i] >= 'A' && pattern[i] <= 'Z') ? pattern[i] + 32 : pattern[i];
+    lower[j] = 0;
+    return strstr(lower, filter) != NULL;
+}
+
+static int run_entry_visible(hosuni_app *app, int i) {
+    if (!(lookdown_table[i].flags & LOOKDOWN_EXEC)) return 0;
+    if (!run_match_filter(lookdown_table[i].pattern, app->run.filter, app->run.filter_len)) return 0;
+    if (!app->run.show_all && has_any_pinned() && !(lookdown_table[i].flags & LOOKDOWN_PINNED)) return 0;
+    return 1;
+}
+
+static int run_entry_count(hosuni_app *app) {
+    int n = 0;
+    for (int i = 0; i < lookdown_count; i++)
+        if (run_entry_visible(app, i)) n++;
+    return n;
+}
+
+static int run_entry_index(hosuni_app *app, int nth) {
+    int n = 0;
+    for (int i = 0; i < lookdown_count; i++) {
+        if (run_entry_visible(app, i)) {
+            if (n == nth) return i;
+            n++;
+        }
+    }
+    return -1;
+}
+
+static void draw_run(hosuni_app *app) {
+    int lh = hosuni_line_height(&app->font);
+    int m = app->margin;
+
+    int has_pins = has_any_pinned();
+    int rx = hosuni_draw_text(&app->surface, &app->font_large, m, m, "run", COL_FG);
+    if (has_pins) {
+
+
+### Chunk 8 (from variance-lab/data/manifest-agents/questions.tsv)
+id	type	question
+T01	traversal	What files are in the runtime/hosuni/ directory and what does each one do?
+T02	traversal	What is parsimony.c and what role does it play in the subtract.ing runtime?
+T03	traversal	List all .tsv files in the repository and describe the format of each.
+T04	traversal	What does the install.sh script do?
+T05	traversal	What is in runtime/llms.txt and how does it differ from the root llms.txt?
+T06	traversal	What shell hooks exist in runtime/hooks/ and what do they intercept?
+T07	traversal	What is kiosk.sh and what does it configure?
+T08	traversal	What files define the lookdown system and how are they organized?
+T09	traversal	What is squared.c and what does it compute?
+T10	traversal	List every file that contains a sha256 hash or references sha256 verification.
+S01	synthesis	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?
+S02	synthesis	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?
+S03	synthesis	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?
+S04	synthesis	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.
+S05	synthesis	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?
+S06	synthesis	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?
+S07	synthesis	Which files mention the concept of a "formation" and what does the term mean across them?
+S08	synthesis	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?
+S09	synthesis	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?
+S10	synthesis	What does lineage.txt credit and how do those credits connect to specific components in the codebase?
+C01	change	What changed in hosuni.c between commit d4e860d and HEAD?
+C02	change	What was the most recent change to variance-lab.txt and what confound did it resolve?
+C03	change	Which files were modified in the commit that added CJK font fallback support?
+C04	change	Has SOUL.txt been rewritten recently? What was the nature of the change?
+C05	change	What is the most recent addition to the llms.txt index?
+M01	similarity	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?
+M02	similarity	Find files related to the concept of signing and verification. Group them by function.
+M03	similarity	Which components share the pattern of reading a manifest or index file to decide what to do next?
+M04	similarity	What files discuss the boundary between human authority and agent execution? How do they differ in framing?
+M05	similarity	Find all components that use llama.cpp or local inference. How are they related?
+
+
+### Chunk 9 (from runtime/subtract.sh)
+                echo "skill not found: $skill_path"
+            fi
+            _SUBTRACT_FROM_HANDLER=1
+            return 0
+            ;;
+        "show "[0-9]*)
+            local num="${input_lower#show }"
+            if ! [[ "$num" =~ ^[0-9]+$ ]]; then
+                echo "usage: show N (where N is a number)"
+                _SUBTRACT_FROM_HANDLER=1
+                return 0
+            fi
+            local lastmatch="${TMPDIR:-/tmp}/.subtract-skills-lastmatch.${USER:-$$}"
+            if [ -f "$lastmatch" ]; then
+                local match
+                match=$(sed -n "${num}p" "$lastmatch")
+                if [ -n "$match" ] && [ -f "$SUBTRACT_SKILLS/${match}.md" ]; then
+                    echo "[skill:${match}]"
+                    awk '/^---$/{if(!fm){fm=1;next}else if(fm==1){fm=2;next}} fm==1{next} fm==0||fm==2{print}' "$SUBTRACT_SKILLS/${match}.md"
+                    SUBTRACT_LAST_OUTPUT="skill lookup: $match"
+                else
+                    echo "no match at position $num"
+                fi
+            else
+                echo "no recent skill search to show from"
+            fi
+            _SUBTRACT_FROM_HANDLER=1
+            return 0
+            ;;
+        "man "[0-9]*)
+            local num="${input_lower#man }"
+            if ! [[ "$num" =~ ^[0-9]+$ ]]; then
+                echo "usage: man N (select from apropos results)"
+                _SUBTRACT_FROM_HANDLER=1
+                return 0
+            fi
+            local lastmatch="${TMPDIR:-/tmp}/.subtract-apropos-lastmatch.${USER:-$$}"
+            if [ -f "$lastmatch" ]; then
+                local match
+                match=$(sed -n "${num}p" "$lastmatch")
+
+
+### Chunk 10 (from variance-lab/data/manifest-agents/rubric.txt)
+# Manifest-agents evaluation rubric
+# Pre-committed before any experimental dispatch
+# Signed: ssh-keygen -Y sign -f ~/.ssh/jnous -n subtract.ing
+# Date: 2026-05-10
+
+## Corpus
+
+Primary: subtract.ing git repo (canonical, versioned, signed via llms.txt manifest)
+Secondary: one public corpus (Wikipedia subset or open-source GitHub project —
+named at dispatch time, before any scoring begins)
+
+## Question set (30 questions, stratified)
+
+Filed at: variance-lab/data/manifest-agents/questions.tsv
+Signed before dispatch. Not modified after arms begin.
+
+- 10 traversal ("what's in this directory", "what does this file do",
+  "list the files that define hosuni's platform layer")
+- 10 cross-file synthesis ("which findings cite local inference throughput",
+  "trace the delegation architecture from CLAUDE.md to handler.sh",
+  "what is the relationship between SOUL.txt and hosuni-prefetch")
+- 5 change detection ("what changed in hosuni.c since commit d4e860d",
+  "which files were modified in the last signed manifest update")
+- 5 similarity ("find files related to delegation",
+  "which parts of the codebase are architecturally similar to lookdown")
+
+## Arms
+
+Arm M (manifest): filesystem traversal + signed manifests + per-directory
+  llms.md summaries + claude -p with manifest context as prompt
+Arm R (RAG): chunk corpus + embed + vector retrieval (top-k) + claude -p
+  with retrieved chunks as prompt
+
+Same model for inference in both arms. Same prompt structure
+(system prompt + context + question). Only the context-gathering
+method differs.
+
+## Metrics
+
+A: Answer quality
+
+
+### Chunk 11 (from variance-lab.txt)
+  - Input lowercased (ASCII) before matching, same as hosuni
+  - Three-column TSV support (pattern\t[tag]\tcommand)
+  - `popen` executes the matched command (same trust domain as
+    .bashrc — TSV is under $HOME/.subtract/)
+  - Output lands in the same `ask.output` buffer as inference,
+    rendered by the same `draw_ask_wrap` path
+
+**Rubric:** seven binary criteria pre-committed before dispatch
+(correctness, non-regression, TSV parsing, file paths, buffer
+safety, timing, display).
+
+**Dispatch:** three reviewers, two responded.
+  - Opus 4.6 (emile, `ssh m2mini "claude -p"`)
+  - Sonnet 4.6 (rousseau, `claude -p`)
+  - Local llama.cpp (rousseau, :8087) — FAILED, cal.c at 1500+
+    lines exceeds 4096 context window
+
+**Results:**
+
+| Criterion | Opus 4.6 | Sonnet 4.6 |
+|-----------|----------|------------|
+| C1 correctness | pass | pass (caveat: ASCII-only lowercase) |
+| C2 non-regression | pass | pass |
+| C3 TSV parsing | pass | pass |
+| C4 file paths | pass | pass |
+| C5 buffer safety | pass | pass |
+| C6 timing | pass | pass |
+| C7 display | pass | pass |
+
+**Bug found (Sonnet 4.6 only):** matched-but-empty command
+output. If a lookdown pattern matches but the command produces
+no stdout (conditional command, empty echo, etc.), `fread`
+returns 0, `lookdown_check` returns 0, and the caller's `> 0`
+check falls through to inference. The pattern was consumed but
+the result discarded — the kid waits 10-26s for inference on
+a query lookdown was supposed to handle.
+
+Opus 4.6 missed this. Local llama couldn't attempt it.
+
+**Fixes applied:**
+
+
+### Chunk 12 (from variance-lab.txt)
+**Gate 3 (deliberative pass):** Gemma-4-26B (Google lineage)
+dispatched as second reviewer. Model exhausted 4096 tokens
+on reasoning chain before producing output — reasoning
+surfaced one flag (Bonsai 8B as potential confabulation),
+governor confirmed real. `claude -p` dispatch attempted
+for Anthropic lineage, produced empty output on first try,
+treated as human gate per governance (not retried).
+
+## Measurements
+
+| Metric | Before | Session 1 | Session 2 |
+|--------|--------|-----------|-----------|
+| Active universal entries | 2232 | 2445 | 2441 |
+| Greedy globs | 296 | 71 | 69 |
+| Personal entries in universal | 13 | 0 | 0 |
+| Formation refs in universal | uncounted | uncounted | 0 |
+| Broken commands | uncounted | uncounted | 0 |
+| Inference model | Qwen 2.5 7B | Gemma-4-26B | Gemma-4-26B |
+| Inference host | hardcoded | config-driven | config-driven |
+| Nodes synced | 0 | 3 | 3 |
+
+Entry count increased from session 1 tightening (each
+`*word*` glob → two `what*is*word*` + `what*word` entries),
+then decreased slightly in session 2 from portability
+filtering.
+
+## Finding
+
+A lookdown table is a dataset. The QLoRA-portability test
+("would this improve any user's local model?") is a clean
+design constraint that separates infrastructure from taste.
+The glob pattern discipline ("match what you authored for,
+not everything containing that word") prevents the lookup
+tier from starving the inference tier.
+
+The distinction between Qwen (tool calls, structured output)
+and Gemma-4 (knowledge questions, does not confabulate) is
+an empirical routing decision, not an architecture one. The
+same `cal_infer_stream_msgs` code path serves both — only
+the host and port differ.
+
+
+
+## Question
+Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?

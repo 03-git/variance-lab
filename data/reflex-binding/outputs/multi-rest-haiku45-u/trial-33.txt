@@ -1,0 +1,95 @@
+I'll show you a complete REST API implementation for the `/users` endpoint in Node.js with Express.
+
+```javascript
+import express from 'express';
+
+const app = express();
+app.use(express.json());
+
+// Validation helper
+function validateUser(body) {
+  const errors = [];
+
+  if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
+    errors.push('name is required and must be a non-empty string');
+  }
+
+  if (!body.email || typeof body.email !== 'string' || !body.email.includes('@')) {
+    errors.push('email is required and must contain @');
+  }
+
+  if (body.age !== undefined) {
+    if (!Number.isInteger(body.age) || body.age < 1 || body.age > 150) {
+      errors.push('age must be an integer between 1 and 150');
+    }
+  }
+
+  return errors.length > 0 ? errors : null;
+}
+
+app.post('/users', (req, res) => {
+  const errors = validateUser(req.body);
+
+  if (errors) {
+    return res.status(400).json({ errors });
+  }
+
+  const user = {
+    id: Math.random().toString(36).substr(2, 9),
+    name: req.body.name.trim(),
+    email: req.body.email.trim(),
+    age: req.body.age,
+    createdAt: new Date().toISOString()
+  };
+
+  res.status(201).json(user);
+});
+
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+```
+
+**To run it:**
+
+1. Create a new directory and initialize Node.js:
+```bash
+mkdir api-server && cd api-server
+npm init -y
+npm install express
+```
+
+2. Create `server.js` with the code above, then run:
+```bash
+node server.js
+```
+
+3. Test with curl:
+
+**Valid request (201):**
+```bash
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+```
+
+**Invalid requests (400):**
+```bash
+# Missing name
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "bob@example.com"}'
+
+# Bad email (no @)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "email": "invalid"}'
+
+# Age out of range
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Charlie", "email": "charlie@example.com", "age": 200}'
+```
+
+The endpoint validates all three fields, returns a 400 with an array of error messages on validation failure, and 201 with the created user object on success.

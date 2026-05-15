@@ -1,0 +1,66 @@
+Health check is clean. Here's the endpoint — FastAPI, since Pydantic gives you exactly this validation shape with 400-style error details for free.
+
+```python
+# app.py
+from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field, field_validator
+
+app = FastAPI()
+
+
+class UserIn(BaseModel):
+    name: str = Field(..., min_length=1)
+    email: str
+    age: int = Field(..., ge=1, le=150)
+
+    @field_validator("email")
+    @classmethod
+    def email_has_at(cls, v: str) -> str:
+        if "@" not in v:
+            raise ValueError("email must contain '@'")
+        return v
+
+
+# Make validation failures come back as 400 (FastAPI defaults to 422)
+@app.exception_handler(RequestValidationError)
+async def validation_handler(request, exc: RequestValidationError):
+    return JSONResponse(status_code=400, content={"error": "invalid input", "details": exc.errors()})
+
+
+@app.post("/users", status_code=201)
+def create_user(user: UserIn):
+    return user
+```
+
+Run it:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install "fastapi" "uvicorn[standard]"
+uvicorn app:app --reload --port 8000
+```
+
+Try it:
+
+```bash
+# 201 — valid
+curl -s -X POST localhost:8000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Ada","email":"ada@example.com","age":36}'
+# -> {"name":"Ada","email":"ada@example.com","age":36}
+
+# 400 — bad email + out-of-range age + missing name
+curl -s -X POST localhost:8000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"nope","age":999}'
+# -> {"error":"invalid input","details":[ ... per-field messages ... ]}
+```
+
+Notes:
+- `name` required and non-empty (`min_length=1`); drop that if you want to allow `""`.
+- `age` must be a JSON integer in `[1,150]` — `36.5` or `"36"`-as-string is rejected.
+- Bad JSON body also lands in the 400 handler.
+
+If you'd rather have zero dependencies (stdlib `http.server` + manual validation) or an Express/Node version, say the word.

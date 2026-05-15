@@ -1,0 +1,102 @@
+I'll show you a complete REST API implementation using Python with Flask, including input validation.
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route('/users', methods=['POST'])
+def create_user():
+    data = request.get_json()
+    
+    # Validate required fields
+    if not data:
+        return jsonify({'error': 'Request body must be JSON'}), 400
+    
+    if 'name' not in data:
+        return jsonify({'error': 'name is required'}), 400
+    
+    if 'email' not in data:
+        return jsonify({'error': 'email is required'}), 400
+    
+    if 'age' not in data:
+        return jsonify({'error': 'age is required'}), 400
+    
+    name = data['name']
+    email = data['email']
+    age = data['age']
+    
+    # Validate name is a string
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({'error': 'name must be a non-empty string'}), 400
+    
+    # Validate email is a string and contains @
+    if not isinstance(email, str) or '@' not in email:
+        return jsonify({'error': 'email must be a valid email address (contain @)'}), 400
+    
+    # Validate age is an integer in range 1-150
+    if not isinstance(age, int) or age < 1 or age > 150:
+        return jsonify({'error': 'age must be an integer between 1 and 150'}), 400
+    
+    # Return validated user with 201 Created
+    user = {
+        'name': name,
+        'email': email,
+        'age': age
+    }
+    
+    return jsonify(user), 201
+
+@app.route('/users', methods=['GET'])
+def health():
+    return jsonify({'status': 'API is running'}), 200
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**How to run it:**
+
+1. Install Flask:
+```bash
+pip install flask
+```
+
+2. Save the code to a file (e.g., `app.py`) and run:
+```bash
+python app.py
+```
+
+3. Test with curl:
+
+**Valid request (201 Created):**
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "john@example.com", "age": 30}'
+```
+
+**Invalid requests (400 Bad Request):**
+```bash
+# Missing name
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "john@example.com", "age": 30}'
+
+# Email without @
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John", "email": "johnexample.com", "age": 30}'
+
+# Age out of range
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John", "email": "john@example.com", "age": 200}'
+
+# Age is not an integer
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John", "email": "john@example.com", "age": "thirty"}'
+```
+
+The API validates all inputs and returns descriptive error messages on failure. Each error response includes which field failed validation.

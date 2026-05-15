@@ -1,0 +1,92 @@
+Here's an async TCP echo server using Python's built-in `asyncio` module:
+
+```python
+import asyncio
+
+HOST = "127.0.0.1"
+PORT = 8888
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    print(f"New connection from {addr}")
+
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:
+                break
+            line = data.decode().rstrip("\n")
+            print(f"[{addr}] received: {line!r}")
+            writer.write(data)
+            await writer.drain()
+    except asyncio.IncompleteReadError:
+        pass
+    finally:
+        print(f"Connection closed: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main() -> None:
+    server = await asyncio.start_server(handle_client, HOST, PORT)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"Serving on {addrs}")
+
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+```bash
+# Start the server (Python 3.7+)
+python echo_server.py
+```
+
+**Test with multiple concurrent clients** — open several terminals and use `nc` or `telnet`:
+
+```bash
+# Terminal 2
+nc 127.0.0.1 8888
+hello world        # type this, press Enter
+hello world        # echoed back
+
+# Terminal 3 (simultaneously)
+nc 127.0.0.1 8888
+another client     # type this
+another client     # echoed back
+```
+
+Or test programmatically with a quick client script:
+
+```python
+import asyncio
+
+async def client(name: str) -> None:
+    reader, writer = await asyncio.open_connection("127.0.0.1", 8888)
+    for i in range(3):
+        msg = f"{name}: message {i}\n"
+        writer.write(msg.encode())
+        await writer.drain()
+        echo = await reader.readline()
+        print(f"Echo: {echo.decode()!r}")
+    writer.close()
+
+async def main() -> None:
+    await asyncio.gather(
+        client("Alice"),
+        client("Bob"),
+        client("Carol"),
+    )
+
+asyncio.run(main())
+```
+
+**Key design points:**
+
+- `asyncio.start_server` hands each accepted connection off to `handle_client` as a coroutine — no threads, no forking.
+- `reader.readline()` suspends the coroutine at the `await`, yielding control to the event loop so other clients can be served while this one waits for input.
+- `writer.drain()` applies backpressure — it yields control if the send buffer is full, preventing memory bloat under slow clients.
+- The `finally` block guarantees the socket is closed even if the client disconnects abruptly.

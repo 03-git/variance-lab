@@ -1,0 +1,41 @@
+```python
+import sqlite3
+from datetime import datetime
+
+conn = sqlite3.connect("notes.db")
+cur = conn.cursor()
+
+cur.execute("""
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+""")
+
+now = datetime.now().isoformat(timespec="seconds")
+samples = [
+    ("Groceries", "Milk, eggs, bread", now),
+    ("Ideas", "Build a CLI for note-taking", now),
+    ("Reminder", "Call the dentist on Monday", now),
+]
+cur.executemany(
+    "INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+    samples,
+)
+conn.commit()
+
+for row in cur.execute("SELECT id, title, body, created_at FROM notes"):
+    print(row)
+
+conn.close()
+```
+
+Run it with:
+
+```
+python notes.py
+```
+
+This creates `notes.db` in the current directory. Re-running will append another 3 rows each time — delete `notes.db` first if you want a clean slate.

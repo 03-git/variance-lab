@@ -1,0 +1,50 @@
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._current_text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            attrs_dict = dict(attrs)
+            self._current_href = attrs_dict.get("href")
+            self._current_text = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._current_text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            self.links.append((self._current_href, "".join(self._current_text).strip()))
+            self._current_href = None
+            self._current_text = []
+
+with urllib.request.urlopen("https://example.com") as response:
+    html = response.read().decode("utf-8")
+
+parser = LinkParser()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"[{text}] -> {href}")
+```
+
+**How to run** — no dependencies needed, stdlib only:
+
+```bash
+python3 script.py
+```
+
+For `https://example.com` you'll see something like:
+
+```
+[More information...] -> https://www.iana.org/domains/reserved
+```
+
+If you want to target a different URL, just swap out the string passed to `urlopen`. For pages requiring `requests` or JavaScript rendering, swap `urllib.request` for `requests.get(url).text` (install with `pip install requests`).

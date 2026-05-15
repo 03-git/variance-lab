@@ -1,0 +1,523 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from runtime/hosuni/hosuni.c)
+        }
+        return;
+    }
+
+    if (code == KEY_BACKSPACE) {
+        if (app->ask.input_len > 0) app->ask.input_len--;
+        app->ask.input[app->ask.input_len] = 0;
+        return;
+    }
+
+    char utf8[8];
+    int n = platform_key_utf8(code, utf8, sizeof(utf8));
+    if (n > 0 && app->ask.input_len + n < (int)sizeof(app->ask.input) - 1) {
+        memcpy(app->ask.input + app->ask.input_len, utf8, n);
+        app->ask.input_len += n;
+        app->ask.input[app->ask.input_len] = 0;
+    }
+}
+
+/* ================================================================
+   input handling — vi0 edit mode
+   ================================================================ */
+
+static void lookdown_reload(hosuni_app *app) {
+    char *home = getenv("HOME");
+    if (!home) return;
+    char ld_path[512];
+    char hn[64];
+    lookdown_count = 0;
+    gethostname(hn, sizeof(hn));
+    snprintf(ld_path, sizeof(ld_path), "%s/.subtract/lookdown.%s.tsv", home, hn);
+    lookdown_load(ld_path);
+    snprintf(ld_path, sizeof(ld_path), "%s/.subtract/lookdown.universal.tsv", home);
+    lookdown_load(ld_path);
+    app->starred = starred_load();
+    pinned_load();
+}
+
+static int is_lookdown_file(const char *path) {
+    return strstr(path, "lookdown") != NULL && strstr(path, ".tsv") != NULL;
+
+
+### Chunk 2 (from lookdown.universal.tsv)
+*system*call*close*	echo "close() - closes a file descriptor"
+what is close	echo "close() - system call that releases a file descriptor"
+*system*call*read*	echo "read() - reads data from a file descriptor into a buffer"
+*system*call*write*	echo "write() - writes data from a buffer to a file descriptor"
+what is write	echo "write() - writes bytes from buffer to file descriptor"
+*system*call*dup*	echo "dup()/dup2() - duplicates a file descriptor"
+what is dup	echo "dup()/dup2() - duplicates file descriptor, used for I/O redirection"
+*system*call*socket*	echo "socket() - creates an endpoint for communication"
+what is socket	echo "socket() - creates network communication endpoint"
+*system*call*bind*	echo "bind() - assigns an address to a socket"
+*system*call*listen*	echo "listen() - marks socket as passive, accepting incoming connections"
+*system*call*accept*	echo "accept() - extracts first connection request from queue"
+*system*call*connect*	echo "connect() - initiates connection on a socket"
+*system*call*select*	echo "select() - monitors multiple file descriptors for I/O readiness"
+*system*call*epoll*	echo "epoll - Linux scalable I/O event notification (epoll_create, epoll_ctl, epoll_wait)"
+*system*call*poll*	echo "poll() - waits for events on file descriptors"
+*system*call*signal*	echo "signal()/sigaction() - sets disposition of a signal"
+*system*call*kill*	echo "kill() - sends signal to a process"
+what is kill	echo "kill() - system call that sends a signal to a process or process group"
+*system*call*stat*	echo "stat()/fstat()/lstat() - retrieves file metadata"
+what is stat	echo "stat() - retrieves file metadata (size, permissions, timestamps)"
+*system*call*chdir*	echo "chdir() - changes current working directory"
+*system*call*getcwd*	echo "getcwd() - gets current working directory"
+*system*call*mkdir*	echo "mkdir() - creates a directory"
+*system*call*rmdir*	echo "rmdir() - removes an empty directory"
+*system*call*unlink*	echo "unlink() - removes a file (deletes directory entry)"
+*system*call*chmod*	echo "chmod() - changes file permissions"
+*system*call*chown*	echo "chown() - changes file owner and group"
+#
+# === FILE OPERATIONS (expanded) ===
+#
+make*executable	echo "usage: chmod +x FILENAME"
+*executable*permission*	echo "usage: chmod +x FILENAME"
+who*owns*this*file	ls -l
+who*owns*file	ls -l
+change*owner	echo "usage: chown USER:GROUP FILENAME"
+copy*file	cp
+copy*files	cp -r
+copy*directory	cp -r
+move*file	mv
+
+
+### Chunk 3 (from runtime/hosuni/hosuni.c)
+                    flags = LOOKDOWN_EXEC;
+                cmd = tab2 + 1;
+            } else continue;
+        }
+        if (!*cmd) continue;
+        snprintf(lookdown_table[lookdown_count].pattern, LOOKDOWN_PAT_MAX, "%s", line);
+        snprintf(lookdown_table[lookdown_count].command, LOOKDOWN_CMD_MAX, "%s", cmd);
+        lookdown_table[lookdown_count].flags = flags;
+        snprintf(lookdown_table[lookdown_count].source_file, 256, "%s", path);
+        lookdown_table[lookdown_count].source_line = line_num;
+        lookdown_count++;
+    }
+    fclose(fp);
+}
+
+static int lookdown_check(const char *input, char *output, int output_max,
+                          int *exec_out, int *match_idx) {
+    char lower[4096];
+    int i;
+    for (i = 0; input[i] && i < (int)sizeof(lower) - 1; i++)
+        lower[i] = (input[i] >= 'A' && input[i] <= 'Z') ? input[i] + 32 : input[i];
+    lower[i] = '\0';
+    if (exec_out) *exec_out = 0;
+    if (match_idx) *match_idx = -1;
+
+    for (int j = 0; j < lookdown_count; j++) {
+        if (lookdown_table[j].flags & LOOKDOWN_EXEC) continue;
+        if (fnmatch(lookdown_table[j].pattern, lower, 0) == 0) {
+            if (match_idx) *match_idx = j;
+            FILE *fp = popen(lookdown_table[j].command, "r");
+            if (!fp) return -1;
+            int len = fread(output, 1, output_max - 1, fp);
+            output[len] = '\0';
+            pclose(fp);
+            while (len > 0 && output[len - 1] == '\n') output[--len] = '\0';
+            return len;
+        }
+    }
+    return -1;
+}
+
+
+### Chunk 4 (from runtime/hosuni.sh)
+#!/usr/bin/env bash
+# hosuni — tool-use daemon for local inference
+# listens on a port via nc. receives JSON, checks lookdown,
+# routes inference through parsimony (coproc via named pipes),
+# parses tool calls, executes, loops, logs. pure bash + jq.
+# falls back to curl if parsimony pipes not present.
+#
+# run:   hosuni.sh [port]
+# call:  echo '{"input":"list files","channel":"terminal"}' | nc localhost 8091
+
+set -euo pipefail
+
+export PATH="$HOME/.subtract/bin:$HOME/.subtract:$PATH"
+
+SUBTRACT_DIR="${SUBTRACT_DIR:-$HOME/.subtract}"
+HOSUNI_DIR="${HOSUNI_DIR:-$HOME/.hosuni}"
+INFERENCE_HOST=$(cat "$SUBTRACT_DIR/inference_host" 2>/dev/null || echo "localhost")
+INFERENCE_PORT=$(cat "$SUBTRACT_DIR/inference_port" 2>/dev/null || echo "8085")
+RESEARCH_PORT=$(cat "$SUBTRACT_DIR/research_port" 2>/dev/null || echo "")
+RESEARCH_HOST=$(cat "$SUBTRACT_DIR/research_host" 2>/dev/null || echo "")
+PARSIMONY_IN="$SUBTRACT_DIR/.parsimony.in"
+PARSIMONY_OUT="$SUBTRACT_DIR/.parsimony.out"
+PARSIMONY_LOCK="$SUBTRACT_DIR/.parsimony.lock"
+LOOKDOWN_NODE="$SUBTRACT_DIR/lookdown.$(hostname).tsv"
+LOOKDOWN_UNIVERSAL="$SUBTRACT_DIR/lookdown.universal.tsv"
+TOOLS_FILE="$HOSUNI_DIR/tools.tsv"
+LOG_DIR="$SUBTRACT_DIR/log"
+DAEMON_LOG="$HOME/human/sessions/hosuni.log"
+MAX_TURNS=20
+TOOL_TIMEOUT=300
+
+SOUL_FILE="$HOME/subtract.ing/SOUL.txt"
+SYSTEM_MSG=$(cat "$SOUL_FILE" 2>/dev/null || echo "")
+
+mkdir -p "$LOG_DIR" "$HOSUNI_DIR"
+
+ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+log_daemon() { printf "[%s] %s\n" "$(ts)" "$1" >> "$DAEMON_LOG"; }
+
+
+
+### Chunk 5 (from lookdown.universal.tsv)
+# --- reconfigure ---
+reconfigure*	rm -f $HOME/.subtract/.onboarded && echo "type anything to re-onboard"
+#
+# --- media ---
+#
+#
+subtract	cat ~/.subtract/about
+#
+# --- player (media rendered fullscreen via mpv) ---
+# add media entries as: play*<name>	[player]	mpv --fs --no-terminal --no-osd-bar --osd-level=0 /path/to/file
+#
+#
+# === SYSCALLS (kernel primitives curriculum) ===
+# These answer "what system call does X" without hitting T2
+#
+*system*call*creates*child*process*	echo "fork() - creates child process by duplicating the calling process"
+*system*call*fork*	echo "fork() - creates child process by duplicating the calling process"
+*create*child*process*	echo "fork() - creates child process by duplicating the calling process"
+what is fork	echo "fork() - system call that creates a child process by duplicating the calling process"
+*create*pipe*between*processes*	echo "pipe() - creates a unidirectional data channel for IPC"
+*system*call*pipe*	echo "pipe() - creates a unidirectional data channel for IPC"
+what is shell*pipe	echo "the | operator — connects stdout of one process to stdin of the next, composing programs into a pipeline"
+what is pipe	echo "pipe() - system call creating unidirectional data channel between processes"
+*replace*current*process*	echo "exec() family (execl, execv, execve, execvp) - replaces current process image"
+*system*call*exec*	echo "exec() family (execl, execv, execve, execvp) - replaces current process image"
+what is exec	echo "exec() family - replaces current process image with a new program"
+*wait*for*child*process*	echo "wait() or waitpid() - suspends execution until a child process terminates"
+*system*call*wait*	echo "wait() or waitpid() - suspends execution until a child process terminates"
+*what*is*inotifywait*	echo "Watches filesystem events. inotifywait -m -e modify /path — blocks until the file changes, prints the event. Loop it for a file watcher. inotifywait -r for recursive. Linux only (inotify-tools package)."
+what is wait	echo "wait()/waitpid() - blocks parent until child process terminates"
+*map*file*into*memory*	echo "mmap() - maps files or devices into memory"
+*system*call*mmap*	echo "mmap() - maps files or devices into memory"
+what is mmap	echo "mmap() - maps files or devices into memory for efficient I/O"
+*system*call*open*	echo "open() - opens a file and returns a file descriptor"
+what is open	echo "open() - system call that opens a file and returns a file descriptor"
+*system*call*close*	echo "close() - closes a file descriptor"
+what is close	echo "close() - system call that releases a file descriptor"
+*system*call*read*	echo "read() - reads data from a file descriptor into a buffer"
+*system*call*write*	echo "write() - writes data from a buffer to a file descriptor"
+what is write	echo "write() - writes bytes from buffer to file descriptor"
+
+
+### Chunk 6 (from runtime/hosuni/hosuni.c)
+    char *home = getenv("HOME");
+    if (!home) return;
+    char path[512];
+    snprintf(path, sizeof(path), "%s/.subtract/.starred", home);
+    FILE *fp = fopen(path, "w");
+    if (fp) {
+        fprintf(fp, "%s\n", lookdown_table[lookdown_idx].pattern);
+        fclose(fp);
+    }
+}
+
+static int starred_load(void) {
+    char *home = getenv("HOME");
+    if (!home) return -1;
+    char path[512];
+    snprintf(path, sizeof(path), "%s/.subtract/.starred", home);
+    FILE *fp = fopen(path, "r");
+    if (!fp) return -1;
+    char pat[LOOKDOWN_PAT_MAX];
+    if (!fgets(pat, sizeof(pat), fp)) { fclose(fp); return -1; }
+    fclose(fp);
+    int len = strlen(pat);
+    while (len > 0 && (pat[len-1] == '\n' || pat[len-1] == '\r')) pat[--len] = 0;
+    for (int i = 0; i < lookdown_count; i++)
+        if (strcmp(lookdown_table[i].pattern, pat) == 0) return i;
+    return -1;
+}
+
+static void pinned_save(void) {
+    char *home = getenv("HOME");
+    if (!home) return;
+    char path[512];
+    snprintf(path, sizeof(path), "%s/.subtract/.pinned", home);
+    FILE *fp = fopen(path, "w");
+    if (!fp) return;
+    for (int i = 0; i < lookdown_count; i++)
+        if (lookdown_table[i].flags & LOOKDOWN_PINNED)
+            fprintf(fp, "%s\n", lookdown_table[i].pattern);
+    fclose(fp);
+}
+
+
+### Chunk 7 (from runtime/hosuni/hosuni.c)
+    for (int i = 0; i < lookdown_count; i++)
+        if (lookdown_table[i].flags & LOOKDOWN_PINNED)
+            fprintf(fp, "%s\n", lookdown_table[i].pattern);
+    fclose(fp);
+}
+
+static void pinned_load(void) {
+    char *home = getenv("HOME");
+    if (!home) return;
+    char path[512];
+    snprintf(path, sizeof(path), "%s/.subtract/.pinned", home);
+    FILE *fp = fopen(path, "r");
+    if (!fp) return;
+    char pat[LOOKDOWN_PAT_MAX];
+    while (fgets(pat, sizeof(pat), fp)) {
+        int len = strlen(pat);
+        while (len > 0 && (pat[len-1] == '\n' || pat[len-1] == '\r')) pat[--len] = 0;
+        for (int i = 0; i < lookdown_count; i++)
+            if (strcmp(lookdown_table[i].pattern, pat) == 0)
+                lookdown_table[i].flags |= LOOKDOWN_PINNED;
+    }
+    fclose(fp);
+}
+
+static int has_any_pinned(void) {
+    for (int i = 0; i < lookdown_count; i++)
+        if ((lookdown_table[i].flags & LOOKDOWN_EXEC) && (lookdown_table[i].flags & LOOKDOWN_PINNED))
+            return 1;
+    return 0;
+}
+
+/* ================================================================
+   font rendering (stb_truetype)
+   ================================================================ */
+
+/* ---- glyph cache ---- */
+
+#define GCACHE_SLOTS 512
+#define GCACHE_MASK  (GCACHE_SLOTS - 1)
+
+
+
+### Chunk 8 (from runtime/hosuni/hosuni.c)
+#define LOOKDOWN_CMD_MAX 2048
+
+#define LOOKDOWN_EXEC   1
+#define LOOKDOWN_PINNED 2
+
+static struct {
+    char pattern[LOOKDOWN_PAT_MAX];
+    char command[LOOKDOWN_CMD_MAX];
+    uint8_t flags;
+    char source_file[256];
+    int source_line;
+} lookdown_table[MAX_LOOKDOWN];
+static int lookdown_count;
+
+static void lookdown_load(const char *path) {
+    FILE *fp = fopen(path, "r");
+    if (!fp) return;
+    int line_num = 0;
+    char line[LOOKDOWN_PAT_MAX + LOOKDOWN_CMD_MAX + 8];
+    while (fgets(line, sizeof(line), fp) && lookdown_count < MAX_LOOKDOWN) {
+        line_num++;
+        int len = strlen(line);
+        if (len > 0 && line[len - 1] == '\n') line[--len] = '\0';
+        if (len == 0 || line[0] == '#') continue;
+        char *tab = strchr(line, '\t');
+        if (!tab) continue;
+        *tab = '\0';
+        char *cmd = tab + 1;
+        uint8_t flags = 0;
+        if (cmd[0] == '[') {
+            char *close = strchr(cmd, ']');
+            char *tab2 = strchr(cmd, '\t');
+            if (tab2) {
+                if (close && close < tab2 &&
+                    (strncmp(cmd, "[player]", 8) == 0 || strncmp(cmd, "[exec]", 6) == 0))
+                    flags = LOOKDOWN_EXEC;
+                cmd = tab2 + 1;
+            } else continue;
+        }
+        if (!*cmd) continue;
+
+
+### Chunk 9 (from runtime/hosuni/hosuni.c)
+    int status = pclose(fp);
+    if (len <= 0 || status != 0) return -1;
+    output[len] = '\0';
+    while (len > 0 && (output[len-1] == '\n' || output[len-1] == ' '))
+        output[--len] = '\0';
+    if (len == 0) return -1;
+    if (matched_cmd) snprintf(matched_cmd, cmd_max, "apropos: %.*s", (cmd_max > 12 ? cmd_max - 12 : 1), clean);
+    return len;
+}
+
+static void hosuni_exec(const char *command) {
+    platform_yield();
+
+    sigset_t block, old;
+    sigemptyset(&block);
+    sigaddset(&block, SIGTERM);
+    sigaddset(&block, SIGINT);
+    sigprocmask(SIG_BLOCK, &block, &old);
+
+    pid_t pid = fork();
+    if (pid == 0) {
+        sigprocmask(SIG_SETMASK, &old, NULL);
+        platform_close_child_fds();
+        execlp("sh", "sh", "-c", command, NULL);
+        _exit(127);
+    }
+    if (pid > 0)
+        waitpid(pid, NULL, 0);
+
+    sigprocmask(SIG_SETMASK, &old, NULL);
+    platform_reclaim();
+    platform_drain_input();
+}
+
+static void starred_save(int lookdown_idx) {
+    char *home = getenv("HOME");
+    if (!home) return;
+    char path[512];
+    snprintf(path, sizeof(path), "%s/.subtract/.starred", home);
+    FILE *fp = fopen(path, "w");
+
+
+### Chunk 10 (from runtime/hosuni.sh)
+    while IFS=$'\t' read -r name desc template; do
+        [ -z "$name" ] && continue
+        [[ "$name" == \#* ]] && continue
+        # check if the command exists on this system
+        local bin; bin=$(echo "$template" | awk '{print $1}')
+        command -v "$bin" >/dev/null 2>&1 || continue
+        tools=$(echo "$tools" | jq --arg n "$name" --arg d "$desc" \
+            '. + [{"type":"function","function":{"name":$n,"description":$d,"parameters":{"type":"object","properties":{"input":{"type":"string"}}}}}]')
+    done < "$TOOLS_FILE"
+    echo "$tools"
+}
+
+# --- tool execution ---
+
+execute_tool() {
+    local name="$1" args="$2"
+    local template
+    template=$(awk -F'\t' -v n="$name" '$1==n {print $3}' "$TOOLS_FILE" 2>/dev/null)
+    [ -z "$template" ] && { echo "tool not found: $name"; return 1; }
+
+    local input; input=$(echo "$args" | jq -r '.input // empty')
+
+    log_daemon "tool: $name (arg: $(echo "$input" | head -c 100))"
+    local output
+    output=$(HOSUNI_ARG="$input" perl -e 'alarm shift; exec @ARGV' "$TOOL_TIMEOUT" bash -c "$template 2>/dev/null" 2>/dev/null | head -c 65536) || true
+    output=${output:-"no results"}
+    echo "$output"
+}
+
+# --- streaming inference ---
+
+call_inference_streaming() {
+    local messages="$1" content_file="$2"
+    local payload
+    payload=$(jq -n --argjson msgs "$messages" \
+        '{messages: $msgs, max_tokens: 262144, stream: true}')
+
+    log_daemon "streaming payload: $(echo "$payload" | jq -c '{msg_count: (.messages | length), first_role: .messages[0].role}' 2>/dev/null)"
+
+    if [ -p "$PARSIMONY_IN" ] && [ -p "$PARSIMONY_OUT" ]; then
+
+
+### Chunk 11 (from runtime/hosuni.sh)
+save_messages() {
+    local channel="$1" messages="$2"
+    # truncate to last MAX_TURNS * 2 entries
+    local count; count=$(echo "$messages" | jq 'length')
+    if [ "$count" -gt $((MAX_TURNS * 2)) ]; then
+        messages=$(echo "$messages" | jq ".[-$((MAX_TURNS * 2)):]")
+    fi
+    echo "$messages" > "$(get_messages_file "$channel")"
+}
+
+# --- core loop ---
+
+handle_request() {
+    local request="$1"
+    local input channel context
+    input=$(echo "$request" | jq -r '.input // empty')
+    channel=$(echo "$request" | jq -r '.channel // "default"')
+    context=$(echo "$request" | jq -r '.context // empty')
+
+    local stream
+    stream=$(echo "$request" | jq -r '.stream // false')
+
+    [ -z "$input" ] && { echo '{"error":"no input"}'; return; }
+
+    log_daemon "[${channel}] input: $input (stream=$stream)"
+    log_session "$channel" "Q" "$input"
+
+    # T0: lookdown check (skip for conversational input)
+    if [ "${#input}" -lt 120 ]; then
+        local lookdown_result
+        if lookdown_result=$(check_lookdown "$input"); then
+            log_daemon "[${channel}] lookdown hit: $lookdown_result"
+            local output
+            output=$(eval "$lookdown_result" 2>&1) || true
+            [ -z "$output" ] && output="ok"
+            log_session "$channel" "A" "$output"
+            if [ "$stream" = "true" ]; then
+                local sse_esc
+                sse_esc=$(printf '%s' "$output" | jq -Rsc '.')
+                printf 'data: {"choices":[{"delta":{"content":%s},"finish_reason":null}]}\n' "$sse_esc"
+
+
+### Chunk 12 (from runtime/hosuni/hosuni.c)
+        if (*p == ' ') { x += hosuni_char_width(f, ' '); p++; }
+    }
+    return line + 1;
+}
+
+static void draw_ask(hosuni_app *app) {
+    int lh = hosuni_line_height(&app->font);
+    int m = app->margin;
+    int max_x = app->surface.width - m;
+
+    /* header at top */
+    hosuni_draw_text(&app->surface, &app->font_large, m, m, "hosuni.c", COL_FG);
+    hosuni_draw_text(&app->surface, &app->font, m, m + hosuni_line_height(&app->font_large) + 4,
+                  "subtract your questions, ask about anything", COL_DIM);
+
+    /* input at bottom, above status bar */
+    int status_h = lh + 4;
+    int input_y = app->surface.height - status_h - lh - 16;
+    int prompt_w = hosuni_draw_text(&app->surface, &app->font, 0, input_y + 4, "> ", COL_DIM);
+    int input_x0 = prompt_w + 4;
+    int input_area_w = app->surface.width - input_x0 - m;
+    fill_rect(&app->surface, prompt_w, input_y, app->surface.width - prompt_w - m, lh + 8, COL_INPUT_BG);
+    if (app->ask.input_len > 0) {
+        int total_w = 0;
+        for (int i = 0; i < app->ask.input_len; i++)
+            total_w += hosuni_char_width(&app->font, app->ask.input[i]);
+        int skip = 0;
+        if (total_w > input_area_w - 4) {
+            int excess = total_w - input_area_w + 4;
+            int w = 0;
+            for (skip = 0; skip < app->ask.input_len && w < excess; skip++)
+                w += hosuni_char_width(&app->font, app->ask.input[skip]);
+        }
+        hosuni_draw_text(&app->surface, &app->font, input_x0, input_y + 4,
+                      app->ask.input + skip, COL_FG);
+        int vis_w = 0;
+        for (int i = skip; i < app->ask.input_len; i++)
+            vis_w += hosuni_char_width(&app->font, app->ask.input[i]);
+        if (!app->ask.streaming)
+            fill_rect(&app->surface, input_x0 + vis_w, input_y + 4, 2, lh, COL_CURSOR);
+
+
+
+## Question
+How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.

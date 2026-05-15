@@ -1,0 +1,35 @@
+Here's the script using the standard library plus `requests` and `beautifulsoup4`:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+def extract_links(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, "html.parser")
+    for tag in soup.find_all("a", href=True):
+        print(f"{tag['href']!r:50} {tag.get_text(strip=True)!r}")
+
+extract_links("https://example.com")
+```
+
+**How to run:**
+
+1. Install dependencies:
+   ```bash
+   pip install requests beautifulsoup4
+   ```
+
+2. Save the script (e.g. `links.py`) and run:
+   ```bash
+   python links.py
+   ```
+
+**What it does:**
+- `requests.get` fetches the page; `.raise_for_status()` throws on HTTP errors.
+- `BeautifulSoup` parses the HTML.
+- `find_all("a", href=True)` selects only `<a>` tags that have an `href` attribute.
+- Each line prints the `href` value and the visible link text, side by side.
+
+For `https://example.com` specifically, you'll likely see one link — the IANA "More information" anchor — since that page is minimal.

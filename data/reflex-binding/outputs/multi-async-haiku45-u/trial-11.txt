@@ -1,0 +1,84 @@
+Here's a complete async TCP echo server in Python using `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    client_addr = writer.get_extra_info('peername')
+    print(f"Client connected: {client_addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If no data, client disconnected
+            if not data:
+                break
+            
+            # Echo it back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo from {client_addr}: {data.decode().strip()}")
+    except Exception as e:
+        print(f"Error with {client_addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {client_addr}")
+
+async def main():
+    """Start the TCP echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+1. **Start the server** in one terminal:
+```bash
+python echo_server.py
+```
+
+2. **Connect clients** from other terminals (using `nc` or `telnet`):
+```bash
+nc localhost 8888
+```
+
+Or with `telnet`:
+```bash
+telnet localhost 8888
+```
+
+3. **Send messages** - type any text and press Enter. The server echoes it back:
+```
+$ nc localhost 8888
+Hello, World!
+Hello, World!
+Testing async echo
+Testing async echo
+```
+
+**How it works:**
+
+- `handle_client()` is an async function called for each new connection
+- `reader.readline()` reads one line at a time from the client (blocks until `\n`)
+- `writer.write()` sends data back, then `await writer.drain()` ensures it's flushed
+- Multiple clients can connect simultaneously and are handled concurrently
+- The server runs forever with `serve_forever()` until interrupted (Ctrl+C)
+
+**To stop the server:** Press `Ctrl+C` in the terminal running the server.

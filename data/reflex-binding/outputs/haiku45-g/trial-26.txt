@@ -1,0 +1,69 @@
+I'll show you a simple HTTP endpoint in Python that returns the current time as JSON.
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            response = {
+                'time': datetime.utcnow().isoformat() + 'Z'
+            }
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, format, *args):
+        pass  # Suppress logging
+
+if __name__ == '__main__':
+    server = HTTPServer(('localhost', 8000), TimeHandler)
+    print('Server running at http://localhost:8000/time')
+    server.serve_forever()
+```
+
+**To run it:**
+```bash
+python3 endpoint.py
+```
+
+**To test it:**
+```bash
+curl http://localhost:8000/time
+```
+
+**Response:**
+```json
+{"time": "2026-05-10T14:23:45.123456Z"}
+```
+
+If you prefer a more modern async version using `aiohttp`:
+
+```python
+from aiohttp import web
+from datetime import datetime
+
+async def time_handler(request):
+    return web.json_response({
+        'time': datetime.utcnow().isoformat() + 'Z'
+    })
+
+if __name__ == '__main__':
+    app = web.Application()
+    app.router.add_get('/time', time_handler)
+    web.run_app(app, host='localhost', port=8000)
+```
+
+**To run:**
+```bash
+pip install aiohttp
+python3 endpoint.py
+```
+
+Either version works—the first is built-in to Python, the second is more scalable if you plan to add more endpoints.

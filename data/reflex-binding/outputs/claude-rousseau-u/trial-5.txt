@@ -1,0 +1,25 @@
+Working. Here's the code in `/private/tmp/server.js`:
+
+```js
+const http = require("http");
+
+const server = http.createServer((req, res) => {
+  if (req.method === "GET" && req.url === "/time") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ time: new Date().toISOString() }));
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+
+server.listen(3000, () => console.log("Listening on http://localhost:3000"));
+```
+
+**To run it:**
+
+```
+node /private/tmp/server.js
+```
+
+Then visit `http://localhost:3000/time` or `curl http://localhost:3000/time`. Zero dependencies — just Node.js.

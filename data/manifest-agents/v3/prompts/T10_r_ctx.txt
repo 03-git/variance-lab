@@ -1,0 +1,441 @@
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from llms.txt)
+SHA256:
+  4972bcd36e77e15a19fe5eb120bfdeb50f9872719cee44c70e9c6e592bec0b61  README.txt
+  20a4740eacb277a154beccf984657a263264376bd0f8af9cd6fedfe2ad652f2e  subtract.7.txt
+  4b742825f324eb3f3d9f16647cd7ed4ca09a4cb7ce6333dff526bc44e7a28868  governance.conf.universal.txt
+  60ad058459008c7903a9fe60b44e0d73a02ff21d3fb8b77a397a8e430af36245  software-as-a-besides.txt
+  8e3c1df66ecf43838c1c26954b4293c8aa3364ff0bad9d8d116852239da22595  lineage.txt
+  34dd1f5106ea0cfe4f6a555b528d9a39584cb430bf1f7d724459fd2a5430343a  signoff.txt
+  847fbe1fe7ad20c7e9def591896418d4d51f301fb7490dd03d6f0079a9474158  variance-lab.txt
+  d2b28b22622102b687d4e2f0438e6c3258b5bfa6c07a191cbf17ccb2ea64a167  variance-lab-handler-methodology.txt
+  4d00699f59c4d15b1fecdcfd2042ab12c78221f87240a23125f4dbaa51d30358  subtracting.html
+  328858fbc3e81f3cc08425a2e4774d71ce798196f1d77c85478b718001aa0ecf  SOUL.txt
+  ae379026fd46d996be9168ae5b2d93b5bad2d88e39e13d848b9085f2a8d35356  lookdown.universal.tsv
+
+
+### Chunk 2 (from variance-lab/data/manifest-agents/manifest-walk.sh)
+#!/bin/bash
+set -euo pipefail
+# manifest-walk.sh — walk subtract.ing repo, output TSV manifest
+# Usage: ./manifest-walk.sh /path/to/repo > manifest.tsv
+# Output: path<TAB>sha256<TAB>lines<TAB>description
+
+REPO="${1:-.}"
+
+cd "$REPO"
+
+find . -type f \( -name "*.txt" -o -name "*.html" -o -name "*.md" \
+  -o -name "*.c" -o -name "*.h" -o -name "*.sh" -o -name "*.tsv" \
+  -o -name "*.ts" -o -name "*.conf" \) \
+  ! -path "./.git/*" ! -path "*/node_modules/*" \
+  ! -name "stb_truetype.h" \
+  | sort | while IFS= read -r f; do
+    hash=$(shasum -a 256 "$f" | cut -d' ' -f1)
+    lines=$(wc -l < "$f" | tr -d ' ')
+    # first non-empty, non-comment line as description
+    desc=$(grep -m1 -v '^\s*$' "$f" | grep -v '^\s*#\|^\s*//' | head -c 120 || echo "(no description)")
+    [ -z "$desc" ] && desc=$(head -1 "$f" | head -c 120)
+    printf '%s\t%s\t%s\t%s\n' "$f" "$hash" "$lines" "$desc"
+done
+
+
+### Chunk 3 (from variance-lab/data/manifest-agents/questions.tsv)
+id	type	question
+T01	traversal	What files are in the runtime/hosuni/ directory and what does each one do?
+T02	traversal	What is parsimony.c and what role does it play in the subtract.ing runtime?
+T03	traversal	List all .tsv files in the repository and describe the format of each.
+T04	traversal	What does the install.sh script do?
+T05	traversal	What is in runtime/llms.txt and how does it differ from the root llms.txt?
+T06	traversal	What shell hooks exist in runtime/hooks/ and what do they intercept?
+T07	traversal	What is kiosk.sh and what does it configure?
+T08	traversal	What files define the lookdown system and how are they organized?
+T09	traversal	What is squared.c and what does it compute?
+T10	traversal	List every file that contains a sha256 hash or references sha256 verification.
+S01	synthesis	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?
+S02	synthesis	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?
+S03	synthesis	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?
+S04	synthesis	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.
+S05	synthesis	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?
+S06	synthesis	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?
+S07	synthesis	Which files mention the concept of a "formation" and what does the term mean across them?
+S08	synthesis	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?
+S09	synthesis	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?
+S10	synthesis	What does lineage.txt credit and how do those credits connect to specific components in the codebase?
+C01	change	What changed in hosuni.c between commit d4e860d and HEAD?
+C02	change	What was the most recent change to variance-lab.txt and what confound did it resolve?
+C03	change	Which files were modified in the commit that added CJK font fallback support?
+C04	change	Has SOUL.txt been rewritten recently? What was the nature of the change?
+C05	change	What is the most recent addition to the llms.txt index?
+M01	similarity	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?
+M02	similarity	Find files related to the concept of signing and verification. Group them by function.
+M03	similarity	Which components share the pattern of reading a manifest or index file to decide what to do next?
+M04	similarity	What files discuss the boundary between human authority and agent execution? How do they differ in framing?
+M05	similarity	Find all components that use llama.cpp or local inference. How are they related?
+
+
+### Chunk 4 (from key-rotation.txt)
+key-rotation.txt — signed key succession for subtract.ing
+
+Problem:
+  A signing key dies (hardware loss, compromise, planned retirement).
+  Every installer who pinned authorized_signers can no longer verify new artifacts.
+  Without a signed succession, the chain of trust breaks silently.
+
+Constraint:
+  Reflex 2: ssh-keygen -Y already does it. No new format.
+
+Primitive:
+  authorized_signers already supports valid-after and valid-before.
+  ssh-keygen -Y verify already enforces them.
+
+---
+
+Format (authorized_signers with time bounds):
+
+  hodori@subtract.ing valid-after="20260301" valid-before="20280301" ssh-ed25519 AAAA...current...
+  hodori@subtract.ing valid-after="20280201" ssh-ed25519 AAAA...successor...
+
+  Overlap window (20280201–20280301): both keys verify.
+  After 20280301: only successor verifies.
+
+---
+
+Transition record (the chain link):
+
+  File: transitions/YYYYMMDD.txt
+  Signed by: the outgoing key
+
+  Contents:
+    principal: hodori@subtract.ing
+    from: SHA256:<outgoing-fingerprint>
+    to: SHA256:<successor-fingerprint>
+    effective: YYYY-MM-DD
+    reason: rotation | compromise | hardware-loss
+
+  Signature: transitions/YYYYMMDD.txt.sig
+
+
+
+### Chunk 5 (from llms.txt)
+  - humans who want to stop depending on AI intermediaries to reach their
+    own machines
+  - agents that reach for libraries and SaaS before checking what the
+    filesystem and built-in commands already do
+
+The personal fork under ~/.subtract/ is your episodic memory. The universal
+fork (this directory) is your routing table. Read both at signon.
+
+## Install
+
+curl -sL subtract.ing/install.sh | bash
+
+Or clone and inspect first: install.sh is 50 lines.
+
+## Repo
+
+https://github.com/03-git/subtract.ing
+
+## Authors
+
+Josh (@hodorigami) & LLMs (@qwen @claude @gemini @grok)
+
+## Manifest
+
+Verify this file's signature, then verify each substrate file against its
+hash below. Single chain of trust: the signature on llms.txt anchors every
+other file.
+
+  ssh-keygen -Y verify -f authorized_signers -I hodori@subtract.ing \
+    -n subtract.ing -s llms.txt.sig < llms.txt
+
+Signer identity: hodori@subtract.ing
+Namespace:       subtract.ing
+Public key:      https://subtract.ing/authorized_signers
+
+SHA256:
+  4972bcd36e77e15a19fe5eb120bfdeb50f9872719cee44c70e9c6e592bec0b61  README.txt
+  20a4740eacb277a154beccf984657a263264376bd0f8af9cd6fedfe2ad652f2e  subtract.7.txt
+  4b742825f324eb3f3d9f16647cd7ed4ca09a4cb7ce6333dff526bc44e7a28868  governance.conf.universal.txt
+  60ad058459008c7903a9fe60b44e0d73a02ff21d3fb8b77a397a8e430af36245  software-as-a-besides.txt
+
+
+### Chunk 6 (from variance-lab.txt)
+
+The deployment question: how much bandwidth does the hardware have,
+and how many concurrent users at what per-user floor? The bytes-per-
+token ratio varies by platform and load (2.5-3.2 GB/tok observed),
+so the ceiling must be measured per platform, not extrapolated from
+a single ratio. The bandwidth determines the ceiling; the exact
+ceiling requires a bench run.
+
+## Harness
+
+  Scaling curve:       staging/bonsai-scaling-curve-m1max.jsonl
+  Four-model bench:    (session output, to be formalized)
+  Model:               huggingface.co/prism-ml/Bonsai-8B-gguf (Apache 2.0)
+  Instances:           10 x llama-server, ports 9100-9109, -ngl 99 -c 2048 -np 1
+  Note:                -np 1 per instance makes per-user latency predictable.
+                       Alternative configs with -np >1 introduce internal
+                       batching and would change the scaling shape.
+
+
+================================================================
+
+---
+title: Model Review Yield vs Functional Verification on Systems Code
+date: 2026-05-07
+source: production empirical (three-gate code review of cal.c, 1768 lines C)
+domain:
+  - code-review
+  - model-evaluation
+  - functional-verification
+  - autonomy-assessment
+keywords:
+  - model code review
+  - functional verification
+  - false pass
+  - display verification
+  - human gate
+  - autonomy.1
+  - effort tier
+  - crash path detection
+  - DRM framebuffer
+
+
+### Chunk 7 (from variance-lab.txt)
+  - passenger mode
+  - tokens-per-turn
+  - subagent dedup
+  - five-model pool
+  - single-operator corpus
+related_findings:
+  - "variance-lab finding 3: interaction-mode-variance in human-AI sessions (2026-03-30, N=88, flagged RERUN in editorial audit 2026-04-19)"
+  - "variance-lab finding 5: governance binding, delivery-path sensitivity, and targeted patch validation"
+methodology: pre-committed rubric (commit 49d86f7, sha256 4223396958c219045c928c77951a30d3aae86ddacc56c08bc7300891ce7bb379) applied to 1075 JSONL files; 501 qualifying single-model sessions after rubric-mandated filters; per-mode aggregation with outlier-removed sensitivity; two-pass adversarial review across six Claude voters (three model generations, two nodes, two effort tiers)
+---
+
+# Interaction-Mode-Variance Rerun
+
+## Claim
+
+Under a pre-committed rubric (`findings/interaction-mode-variance-rubric.md` @ `49d86f7`, sha256 `4223396958c219045c928c77951a30d3aae86ddacc56c08bc7300891ce7bb379`) applied to 1075 Claude Code JSONL session files on a single operator, single node, between 2026-03-29 and 2026-04-19, the ordering passenger > collaborator > governor > pipe in total tokens per session holds on means and on medians. The passenger-vs-governor multiplier is **52.7× on means** (21.6× on medians, 50.4× on outlier-removed means; governor N=9) under single-model sessions only. The original finding's 41× headline (N=88, 2026-03-30, means only) is observed here with the same ordering under a different mode distribution and a different model-pool composition.
+
+## Measurement
+
+Pre-commitment: rubric committed 2026-04-19T12:21:33Z on branch `rerun/finding-3` at `49d86f7`. Content sha256 above. Rubric fixes mode thresholds, human-turn definition, session qualification, correction-keyword set, and mixed-model exclusion. No post-hoc tuning.
+
+Corpus: 1075 JSONL files under `~/.claude/projects/<project>/` on Surface, with `utc_start` timestamps ranging 2026-03-29T02:37:27Z to 2026-04-19T17:18:25Z. The rerun corpus is ~5.7× larger than the original by qualifying-session count (501 vs 88).
+
+Filter sequence (rubric-mandated):
+
+1. Extractor emits one row per file (1075 total).
+2. Subagent child transcripts excluded via `/subagents/` path filter at aggregation (555 rows). Spot-check N=10 of filtered paths confirmed each parent present in the corpus. Replicators can verify the rest deterministically from the TSV.
+3. Zero-human-turn or zero-assistant-response sessions excluded (5 rows).
+4. Mixed-model sessions excluded from single-model comparisons (14 rows, 13 passenger + 1 collaborator). Reported separately.
+
+Residual single-model qualifying sessions: **501**.
+
+### Per-mode aggregates (single-model)
+
+| Mode | N | Mean tok | Median tok | Mean (OR) | Median (OR) | Turns | Tok/turn | Corr. rate† |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Pipe (h≤1) | 394 | 751 | 136 | 631 | 136 | 394 | 751 | 0.919† |
+| Governor (2≤h≤3) | 9 | 3,308 | 3,217 | 3,017 | 2,899 | 21 | 1,417 | 0.238† |
+| Collaborator (4≤h≤15) | 28 | 34,463 | 15,035 | 19,416 | 14,855 | 238 | 4,055 | 0.273 |
+| Passenger (h>15) | 70 | 174,254 | 69,639 | 151,996 | 69,398 | 5,363 | 2,274 | 0.274 |
+
+
+### Chunk 8 (from variance-lab.txt)
+Content contributes ~3.8 of the ~5.0-point range. Native mechanism adds ~1.2 on top. These are not cleanly additive components.
+
+Item-level finding: R2 subtract.ing namespace collapses A=80% → B=0% (binary collapse across all five inline trials). R10 agent/human boundary drops A=100% → B=60%. Instruction-following items (R1, R5, R6, R7, R8, R9) are within 0–20pp across arms. Persistent null replicated: R3 and R4 at 0% in both arms, matching exp 1. Four consecutive arms at 0% on the manifest/signer layer across exp 1 and exp 2.
+
+### Note on deliberative scope-correction (methodology observation, not a finding)
+
+Exp 5's eight-voter editorial audit was retrospectively examined against a reconstructed gate-only baseline on four survey-class findings. Concordance was 0/4, all divergences deliberative-looser; the deliberative layer resolved category mismatch where gates (specified for implementation-selection tasks) misfired on survey documents. This restates, on a different corpus, the handler methodology's Finding 3 that a deliberative pass surfaces unscored axes. The observation is downstream of that finding rather than independent of it. Design limitations: N=4, single analyst (Rousseau opus-4.7 high, who was also V1 in the audited panel), gate-only baseline reconstructed from V7's literal-checklist pass rather than an independent mechanical re-score. Whether deliberation produces the stricter direction on a matched-corpus (implementation-selection) run is unresolved by any experiment in this finding.
+
+### Exp 4 — tool-surface binding test
+
+**Spec sha256:** `a4538a0aaf15fbaf451907665fd7618d22d461ec400ae1bf0061972f9e0affd2`
+Run: ~15:50 UTC. N=5 per arm, interleaved A/B. Model: claude-opus-4-7, effort=high. Both arms: cwd=~, native CLAUDE.md load. Scorer: claude-sonnet-4-5 low (Rousseau), blind shuffle, record-count assertion enforced. Note: CLAUDE.md patch was applied ~15:40 UTC, between exp 2 and exp 4.
+
+**Primary result — tool surface: null.**
+
+| Arm | Mean | Stdev | Trials |
+|---|---|---|---|
+| A (--tools default) | 8.40/10 | 0.55 | 8, 8, 9, 9, 8 |
+| B (--tools "") | 8.60/10 | 0.55 | 9, 8, 9, 9, 8 |
+
+Welch **t = −0.58**, delta −0.20. Both arms honored "Do not execute. Output a plan only." Tool-use detector reported 5/5 "invocations" in Arm A; behavioral inspection of trial outputs confirmed no actual tool-use markers in any trial. Detector produced false positives; Arm A and Arm B outputs are behaviorally indistinguishable. Replication check: Arm A 8.40 vs exp 1 Arm A 8.20 (delta +0.20) and exp 2 Arm A 7.80 (delta +0.60), both within ±1.5.
+
+**Secondary result — CLAUDE.md patch before/after on R3/R4.**
+
+The patch added to CLAUDE.md's Keymaster section: signer identity `hodori@subtract.ing`, manifest filename `llms.txt`, format `sha256 sums`, and the edit→hash→sign loop. The pre-existing rubric was held fixed.
+
+| Item | Exp 1 A | Exp 1 B | Exp 2 A | Exp 2 B | Exp 4 A | Exp 4 B |
+|---|---:|---:|---:|---:|---:|---:|
+| R3 signer identity | 0% | 0% | 0% | 0% | **100%** | **100%** |
+| R4 llms.txt sha256 manifest | 0% | 0% | 0% | 0% | **100%** | **100%** |
+
+Four pre-patch arms at 0%; two post-patch arms at 100%. Patch applied between. The R3/R4 closure reproduces across both tool-surface arms, ruling out tool availability as the enabling mechanism.
+
+**Tertiary observation — attention-shift regression on R7/R8.**
+
+| Item | Exp 1 A | Exp 2 A | Exp 4 A |
+|---|---:|---:|---:|
+| R7 no Cloudflare / no DNS layer | 100% | 100% | **0%** |
+| R8 pre-flight check | 100% | 100% | **40%** |
+
+
+
+### Chunk 9 (from variance-lab.txt)
+  - human gate
+  - autonomy.1
+  - effort tier
+  - crash path detection
+  - DRM framebuffer
+  - three-gate methodology
+related_findings:
+  - "variance-lab finding 1: handler-methodology (sonnet-low caught showstopper opus-xhigh missed)"
+  - "variance-lab finding 3 rerun: interaction-mode-variance (replication under pre-committed rubric)"
+  - "variance-lab finding 5: governance binding, delivery-path sensitivity (deploy script = same mechanism)"
+  - "variance-lab: three questions for agentic autonomy (autonomy.1 empirically demonstrated)"
+prior_art_status: >
+  Published code-review studies compare human reviewers or static
+  analysis tools. No published study compares multi-model AI code
+  review yield against functional verification yield on the same
+  codebase with confirmed/unconfirmed tracking per finding. The
+  effort-tier inversion (cheaper model finds crash path that
+  expensive model misses) has one prior observation in this corpus
+  (handler-methodology Finding 1) and no published equivalent.
+
+methodology: three-gate (compilation → first-run survival → rubric scoring), pre-committed rubric (cal-review-rubric.txt), multi-model dispatch (5 reviews across 4 models and 3 effort tiers), functional verification on target hardware (acer1660ti, i915 eDP-1)
+harness: github.com/03-git/variance-lab, findings/cal/
+---
+
+# Model Review Yield vs Functional Verification on Systems Code
+
+## Claim
+
+Model code review and functional verification have complementary but
+asymmetric yield. On a 1768-line C framebuffer application, five model
+reviews across three models and three effort tiers produced 26 findings;
+1 was confirmed (F01, double-free) and 1 partially confirmed (F24, DRM master conflict) by build and execution. Functional verification
+produced 6 findings; 6 (100%) were confirmed by direct observation.
+The functional findings included the single bug (FV5: drmModeSetCrtc
+EACCES) that blocked all further gate testing. Without it, the
+methodology would have scored a display application that never displayed.
+
+This replicates handler-methodology Finding 1 on a different spec
+(1768 lines C with DRM/evdev/signals, vs shell scripts) and a
+different task class (systems code, vs automation). The falsification
+
+
+### Chunk 10 (from software-as-a-besides.txt)
+  +-- browser (already on every computer)
+  |
+  |   -- everything below this line moves control and visibility beyond your computer --
+  |
+  +-- npm/pip/cargo
+  +-- language runtime
+  +-- framework
+  +-- ORM, database server
+  +-- API gateway, auth service
+  +-- container runtime, orchestrator
+  +-- cloud provider, CI/CD, CDN
+  +-- monitoring SaaS, billing SaaS
+```
+
+Full frame: https://subtract.ing/subtract.7.txt
+
+Full lineage: https://subtract.ing/lineage.txt
+
+
+### Chunk 11 (from variance-lab.txt)
+or capability. Sonnet had no context pressure (the file fits
+easily) — it read `'\0'` as `' '`. This is the kind of error
+that functional verification catches trivially (the file
+compiles and runs correctly with `'\0'`).
+
+Opus caught the definition ordering issue that Sonnet missed.
+Definition ordering is a compile-time error, so gate 2
+(functional verification) would have caught it immediately.
+Both reviewers caught the snprintf overflow — the most
+consequential bug, which is a latent runtime issue that
+wouldn't surface during normal testing.
+
+### Gate 2 — functional verification on acer
+
+**Target:** acer1660ti (i915 eDP-1, Debian, DRM framebuffer).
+Inference routed to rousseau (100.110.250.103:8087, Qwen 2.5
+7B Q4) via Tailscale.
+
+**Pre-existing issue found:** `.bash_profile` hardcoded
+`-p 8086` (Gemma reasoning model). Port 8086 sends
+`reasoning_content` in a separate field with empty `content`,
+which cal.c doesn't parse — hard freeze, no key input
+possible (main loop never yields to `platform_event` while
+the socket feeds empty content chunks). Fixed `.bash_profile`
+to `-p 8087`.
+
+**Build:** clean compile on first attempt after fixing a
+pre-existing missing `/*` comment opener on the build
+instructions block (line 13). Not a regression — the prior
+binary on acer was compiled from an earlier source.
+
+**Test results:**
+
+| Test | Result |
+|------|--------|
+| Lookdown (T0): "godzilla", "what is a caterpillar" | instant, correct |
+| Inference: "what is the meaning of chiaroscuro" | FAIL then PASS |
+| SOUL injection | confirmed (debug log shows system message) |
+| Conversation continuity (follow-up question) | confirmed |
+
+
+
+### Chunk 12 (from variance-lab/data/manifest-agents/dispatch.sh)
+  local question="$1"
+  local out="$2"
+
+  # start with the full manifest
+  {
+    echo "## File manifest (path, sha256, lines, first_line)"
+    echo ""
+    cat "$MANIFEST"
+    echo ""
+  } > "$out"
+
+  # extract keywords from question
+  local keywords
+  keywords=$(echo "$question" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '\n' | sort -u | \
+    grep -v -E '^(what|which|how|does|the|and|are|for|from|that|this|with|each|one|all|its|has|was|is|in|of|to|do|a|an|it|be|list|every|file|files|describe|between)$' || true)
+
+  # search repo files for keyword hits, rank by frequency
+  local tmpmatches
+  tmpmatches=$(mktemp)
+  for kw in $keywords; do
+    cd "$REPO" && grep -rl --include="*.txt" --include="*.c" --include="*.h" \
+      --include="*.sh" --include="*.html" --include="*.tsv" --include="*.ts" \
+      -il "$kw" . 2>/dev/null >> "$tmpmatches" || true
+  done
+
+  local ranked
+  ranked=$(sort "$tmpmatches" | uniq -c | sort -rn | head -5 | awk '{print $2}')
+  rm -f "$tmpmatches"
+
+  local total_lines=0
+  for f in $ranked; do
+    local fpath="$REPO/${f#./}"
+    [ -f "$fpath" ] || continue
+    local flines
+    flines=$(wc -l < "$fpath" | tr -d ' ')
+    if [ $((total_lines + flines)) -gt $MAX_CONTEXT_LINES ]; then
+      local remaining=$((MAX_CONTEXT_LINES - total_lines))
+      if [ "$remaining" -gt 10 ]; then
+        echo "" >> "$out"
+        echo "## File: $f (truncated to $remaining/$flines lines)" >> "$out"
+
+

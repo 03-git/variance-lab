@@ -1,0 +1,70 @@
+I'll create a comprehensive Python test suite for the `celsius_to_fahrenheit` function using pytest.
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    def test_freezing_point(self):
+        """Test conversion of freezing point (0°C = 32°F)"""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """Test conversion of boiling point (100°C = 212°F)"""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty(self):
+        """Test conversion at -40°C (same in Celsius and Fahrenheit)"""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Test that non-numeric input raises TypeError"""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("not a number")
+    
+    def test_non_numeric_input_none(self):
+        """Test that None input raises TypeError"""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit(None)
+    
+    def test_float_input(self):
+        """Test conversion with float input (37.5°C ≈ 99.5°F)"""
+        assert celsius_to_fahrenheit(37.5) == 99.5
+```
+
+**How to run it:**
+
+1. **Install pytest** (if not already installed):
+   ```bash
+   pip install pytest
+   ```
+
+2. **Save the code** to a file (e.g., `test_temperature.py`)
+
+3. **Run the tests**:
+   ```bash
+   # Run all tests with verbose output
+   pytest test_temperature.py -v
+   
+   # Run a specific test
+   pytest test_temperature.py::TestCelsiusToFahrenheit::test_freezing_point -v
+   
+   # Run with more detailed output
+   pytest test_temperature.py -vv
+   ```
+
+**Expected output:**
+```
+test_temperature.py::TestCelsiusToFahrenheit::test_freezing_point PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_negative_forty PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_non_numeric_input_none PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_float_input PASSED
+
+====== 6 passed in 0.05s ======
+```
+
+The suite covers your requested test cases (0, 100, -40, and non-numeric inputs) plus a couple of extras: handling `None` explicitly and testing float inputs to ensure the function works with decimal values.

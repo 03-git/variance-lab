@@ -1,0 +1,509 @@
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from runtime/subtract.sh)
+            return 1
+        fi
+    else
+        # multi-match: return list for handler to display
+        local list=""
+        local n=1
+        while IFS= read -r match; do
+            list="${list}${n}. ${match}"$'\n'
+            n=$((n+1))
+        done <<< "$candidates"
+        # cache for "show N" retrieval
+        echo "$candidates" > ${TMPDIR:-/tmp}/.subtract-skills-lastmatch.${USER:-$$}
+        echo "list:${count}"$'\n'"${list}"
+        return 0
+    fi
+}
+
+# --- T0: lookup table ---
+
+__subtract_lookup_file() {
+    local input_lower
+    input_lower=$(__subtract_lower "$1")
+    local pattern tag cmd rest pattern_lower
+    while IFS=$'\t' read -r pattern rest; do
+        [[ "$pattern" =~ ^#.*$ || -z "$pattern" ]] && continue
+        pattern_lower=$(__subtract_lower "$pattern")
+        # shellcheck disable=SC2254
+        if [ -n "$ZSH_VERSION" ]; then
+            [[ "$input_lower" == $~pattern_lower ]] || continue
+        else
+            [[ "$input_lower" == $pattern_lower ]] || continue
+        fi
+        if [[ "$rest" =~ ^\[([a-z]+)\] ]]; then
+            if [ -n "$ZSH_VERSION" ]; then tag="${match[1]}"; else tag="${BASH_REMATCH[1]}"; fi
+            cmd="${rest#*	}"
+        else
+            tag="stdout"
+            cmd="$rest"
+        fi
+        echo "${tag}	${cmd}"
+
+
+### Chunk 2 (from runtime/subtract.sh)
+                ;;
+            *)
+                _SUBTRACT_AFTER_CLAUDE_P=""
+                ;;
+        esac
+    fi
+    _SUBTRACT_FROM_HANDLER=""
+}
+# PROMPT_COMMAND (bash) and precmd_functions (zsh) set in hooks/bash.sh and hooks/zsh.sh
+
+# --- skills: procedural knowledge lookup ---
+
+__subtract_skills_stale() {
+    # check if index needs rebuild: any .md file newer than index
+    local index="$SUBTRACT_SKILLS/.index"
+    [ ! -f "$index" ] && return 0
+    local newer
+    newer=$(find "$SUBTRACT_SKILLS" -name '*.md' -newer "$index" -print -quit 2>/dev/null)
+    [ -n "$newer" ] && return 0
+    return 1
+}
+
+__subtract_strip_prefix() {
+    local input
+    input=$(__subtract_lower "$1")
+    local prefix
+    local -a prefixes
+    # split pipe-delimited prefix string into array (bash: read -ra, zsh: parameter expansion)
+    if [ -n "$ZSH_VERSION" ]; then
+        prefixes=("${(s:|:)SUBTRACT_SKILLS_PREFIXES}")
+    else
+        IFS='|' read -ra prefixes <<< "$SUBTRACT_SKILLS_PREFIXES"
+    fi
+    for prefix in "${prefixes[@]}"; do
+        prefix="${prefix# }"
+        [ -z "$prefix" ] && continue
+        if [[ "$input" == ${prefix}* ]]; then
+            echo "${input#$prefix}"
+            return 0
+        fi
+
+
+### Chunk 3 (from runtime/subtract.sh)
+        token=$(__subtract_lower "$token")
+        [ ${#token} -lt 3 ] && continue
+        case "$stopwords" in *" $token "*) continue ;; esac
+        search_tokens+=("$token")
+    done
+    [ ${#search_tokens[@]} -eq 0 ] && return 1
+
+    # intersect candidate files across all tokens (avoids 0-vs-1 index difference between bash/zsh)
+    local candidates="" first=1
+    for token in "${search_tokens[@]}"; do
+        if [ "$first" -eq 1 ]; then
+            candidates=$(grep -i "^${token}	" "$index" 2>/dev/null | cut -f2 | sort -u)
+            [ -z "$candidates" ] && return 1
+            first=0
+        else
+            local next_candidates
+            next_candidates=$(grep -i "^${token}	" "$index" 2>/dev/null | cut -f2 | sort -u)
+            candidates=$(comm -12 <(echo "$candidates") <(echo "$next_candidates"))
+            [ -z "$candidates" ] && return 1
+        fi
+    done
+
+    # count matches
+    local count
+    count=$(echo "$candidates" | wc -l | tr -d ' ')
+
+    if [ "$count" -eq 1 ]; then
+        # single match: display it
+        local filepath="$SUBTRACT_SKILLS/${candidates}.md"
+        if [ -f "$filepath" ]; then
+            echo "skill:${candidates}"
+            return 0
+        else
+            # index references deleted file, rebuild and retry
+            bash "$SUBTRACT_DIR/skills-rebuild.sh" > /dev/null 2>&1 || true
+            return 1
+        fi
+    else
+        # multi-match: return list for handler to display
+        local list=""
+
+
+### Chunk 4 (from runtime/hosuni.sh)
+
+ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+log_daemon() { printf "[%s] %s\n" "$(ts)" "$1" >> "$DAEMON_LOG"; }
+
+log_session() {
+    local channel="$1" role="$2" content="$3"
+    local safe; safe=$(printf '%s' "$content" | tr '\t\n' '  ' | cut -c1-500)
+    printf "%s\t%s\t%s\n" "$(ts)" "$role" "$safe" >> "$LOG_DIR/hosuni-${channel}.log"
+}
+
+# --- lookdown check ---
+
+check_lookdown() {
+    local input; input=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+    local line pattern cmd
+    for file in "$LOOKDOWN_NODE" "$LOOKDOWN_UNIVERSAL"; do
+        [ -f "$file" ] || continue
+        while IFS=$'\t' read -r pattern cmd rest; do
+            [ -z "$pattern" ] && continue
+            [[ "$pattern" == \#* ]] && continue
+            # glob match
+            case "$input" in
+                $pattern) echo "$cmd"; return 0 ;;
+            esac
+        done < "$file"
+    done
+    return 1
+}
+
+# --- tool loading ---
+
+load_tools() {
+    local tools="[]"
+    [ -f "$TOOLS_FILE" ] || { echo "$tools"; return; }
+    while IFS=$'\t' read -r name desc template; do
+        [ -z "$name" ] && continue
+        [[ "$name" == \#* ]] && continue
+        # check if the command exists on this system
+        local bin; bin=$(echo "$template" | awk '{print $1}')
+
+
+### Chunk 5 (from runtime/hosuni/hosuni.c)
+    char lower[256];
+    int j = 0;
+    for (int i = 0; pattern[i] && j < 255; i++)
+        if (pattern[i] != '*') lower[j++] = (pattern[i] >= 'A' && pattern[i] <= 'Z') ? pattern[i] + 32 : pattern[i];
+    lower[j] = 0;
+    return strstr(lower, filter) != NULL;
+}
+
+static int run_entry_visible(hosuni_app *app, int i) {
+    if (!(lookdown_table[i].flags & LOOKDOWN_EXEC)) return 0;
+    if (!run_match_filter(lookdown_table[i].pattern, app->run.filter, app->run.filter_len)) return 0;
+    if (!app->run.show_all && has_any_pinned() && !(lookdown_table[i].flags & LOOKDOWN_PINNED)) return 0;
+    return 1;
+}
+
+static int run_entry_count(hosuni_app *app) {
+    int n = 0;
+    for (int i = 0; i < lookdown_count; i++)
+        if (run_entry_visible(app, i)) n++;
+    return n;
+}
+
+static int run_entry_index(hosuni_app *app, int nth) {
+    int n = 0;
+    for (int i = 0; i < lookdown_count; i++) {
+        if (run_entry_visible(app, i)) {
+            if (n == nth) return i;
+            n++;
+        }
+    }
+    return -1;
+}
+
+static void draw_run(hosuni_app *app) {
+    int lh = hosuni_line_height(&app->font);
+    int m = app->margin;
+
+    int has_pins = has_any_pinned();
+    int rx = hosuni_draw_text(&app->surface, &app->font_large, m, m, "run", COL_FG);
+    if (has_pins) {
+
+
+### Chunk 6 (from variance-lab/data/manifest-agents/questions.tsv)
+id	type	question
+T01	traversal	What files are in the runtime/hosuni/ directory and what does each one do?
+T02	traversal	What is parsimony.c and what role does it play in the subtract.ing runtime?
+T03	traversal	List all .tsv files in the repository and describe the format of each.
+T04	traversal	What does the install.sh script do?
+T05	traversal	What is in runtime/llms.txt and how does it differ from the root llms.txt?
+T06	traversal	What shell hooks exist in runtime/hooks/ and what do they intercept?
+T07	traversal	What is kiosk.sh and what does it configure?
+T08	traversal	What files define the lookdown system and how are they organized?
+T09	traversal	What is squared.c and what does it compute?
+T10	traversal	List every file that contains a sha256 hash or references sha256 verification.
+S01	synthesis	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?
+S02	synthesis	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?
+S03	synthesis	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?
+S04	synthesis	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.
+S05	synthesis	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?
+S06	synthesis	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?
+S07	synthesis	Which files mention the concept of a "formation" and what does the term mean across them?
+S08	synthesis	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?
+S09	synthesis	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?
+S10	synthesis	What does lineage.txt credit and how do those credits connect to specific components in the codebase?
+C01	change	What changed in hosuni.c between commit d4e860d and HEAD?
+C02	change	What was the most recent change to variance-lab.txt and what confound did it resolve?
+C03	change	Which files were modified in the commit that added CJK font fallback support?
+C04	change	Has SOUL.txt been rewritten recently? What was the nature of the change?
+C05	change	What is the most recent addition to the llms.txt index?
+M01	similarity	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?
+M02	similarity	Find files related to the concept of signing and verification. Group them by function.
+M03	similarity	Which components share the pattern of reading a manifest or index file to decide what to do next?
+M04	similarity	What files discuss the boundary between human authority and agent execution? How do they differ in framing?
+M05	similarity	Find all components that use llama.cpp or local inference. How are they related?
+
+
+### Chunk 7 (from runtime/hosuni/hosuni.c)
+                          v->cmd + 1, resp, sizeof(resp));
+        if (n > 0) {
+            /* show response below cursor */
+            int pos = vi_cursor_pos(v);
+            gap_move(&v->buf, pos);
+            gap_insert(&v->buf, '\n');
+            gap_insert_str(&v->buf, resp, n);
+            gap_insert(&v->buf, '\n');
+            v->dirty = 1;
+        }
+    } else if (strncmp(v->cmd, "r !", 3) == 0) {
+        /* :r ! — insert inference output at cursor */
+        char resp[32768];
+        int n = hosuni_infer(app->infer_host, app->infer_port,
+                          v->cmd + 3, resp, sizeof(resp));
+        if (n > 0) {
+            int pos = vi_cursor_pos(v);
+            gap_move(&v->buf, pos);
+            gap_insert(&v->buf, '\n');
+            gap_insert_str(&v->buf, resp, n);
+            v->dirty = 1;
+        }
+    }
+    /* TODO: :%! (filter buffer through inference) */
+
+    v->cmd_len = 0;
+    v->state = VI_NORMAL;
+}
+
+/* ================================================================
+   RUN mode — launcher for [player]/[exec] lookdown entries
+   ================================================================ */
+
+static int run_match_filter(const char *pattern, const char *filter, int flen) {
+    if (flen == 0) return 1;
+    char lower[256];
+    int j = 0;
+    for (int i = 0; pattern[i] && j < 255; i++)
+        if (pattern[i] != '*') lower[j++] = (pattern[i] >= 'A' && pattern[i] <= 'Z') ? pattern[i] + 32 : pattern[i];
+    lower[j] = 0;
+
+
+### Chunk 8 (from subtract.7.txt)
+.SH SUBSTRATE LAYERS
+The entire stack requires zero dependencies that are not already on a Unix
+system or do not ship as a single file. No interpreter. No package manager.
+No runtime. No SDK.
+.PP
+.TS
+tab(|) expand;
+l l l l.
+Layer|Component|Size|State
+_
+computer|lookdown.tsv|<1MB|already there
+computer|apropos|\[em]|already there
+assisted|embed binary|45MB|ships
+assisted|llama.cpp|850MB|ships
+assisted|whisper.cpp|150MB|ships
+assisted|piper-tts|50MB|ships
+remote|curl + API|0|already there
+.TE
+.PP
+Goal: fade toward computer. Less inference over time, more direct expression.
+.PP
+Every component is either "already there" or "single binary + model." Full local
+install is roughly 1.1GB.
+.SH BUFFER-SUBTRACT PATTERN
+A substrate honors the pattern if and only if all six invariants hold.
+.IP 1. 4
+Native modality owns the buffer. subtract never owns it.
+.IP 2. 4
+Subtraction is explicit. A specific gesture hands the buffer to subtract.
+No polling.
+.IP 3. 4
+subtract reads, translates, writes back. It does not commit. The user's
+commit gesture remains the only path to action.
+.IP 4. 4
+Non-subtraction has zero residue. A user who never invokes subtract has a
+substrate bit-identical to one without subtract installed.
+.IP 5. 4
+Successful subtractions train toward direct expression. Users internalize the
+direct form and stop subtracting.
+.IP 6. 4
+
+
+### Chunk 9 (from emile.txt)
+# Emile
+
+A local-first deployment pattern for sole proprietors. Named for
+Rousseau's treatise on education: the environment teaches, not
+the instructor.
+
+One device, one model, one operator. No cloud subscription.
+No always-on internet.
+
+subtract shows you the supercomputer in every computer — when you look down close enough.
+
+## What the substrate commits to
+
+Five primitives. All Unix or OpenSSH. None of them name a role,
+a profession, or an org model.
+
+  1. One admin principal (the operator who owns the hardware).
+  2. One or more non-admin user principals, each with a home
+     directory, their own content and records, and their own
+     signing key.
+  3. A shared directory (/Users/Shared/emile/ or equivalent)
+     that non-admin users read from and do not write to.
+  4. A signing model where any principal authors signed artifacts
+     under their own key. The substrate trusts signatures based
+     on authorized_signers entries at the admin layer.
+  5. SSH authorized_keys per user, not shared.
+
+## What the substrate does not commit to
+
+  - How many non-admin users exist.
+  - Whether one of them supervises others.
+  - Who holds custody of which records.
+  - Whether records are siloed, shared, or flow to a supervisor.
+  - Whether programs are authored once or authored per-user.
+  - Which user answers to which licensing board.
+  - Whether an LLM assistant acts under a user's identity or its own.
+  - Who the billing identifier belongs to.
+
+Every one of those is an organizational decision. If the substrate
+expresses a preference about any of them, the substrate has
+
+
+### Chunk 10 (from runtime/hosuni/hosuni.c)
+            "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+            "/usr/share/fonts/TTF/LiberationMono-Regular.ttf",
+            "/System/Library/Fonts/Menlo.ttc",
+            "/System/Library/Fonts/SFMono-Regular.otf",
+            "/Library/Fonts/SF-Mono-Regular.otf",
+            NULL
+        };
+        for (int i = 0; search[i]; i++) {
+            if (access(search[i], R_OK) == 0) { font_path = search[i]; break; }
+        }
+    }
+    if (!font_path) {
+        fprintf(stderr, "hosuni: no font found. use -f path/to/font.ttf\n");
+        return 1;
+    }
+
+    if (platform_init(&app.surface) < 0) return 1;
+
+    if (hosuni_font_init(&app.font, font_path, font_size) < 0) {
+        fprintf(stderr, "hosuni: failed to load font: %s\n", font_path);
+        platform_cleanup();
+        return 1;
+    }
+    /* load CJK fallback font */
+    {
+        static const char *cjk_search[] = {
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/google-noto-sans-cjk-vf-fonts/NotoSansCJK-VF.ttc",
+            "/usr/share/fonts/google-noto-sans-cjk-ttc/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+            NULL
+        };
+        for (int i = 0; cjk_search[i]; i++) {
+            if (access(cjk_search[i], R_OK) == 0) {
+                hosuni_font_load_fallback(&app.font, cjk_search[i]);
+                break;
+            }
+        }
+    }
+
+
+
+### Chunk 11 (from variance-lab/data/manifest-agents/rag-index.sh)
+#!/bin/bash
+set -euo pipefail
+# rag-index.sh — chunk subtract.ing repo into sqlite FTS5 index
+# Usage: ./rag-index.sh /path/to/repo /path/to/index.db
+
+REPO="${1:-.}"
+DB="${2:-/tmp/manifest-agents/rag.db}"
+
+mkdir -p "$(dirname "$DB")"
+rm -f "$DB"
+
+python3 - "$REPO" "$DB" <<'PY'
+import sqlite3, os, sys
+
+repo = sys.argv[1]
+db_path = sys.argv[2]
+CHUNK = 40
+OVERLAP = 5
+
+con = sqlite3.connect(db_path)
+con.execute("CREATE VIRTUAL TABLE chunks USING fts5(path, chunk_id, content, tokenize='porter unicode61')")
+
+exts = {'.txt','.html','.md','.c','.h','.sh','.tsv','.ts','.conf'}
+skip = {'stb_truetype.h'}
+chunk_id = 0
+
+for root, dirs, files in sorted(os.walk(repo)):
+    dirs[:] = [d for d in dirs if d != '.git' and d != 'node_modules']
+    for fname in sorted(files):
+        if fname in skip:
+            continue
+        if os.path.splitext(fname)[1] not in exts:
+            continue
+        fpath = os.path.join(root, fname)
+        relpath = os.path.relpath(fpath, repo)
+        try:
+            with open(fpath, 'r', errors='replace') as f:
+                lines = f.readlines()
+        except Exception:
+            continue
+
+
+### Chunk 12 (from runtime/subtract.sh)
+                tier="T0"
+                tag="${result%%	*}"
+                cmd="${result#*	}"
+            fi
+        fi
+    fi
+
+    # skills: procedural knowledge lookup (prefix match + grep index)
+    if [ -z "$cmd" ]; then
+        local skills_result
+        skills_result=$(__subtract_skills "$input")
+        if [ -n "$skills_result" ]; then
+            if [[ "$skills_result" == skill:* ]]; then
+                # single match: display the skill file
+                local skill_path="${skills_result#skill:}"
+                local skill_file="$SUBTRACT_SKILLS/${skill_path}.md"
+                echo "[skill:${skill_path}]"
+                # strip frontmatter, display content
+                awk '/^---$/{if(!fm){fm=1;next}else if(fm==1){fm=2;next}} fm==1{next} fm==0||fm==2{print}' "$skill_file"
+                SUBTRACT_LAST_OUTPUT="skill lookup: $skill_path"
+                _SUBTRACT_FROM_HANDLER=1
+                return 0
+            elif [[ "$skills_result" == list:* ]]; then
+                # multi-match: show numbered list
+                local header="${skills_result%%$'\n'*}"
+                local count="${header#list:}"
+                echo "[skill] ${count} matches:"
+                echo "$skills_result" | tail -n +2
+                echo "type: show N"
+                SUBTRACT_LAST_OUTPUT="skills search returned ${count} matches"
+                _SUBTRACT_FROM_HANDLER=1
+                return 0
+            fi
+        fi
+    fi
+
+    # T0.5: man page routing -- input contains a real command but isn't a bare invocation
+    if [ -z "$cmd" ] && [ -z "$(__subtract_get_mode)" ]; then
+        local man_cmd
+        man_cmd=$(__subtract_manpage "$input")
+
+

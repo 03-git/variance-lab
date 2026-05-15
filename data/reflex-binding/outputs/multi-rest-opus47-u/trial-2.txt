@@ -1,0 +1,57 @@
+Here's a minimal Express + Node.js implementation:
+
+```js
+// server.js
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+app.post('/users', (req, res) => {
+  const { name, email, age } = req.body ?? {};
+  const errors = [];
+
+  if (typeof name !== 'string' || name.trim() === '') {
+    errors.push({ field: 'name', message: 'name is required and must be a non-empty string' });
+  }
+  if (typeof email !== 'string' || !email.includes('@')) {
+    errors.push({ field: 'email', message: 'email is required and must contain "@"' });
+  }
+  if (!Number.isInteger(age) || age < 1 || age > 150) {
+    errors.push({ field: 'age', message: 'age must be an integer between 1 and 150' });
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ error: 'Invalid input', details: errors });
+  }
+
+  return res.status(201).json({ user: { name: name.trim(), email, age } });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Listening on http://localhost:${PORT}`));
+```
+
+**Run it:**
+
+```bash
+npm init -y
+npm install express
+node server.js
+```
+
+**Try it:**
+
+```bash
+# success → 201
+curl -i -X POST http://localhost:3000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Ada","email":"ada@example.com","age":36}'
+
+# failure → 400 with details
+curl -i -X POST http://localhost:3000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"","email":"nope","age":999}'
+```
+
+If you'd prefer a Python (Flask/FastAPI) or Go version instead, say the word.

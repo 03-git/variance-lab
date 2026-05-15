@@ -1,0 +1,414 @@
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from hosuni.txt)
+  macOS:  cc -O2 -o hosuni hosuni.c platform_macos.m -framework Cocoa
+
+## Source
+
+  runtime/hosuni/hosuni.c          main source (canonical)
+  runtime/hosuni/hosuni.h          platform contract, types, colors
+  runtime/hosuni/platform_linux.c  DRM/KMS + evdev
+  runtime/hosuni/platform_macos.m  Cocoa + NSEvent
+  runtime/hosuni/stb_truetype.h    font rendering (vendored)
+
+
+### Chunk 2 (from runtime/hosuni/hosuni.h)
+int  hosuni_infer_recv(int sock, char *chunk, int chunk_max);
+
+/* --- session log --- */
+
+void hosuni_log_init(const char *program);
+void hosuni_log_trial(const char *program, int trial,
+                   const char *stimulus, const char *response,
+                   int latency_ms, int correct);
+
+#endif
+
+
+### Chunk 3 (from runtime/hosuni/hosuni.h)
+
+/* --- modes --- */
+
+typedef enum {
+    MODE_READ,
+    MODE_RUN,
+    MODE_TEACH,
+    MODE_COUNT
+} hosuni_mode;
+
+/* --- colors --- */
+
+#define COL_BG        0xFF000000
+#define COL_FG        0xFFFFFFFF
+#define COL_GREEN     0xFF50FA7B
+#define COL_YELLOW    0xFFFFB86C
+#define COL_DIM       0xFF666666
+#define COL_CURSOR    0xFFFF79C6
+#define COL_INPUT_BG  0xFF111111
+
+/* --- font --- */
+
+typedef struct {
+    unsigned char *bitmap;
+    int w, h;
+    float scale;
+    int ascent, descent, linegap;
+    void *info; /* stbtt_fontinfo* */
+    void *fallback_info; /* stbtt_fontinfo* for CJK fallback */
+    unsigned char *fallback_data;
+} hosuni_font;
+
+int  hosuni_font_init(hosuni_font *f, const char *ttf_path, float px);
+void hosuni_font_free(hosuni_font *f);
+void hosuni_draw_char(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   uint32_t cp, uint32_t color);
+int  hosuni_draw_text(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   const char *text, uint32_t color);
+int  hosuni_char_width(hosuni_font *f, uint32_t cp);
+int  hosuni_line_height(hosuni_font *f);
+
+
+### Chunk 4 (from runtime/hosuni/hosuni.c)
+    chat_msg history[MAX_HIST_MSGS];
+    int history_count;
+} ask_ctx;
+
+/* ================================================================
+   main application
+   ================================================================ */
+
+typedef struct {
+    int sel;
+    int scroll;
+    int count;
+    char filter[64];
+    int filter_len;
+    int show_all;
+} run_ctx;
+
+typedef struct {
+    hosuni_surface surface;
+    hosuni_font font;
+    hosuni_font font_large;
+    hosuni_font font_small;
+    hosuni_mode mode;
+    vi_ctx vi;
+    ask_ctx ask;
+    run_ctx run;
+    int running;
+    int shift;
+    int ctrl;
+    char infer_host[64];
+    int infer_port;
+    int margin;
+    char soul[16384];
+    int starred;
+    focused_ctx focused;
+} hosuni_app;
+
+/* ================================================================
+   conversation history + message building
+   ================================================================ */
+
+
+### Chunk 5 (from runtime/hosuni-discord.ts)
+    log(`gateway error: ${event}`);
+  };
+}
+
+// Ensure transcript dir exists
+try {
+  Deno.mkdirSync(TRANSCRIPT_DIR, { recursive: true });
+} catch { /* exists */ }
+
+log("DAEMON STARTED");
+connectGateway();
+
+
+### Chunk 6 (from runtime/hosuni/hosuni.h)
+/*
+ * hosuni.h — framebuffer computing for humans
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+#ifndef HOSUNI_H
+#define HOSUNI_H
+
+#include <stdint.h>
+
+/* --- platform contract --- */
+
+typedef struct {
+    uint32_t *pixels;
+    int width;
+    int height;
+    int stride; /* bytes per row */
+} hosuni_surface;
+
+typedef enum { HOSUNI_KEY, HOSUNI_MOUSE, HOSUNI_TOUCH } hosuni_input_type;
+
+typedef struct {
+    hosuni_input_type type;
+    int code;   /* KEY_* from linux/input-event-codes.h */
+    int value;  /* 1=press 0=release 2=repeat */
+    int x, y;   /* mouse/touch coords, 0 for keys */
+} hosuni_event;
+
+int  platform_init(hosuni_surface *s);
+int  platform_event(hosuni_event *ev, int timeout_ms);
+void platform_flip(hosuni_surface *s);
+void platform_cleanup(void);
+void platform_yield(void);
+void platform_reclaim(void);
+void platform_drain_input(void);
+void platform_close_child_fds(void);
+void platform_xkb_update(int evdev_code, int value);
+int  platform_key_utf8(int evdev_code, char *out, int out_max);
+
+
+### Chunk 7 (from hosuni.txt)
+## How it renders
+
+hosuni.c talks directly to the display hardware:
+
+  Linux:  DRM/KMS — opens /dev/dri/card*, sets mode, double-buffered
+          page flip with vsync. Reads keyboard via /dev/input/event*.
+
+  macOS:  Cocoa — NSWindow with a backing bitmap, keyboard events via
+          NSEvent. Same rendering code, different platform layer.
+
+Both platforms implement the contract defined in hosuni.h:
+platform_init, platform_event, platform_flip, platform_cleanup
+(plus platform_yield and platform_reclaim for child process handoff).
+The rendering code (text, rectangles, scrolling) is shared.
+
+Font rendering uses stb_truetype (single-header, vendored).
+
+## Inference
+
+hosuni.c builds its own HTTP requests over raw TCP sockets. No curl,
+no HTTP library. It speaks the OpenAI-compatible chat completions
+format:
+
+  - Streaming (SSE) for READ mode — tokens render as they arrive
+  - Non-streaming with tool calls — the model can call web_search,
+    web_fetch, run_command, read_file, and list_dir. hosuni.c
+    executes them and feeds results back in a multi-turn loop.
+  - Thinking tag filter strips Gemma-4 <|channel>...</channel|> blocks
+
+hosuni-discord (runtime/hosuni-discord.sh) wraps the same inference
+path for delivery over Discord.
+
+## Build
+
+  Linux:  cc -O2 -o hosuni hosuni.c platform_linux.c -ldrm
+  macOS:  cc -O2 -o hosuni hosuni.c platform_macos.m -framework Cocoa
+
+## Source
+
+  runtime/hosuni/hosuni.c          main source (canonical)
+
+
+### Chunk 8 (from runtime/hosuni/hosuni.h)
+                   uint32_t cp, uint32_t color);
+int  hosuni_draw_text(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   const char *text, uint32_t color);
+int  hosuni_char_width(hosuni_font *f, uint32_t cp);
+int  hosuni_line_height(hosuni_font *f);
+
+/* --- gap buffer --- */
+
+#define GAP_INIT 4096
+
+typedef struct {
+    char *buf;
+    int gap_start;
+    int gap_end;
+    int cap;
+} gap_buf;
+
+void gap_init(gap_buf *g);
+void gap_free(gap_buf *g);
+void gap_insert(gap_buf *g, char c);
+void gap_insert_str(gap_buf *g, const char *s, int len);
+void gap_delete(gap_buf *g);
+void gap_backspace(gap_buf *g);
+void gap_move(gap_buf *g, int pos);
+int  gap_length(gap_buf *g);
+char gap_char_at(gap_buf *g, int pos);
+int  gap_pos(gap_buf *g);
+void gap_get_text(gap_buf *g, char *out, int max);
+
+/* --- inference --- */
+
+int  hosuni_infer(const char *host, int port, const char *prompt,
+               char *resp, int resp_max);
+int  hosuni_infer_stream(const char *host, int port, const char *prompt,
+                      int *sock_out);
+int  hosuni_infer_recv(int sock, char *chunk, int chunk_max);
+
+/* --- session log --- */
+
+void hosuni_log_init(const char *program);
+
+
+### Chunk 9 (from runtime/hosuni.sh)
+        fi
+
+        break
+    done
+
+    jq -n '{error:"no response after tool loop"}'
+}
+
+# --- listener ---
+
+log_daemon "hosuni starting (stdin/stdout mode)"
+if [ -p "$PARSIMONY_IN" ] && [ -p "$PARSIMONY_OUT" ]; then
+    log_daemon "inference: parsimony (pipes)"
+else
+    log_daemon "inference: ${INFERENCE_HOST}:${INFERENCE_PORT} (curl)"
+fi
+log_daemon "lookdown: $LOOKDOWN_NODE $LOOKDOWN_UNIVERSAL"
+log_daemon "tools: $TOOLS_FILE"
+
+# stdin/stdout mode: read JSON request, write JSON response
+# usage: echo '{"input":"hello","channel":"test"}' | hosuni.sh
+#        or spawned by hosuni-discord.ts per message
+
+request=$(cat)
+log_daemon "raw request: $(echo "$request" | head -c 200)"
+handle_request "$request"
+
+
+### Chunk 10 (from runtime/hosuni/hosuni.c)
+/*
+ * hosuni.c — framebuffer computing for humans
+ * Named for Hodori's digital governess.
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+
+/*
+   Linux:  cc -O2 -I/usr/include/libdrm -o hosuni hosuni.c platform_linux.c -ldrm -lm -lxkbcommon
+   macOS:  cc -O2 -o hosuni hosuni.c platform_macos.m -framework Cocoa
+*/
+
+#include "hosuni.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <errno.h>
+#include <sys/select.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include <fnmatch.h>
+#include <signal.h>
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
+/* ================================================================
+
+
+### Chunk 11 (from runtime/hosuni-discord.sh)
+#!/bin/bash
+# hosuni-discord — poll Discord channels, pipe to hosuni.sh
+set -uo pipefail
+
+PIDFILE="$HOME/.hosuni/discord-poller.pid"
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    echo "already running (pid $(cat "$PIDFILE"))" >&2
+    exit 0
+fi
+echo $$ > "$PIDFILE"
+trap 'rm -f "$PIDFILE"' EXIT
+
+TOKEN=$(cat "$HOME/.keymaster/jean-discord-token.txt")
+WHITELIST="$HOME/.hosuni-discord-whitelist"
+HOSUNI="$HOME/.subtract/hosuni.sh"
+LOG="$HOME/human/sessions/hosuni-discord.log"
+STATE="$HOME/.hosuni/discord-state"
+API="https://discord.com/api/v10"
+POLL_INTERVAL=5
+CHANNELS="1489355263361286204 1483978150852559030"
+
+mkdir -p "$STATE"
+
+log() { printf "[%s] %s\n" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" >> "$LOG"; }
+
+is_whitelisted() { grep -qx "$1" "$WHITELIST" 2>/dev/null; }
+
+get_last_id() { cat "$STATE/$1" 2>/dev/null || echo "0"; }
+set_last_id() { printf '%s' "$2" > "$STATE/$1"; }
+
+send_reply() {
+    local channel="$1" content="$2"
+    while [ -n "$content" ]; do
+        local chunk
+        chunk=$(printf '%s' "$content" | head -c 2000)
+        content=$(printf '%s' "$content" | tail -c +2001)
+        curl -s -X POST "$API/channels/$channel/messages" \
+            -H "Authorization: Bot $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg c "$chunk" '{content: $c}')" >/dev/null
+
+
+### Chunk 12 (from runtime/hosuni-discord.ts)
+            (e) => log(`message handler error: ${e}`)
+          );
+        }
+        break;
+      }
+      case 7:
+        // Reconnect requested
+        log("gateway requested reconnect");
+        ws.close(4000);
+        break;
+      case 9:
+        // Invalid session
+        log("invalid session, re-identifying");
+        setTimeout(() => {
+          ws.send(JSON.stringify({
+            op: 2,
+            d: {
+              token: TOKEN,
+              intents: (1 << 9) | (1 << 12) | (1 << 15),
+              properties: { os: "linux", browser: "hosuni", device: "hosuni" },
+            },
+          }));
+        }, 5000);
+        break;
+    }
+  };
+
+  ws.onclose = (event) => {
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    log(`gateway closed: ${event.code} ${event.reason}`);
+    // Reconnect after delay
+    setTimeout(() => connectGateway(), 5000);
+  };
+
+  ws.onerror = (event) => {
+    log(`gateway error: ${event}`);
+  };
+}
+
+// Ensure transcript dir exists
+
+

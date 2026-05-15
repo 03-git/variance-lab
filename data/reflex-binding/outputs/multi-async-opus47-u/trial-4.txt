@@ -1,0 +1,49 @@
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    print(f"connected: {addr}")
+    try:
+        while data := await reader.readline():
+            writer.write(data)
+            await writer.drain()
+    except ConnectionResetError:
+        pass
+    finally:
+        print(f"disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main() -> None:
+    server = await asyncio.start_server(handle_client, "127.0.0.1", 8888)
+    async with server:
+        print("echo server on 127.0.0.1:8888")
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**Run it:**
+
+```bash
+python3 server.py
+```
+
+**Test from another terminal:**
+
+```bash
+# with netcat
+nc 127.0.0.1 8888
+hello       # type this, press enter
+hello       # server echoes it back
+
+# or with multiple concurrent clients
+for i in 1 2 3; do (echo "client $i" | nc -q1 127.0.0.1 8888) & done
+```
+
+Notes on behavior:
+- `readline()` returns `b""` on EOF, ending the loop cleanly when a client disconnects.
+- `asyncio.start_server` spawns a fresh `handle_client` task per connection, so clients are served concurrently on a single thread.
+- `await writer.drain()` applies backpressure if a client reads slowly.

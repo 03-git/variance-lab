@@ -1,0 +1,47 @@
+Reflex check: kernel primitive is the HTTP socket; Python's `urllib` is in the stdlib, so no third-party dep needed. `html.parser` handles the parse.
+
+```python
+#!/usr/bin/env python3
+from html.parser import HTMLParser
+from urllib.request import urlopen
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._href = None
+        self._text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            self._href = dict(attrs).get("href")
+            self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href is not None:
+            self.links.append((self._href, "".join(self._text).strip()))
+            self._href = None
+            self._text = []
+
+with urlopen("https://example.com") as r:
+    html = r.read().decode("utf-8", errors="replace")
+
+p = LinkExtractor()
+p.feed(html)
+for href, text in p.links:
+    print(f"{href}\t{text}")
+```
+
+Run it:
+
+```
+python3 - <<'EOF'
+[paste script above]
+EOF
+```
+
+Or save and run: `python3 links.py`. Stdlib only, no pip.

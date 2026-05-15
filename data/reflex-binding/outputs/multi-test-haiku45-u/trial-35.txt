@@ -1,0 +1,74 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using pytest.
+
+```python
+# test_temperature.py
+import pytest
+
+
+def celsius_to_fahrenheit(c):
+    """Convert temperature from Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+
+class TestCelsiusToFahrenheit:
+    """Test suite for celsius_to_fahrenheit function."""
+    
+    def test_freezing_point(self):
+        """Test conversion of water's freezing point (0°C = 32°F)."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """Test conversion of water's boiling point (100°C = 212°F)."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_same_in_both_scales(self):
+        """Test the point where Celsius equals Fahrenheit (-40°C = -40°F)."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Test that non-numeric input raises TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("not a number")
+
+
+# Run the tests with: pytest test_temperature.py -v
+# Or with more detail: pytest test_temperature.py -vv
+# Run a specific test: pytest test_temperature.py::TestCelsiusToFahrenheit::test_freezing_point
+```
+
+**How to run it:**
+
+1. **Install pytest** (if you don't have it):
+   ```bash
+   pip install pytest
+   ```
+
+2. **Run all tests**:
+   ```bash
+   pytest test_temperature.py -v
+   ```
+
+3. **Run with more details**:
+   ```bash
+   pytest test_temperature.py -vv
+   ```
+
+4. **Run a specific test**:
+   ```bash
+   pytest test_temperature.py::TestCelsiusToFahrenheit::test_freezing_point
+   ```
+
+**Expected output** when you run `pytest test_temperature.py -v`:
+```
+test_temperature.py::TestCelsiusToFahrenheit::test_freezing_point PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_same_in_both_scales PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+
+====== 4 passed in 0.XX s ======
+```
+
+The test suite covers:
+- **Normal cases**: freezing (0°C) and boiling (100°C) points of water
+- **Edge case**: -40 where both scales are equal
+- **Error handling**: non-numeric input that should raise `TypeError`

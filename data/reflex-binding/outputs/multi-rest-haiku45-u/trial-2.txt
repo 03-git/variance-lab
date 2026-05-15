@@ -1,0 +1,117 @@
+I'll show you a complete REST API endpoint implementation using Node.js/Express. Here's the code:
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+// Validation helper
+function validateUser(body) {
+  const errors = {};
+
+  // name validation
+  if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
+    errors.name = 'name is required and must be a non-empty string';
+  }
+
+  // email validation
+  if (!body.email || typeof body.email !== 'string' || !body.email.includes('@')) {
+    errors.email = 'email is required and must contain @';
+  }
+
+  // age validation
+  if (body.age === undefined) {
+    errors.age = 'age is required';
+  } else if (!Number.isInteger(body.age) || body.age < 1 || body.age > 150) {
+    errors.age = 'age must be an integer between 1 and 150';
+  }
+
+  return Object.keys(errors).length === 0 ? null : errors;
+}
+
+// POST /users endpoint
+app.post('/users', (req, res) => {
+  const errors = validateUser(req.body);
+
+  if (errors) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: errors
+    });
+  }
+
+  const user = {
+    id: Date.now(),
+    name: req.body.name.trim(),
+    email: req.body.email.trim(),
+    age: req.body.age,
+    createdAt: new Date().toISOString()
+  };
+
+  res.status(201).json(user);
+});
+
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+```
+
+**How to run it:**
+
+```bash
+# Install dependencies (if not already installed)
+npm install express
+
+# Save the code to a file (e.g., server.js) and run
+node server.js
+```
+
+**Test it with curl:**
+
+```bash
+# Valid request
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","email":"john@example.com","age":30}'
+
+# Missing name
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","age":30}'
+
+# Invalid email (no @)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John","email":"invalid","age":30}'
+
+# Invalid age (outside 1-150 range)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John","email":"john@example.com","age":200}'
+```
+
+**Expected responses:**
+
+Success (201):
+```json
+{
+  "id": 1715345234567,
+  "name": "John Doe",
+  "email": "john@example.com",
+  "age": 30,
+  "createdAt": "2026-05-10T12:00:34.567Z"
+}
+```
+
+Error (400):
+```json
+{
+  "error": "Validation failed",
+  "details": {
+    "email": "email is required and must contain @",
+    "age": "age must be an integer between 1 and 150"
+  }
+}
+```

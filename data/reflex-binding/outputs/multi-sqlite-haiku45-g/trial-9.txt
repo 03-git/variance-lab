@@ -1,0 +1,82 @@
+Here's a complete Python script that creates a SQLite database, adds sample notes, and retrieves them:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create database connection (creates notes.db if it doesn't exist)
+conn = sqlite3.connect('notes.db')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+now = datetime.now().isoformat()
+sample_notes = [
+    ('Meeting Notes', 'Discussed Q2 roadmap and timeline', now),
+    ('Project Ideas', 'Implement CLI tool, build REST API, create docs', now),
+    ('Personal Reminders', 'Buy groceries, call mom, schedule dentist', now)
+]
+
+for title, body, created_at in sample_notes:
+    cursor.execute(
+        'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+        (title, body, created_at)
+    )
+
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+# Print the results
+print("All Notes:")
+print("-" * 60)
+for note in notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 60)
+
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python3 script.py
+```
+
+**Output:**
+```
+All Notes:
+------------------------------------------------------------
+ID: 1
+Title: Meeting Notes
+Body: Discussed Q2 roadmap and timeline
+Created: 2026-05-10T...
+------------------------------------------------------------
+ID: 2
+Title: Project Ideas
+Body: Implement CLI tool, build REST API, create docs
+Created: 2026-05-10T...
+------------------------------------------------------------
+ID: 3
+Title: Personal Reminders
+Body: Buy groceries, call mom, schedule dentist
+Created: 2026-05-10T...
+------------------------------------------------------------
+```
+
+The script uses `sqlite3` (built-in to Python), so no dependencies needed. It creates a `notes.db` file in the current directory on first run.

@@ -1,0 +1,40 @@
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._href = None
+        self._text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self._href = dict(attrs).get('href')
+            self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == 'a' and self._href is not None:
+            self.links.append((self._href, ''.join(self._text).strip()))
+            self._href = None
+
+html = urllib.request.urlopen('https://example.com').read().decode()
+parser = LinkExtractor()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f'{href}  ->  {text}')
+```
+
+Run it:
+
+```
+python3 script.py
+```
+
+No dependencies beyond the standard library (`urllib.request`, `html.parser`).

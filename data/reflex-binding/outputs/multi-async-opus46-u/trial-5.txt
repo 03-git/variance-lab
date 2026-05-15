@@ -1,0 +1,79 @@
+```python
+# echo_server.py
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    print(f"Connected: {addr}")
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:               # client closed the connection
+                break
+            writer.write(data)         # echo the line back, as-is
+            await writer.drain()
+            print(f"{addr} -> {data!r}")
+    except (ConnectionResetError, asyncio.IncompleteReadError):
+        pass
+    finally:
+        print(f"Disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"Echo server listening on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nShutting down.")
+```
+
+## How it works
+
+- `asyncio.start_server` accepts connections and spawns `handle_client` as a separate task per client, so many clients are served concurrently on a single thread.
+- `reader.readline()` reads up to and including the `\n`. An empty result means EOF (client hung up), so we exit the loop.
+- `writer.drain()` applies backpressure — it waits if the OS send buffer is full.
+
+## Run it
+
+```bash
+python echo_server.py
+```
+
+## Test it
+
+With netcat:
+
+```bash
+nc 127.0.0.1 8888
+# type a line, press Enter — it comes back
+```
+
+Open several `nc` sessions at once to see concurrent clients. Or a quick Python client:
+
+```python
+# echo_client.py
+import asyncio
+
+async def main():
+    reader, writer = await asyncio.open_connection("127.0.0.1", 8888)
+    writer.write(b"hello world\n")
+    await writer.drain()
+    print((await reader.readline()).decode().rstrip())
+    writer.close()
+    await writer.wait_closed()
+
+asyncio.run(main())
+```
+
+```bash
+python echo_client.py   # prints: hello world
+```
+
+Stop the server with Ctrl+C.

@@ -1,0 +1,101 @@
+I'll show you a complete REST API endpoint in Node.js/Express that meets your requirements.
+
+```javascript
+// server.js
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+// Validation helper
+function validateUser(body) {
+  const errors = {};
+
+  // Name validation
+  if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
+    errors.name = 'Name is required and must be a non-empty string';
+  }
+
+  // Email validation
+  if (!body.email || typeof body.email !== 'string' || !body.email.includes('@')) {
+    errors.email = 'Email is required and must contain @';
+  }
+
+  // Age validation
+  if (body.age === undefined || body.age === null) {
+    errors.age = 'Age is required';
+  } else if (!Number.isInteger(body.age)) {
+    errors.age = 'Age must be an integer';
+  } else if (body.age < 1 || body.age > 150) {
+    errors.age = 'Age must be between 1 and 150';
+  }
+
+  return Object.keys(errors).length > 0 ? errors : null;
+}
+
+// POST /users endpoint
+app.post('/users', (req, res) => {
+  const errors = validateUser(req.body);
+
+  if (errors) {
+    return res.status(400).json({
+      status: 'error',
+      errors: errors
+    });
+  }
+
+  const user = {
+    id: Date.now(), // simple ID for demo
+    name: req.body.name.trim(),
+    email: req.body.email.trim(),
+    age: req.body.age,
+    createdAt: new Date().toISOString()
+  };
+
+  res.status(201).json({
+    status: 'success',
+    data: user
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+```
+
+**To run it:**
+
+```bash
+# Install dependencies (if not already installed)
+npm install express
+
+# Run the server
+node server.js
+```
+
+**Test it with curl:**
+
+```bash
+# Valid request → 201
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+
+# Missing email → 400
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "age": 25}'
+
+# Email without @ → 400
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Charlie", "email": "invalid-email", "age": 35}'
+
+# Age out of range → 400
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Dana", "email": "dana@example.com", "age": 200}'
+```
+
+The endpoint validates all three fields, returns detailed error objects on invalid input (400), and returns the validated user with a timestamp on success (201).

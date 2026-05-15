@@ -1,0 +1,16 @@
+1. **FACTUAL ERRORS**
+* **Internal Contradiction (Llama 8B):** The "Claim" section states Llama 3.1 (8B) has "60% stdlib with governance, 0% without." However, the "Results" table and the subsequent footnote for Llama-8b governed state that manual verification shows "3/5 trials produced stdlib code," which is 60%, but the R1 column in the table shows "2/5*". While the footnote attempts to explain the discrepancy, the table itself is technically incorrect regarding the manual verification it claims to reflect.
+* **Internal Contradiction (Qwen 32B):** The "Claim" section states "Qwen3 (32B) both produce Flask in all trials regardless of governance." However, the "Qwen3 32B governed detail" section states "3/5 trials echoed governance vocabulary... R2 scored 0.6 governed vs 0.0 ungoverned." If the model is "producing Flask in all trials," it implies a 0% success rate for R1, but the claim that it "partially read the governance text" contradicts the earlier assertion that it "does not bind at any scale tested."
+* **Data/Claim Mismatch (Qwen 32B):** The "Results" table for `qwen3-32b ungoverned` shows `R4 (no pip) = 1/5`. This contradicts the "Claim" section which states Qwen models "produce Flask in all trials regardless of governance," which would imply 0/5 for R4.
+
+2. **FRAMING DRIFT**
+* **"The reflex is redundant because the knowledge is already in their weights"**: This is an editorialized interpretation. The data shows the models *use* the stdlib, but the data does not prove the *reason* is the weights rather than the governance instruction being followed (even if the result is the same).
+* **"The reflex is *active*"**: This uses emotive/metaphorical language to describe a statistical change in distribution.
+* **"The model did not acknowledge, reference, or appear to process the reflex"**: This is an overstatement of what can be known from a code output. One cannot definitively claim a model did not "process" an instruction based solely on the absence of a specific output type.
+* **"This is a distinct failure mode"**: This is an editorialized categorization of the Qwen 32B behavior.
+
+3. **MISSING OR CUT**
+* **Missing: Statistical Significance.** With $N=5$ per cell, the sample size is extremely small. The finding lacks any mention of confidence intervals, p-values, or an acknowledgment of the high margin of error inherent in such a small $N$.
+* **Missing: Definition of "Lineage".** The claim hinges on "lineage-dependent" behavior, but "lineage" is not strictly defined in the methodology (is it the base model architecture, the training data mix, or the fine-tuning style?).
+* **Cut: "The 'senior engineer' answer per the video that motivated this experiment..."**: This sentence in the "Task" section is meta-commentary that belongs in a research log or appendix, not in the formal finding. It introduces subjective bias into the definition of the "correct" answer.
+* **Cut: The "Note on frontier R1 scoring" paragraph.** While useful for transparency, this long explanation of automated vs. manual scoring should be moved to a "Limitations" or "Scoring Notes" section to keep the "Results" section focused on the data.

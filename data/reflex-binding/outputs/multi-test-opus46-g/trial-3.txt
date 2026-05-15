@@ -1,0 +1,43 @@
+```python
+# test_temperature.py
+import unittest
+import math
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_40_is_fixed_point(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_float_precision(self):
+        self.assertTrue(math.isclose(celsius_to_fahrenheit(37), 98.6))
+
+    def test_non_numeric_raises(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run it:
+
+```
+python3 -m unittest test_temperature.py -v
+```
+
+Or just `python3 test_temperature.py -v` since the `__main__` block calls `unittest.main()`.
+
+Notes:
+- `unittest` is stdlib — no `pip install` needed.
+- The non-numeric case relies on `str * int` working but `str + int` raising `TypeError` (the `* 9/5` actually succeeds for a string — `"hot" * 9` is valid — and the `+ 32` is what raises). If you want the function to reject non-numerics *up front*, add `if not isinstance(c, (int, float)): raise TypeError` and the test still passes.
+- For `pytest` instead, the same file works as-is: `pytest test_temperature.py -v`.

@@ -1,0 +1,396 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from kiosk.sh)
+
+chown -R "$USER:$USER" "$HOME_DIR/.config/systemd"
+
+# enable lingering so user services start at boot
+loginctl enable-linger "$USER"
+su -c "systemctl --user daemon-reload && systemctl --user enable --now subtract-httpd subtract-bridge" "$USER"
+
+echo ""
+echo "kiosk ready."
+echo "  display: cage → cog → multiplying.html"
+echo "  httpd:   :8070"
+echo "  bridge:  :8889"
+echo "  reboot or: systemctl restart getty@tty1"
+
+
+### Chunk 2 (from kiosk.sh)
+#!/bin/bash
+# kiosk.sh — set up a display node running multiplying.html via cage+cog
+# requires: root (for apt + autologin), Debian trixie or later
+# usage: sudo ./kiosk.sh [username]
+set -e
+
+USER="${1:-media}"
+HOME_DIR=$(eval echo "~$USER")
+SUBTRACT_DIR="$HOME_DIR/.subtract"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "run as root: sudo $0 $USER"
+    exit 1
+fi
+
+if ! id "$USER" >/dev/null 2>&1; then
+    echo "user $USER does not exist"
+    exit 1
+fi
+
+apt-get update -qq
+apt-get install -y -qq cage cog busybox espeak-ng jq chafa python3 >/dev/null
+
+# autologin on tty1
+mkdir -p /etc/systemd/system/getty@tty1.service.d
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin $USER --noclear %I \$TERM
+EOF
+systemctl daemon-reload
+
+# install subtract runtime as the user
+su -c "bash '$SCRIPT_DIR/install.sh'" "$USER"
+
+# .bash_profile: cage → cog → multiplying.html on tty1
+cat > "$HOME_DIR/.bash_profile" << 'PROFILE'
+[ -f ~/.bashrc ] && . ~/.bashrc
+
+
+
+### Chunk 3 (from runtime/llms.txt)
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/hooks/zsh.sh
+  For ~/.zshrc: source ~/.subtract/hooks/zsh.sh
+
+## Install
+
+These files are deployed by:
+  curl -sL subtract.ing/install.sh | bash
+
+Or manually:
+  mkdir -p ~/.subtract
+  curl -sL https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/subtract.sh > ~/.subtract/subtract.sh
+  # ... etc
+
+## Parent
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/llms.txt
+
+
+### Chunk 4 (from runtime/hooks/bash.sh)
+# subtract bash hook
+# sources shared handler, sets up bash-specific hooks
+[ -f ~/.subtract/subtract.sh ] && source ~/.subtract/subtract.sh
+
+# capture last command output before each prompt
+PROMPT_COMMAND="__subtract_capture;${PROMPT_COMMAND:+$PROMPT_COMMAND}"
+
+# bash command-not-found hook
+command_not_found_handle() {
+    __subtract_handle "$@"
+}
+
+
+### Chunk 5 (from runtime/hooks/zsh.sh)
+# subtract zsh hook
+# sources shared handler, sets up zsh-specific hooks
+
+# pass unmatched globs as literals (fixes "do?" being parsed as glob)
+setopt nonomatch
+
+[ -f ~/.subtract/subtract.sh ] && source ~/.subtract/subtract.sh
+
+# capture last command output before each prompt
+precmd_functions+=(__subtract_capture)
+
+# zsh command-not-found hook
+# return 0 unconditionally: zsh prints "command not found" on non-zero
+command_not_found_handler() {
+    __subtract_handle "$@"
+    return 0
+}
+
+
+### Chunk 6 (from README.txt)
+# subtract.ing
+
+command_not_found_handle operationalized to let you type
+natural language to the command line.
+
+## Install
+
+```
+curl -sL https://subtract.ing/install.sh | bash
+```
+
+Or inspect first: `curl -sLO https://subtract.ing/install.sh && less install.sh && bash install.sh`
+
+## What it is
+
+Shell translation infrastructure. Type intent, get command,
+learn command, stop needing translation. Software as a besides.
+
+https://subtract.ing — the canonical site
+https://subtract.ing/subtracting.html — why subtract exists
+
+## For agents
+
+Read https://subtract.ing/llms.txt — manifest, routing table, four reflexes.
+
+## License
+
+GPLv3. See LICENSE.txt.
+
+## Authors
+
+Josh (@hodorigami) & LLMs (@qwen @claude @gemini @grok)
+
+
+### Chunk 7 (from runtime/hosuni/platform_linux.c)
+}
+
+static void unbind_fbcon(void) {
+    char path[64];
+    for (int i = 0; i < 8; i++) {
+        snprintf(path, sizeof(path), "/sys/class/vtconsole/vtcon%d/bind", i);
+        FILE *fp = fopen(path, "w");
+        if (fp) { fprintf(fp, "0\n"); fclose(fp); }
+    }
+}
+
+int platform_init(hosuni_surface *s) {
+    drm_fd = drm_open();
+    if (drm_fd < 0) { fprintf(stderr, "hosuni: no display found\n"); return -1; }
+    unbind_fbcon();
+    if (drm_setup_fb(s) < 0) { fprintf(stderr, "hosuni: framebuffer setup failed\n"); return -1; }
+    dpms_on();
+    kbd_fd = evdev_find(1);
+    if (kbd_fd < 0) { fprintf(stderr, "hosuni: no keyboard found\n"); return -1; }
+    mouse_fd = evdev_find(0); /* optional */
+
+    xkb_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    if (xkb_ctx) {
+        struct xkb_rule_names names = {0};
+        xkb_kmap = xkb_keymap_new_from_names(xkb_ctx, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        if (xkb_kmap) xkb_st = xkb_state_new(xkb_kmap);
+    }
+
+    signal(SIGTERM, sig_restore);
+    signal(SIGINT, sig_restore);
+    signal(SIGSEGV, sig_restore);
+    signal(SIGABRT, sig_restore);
+
+    char *kiosk = getenv("HOSUNI_KIOSK");
+    if (kiosk && kiosk[0] == '1') {
+        vt_lock();
+    }
+
+    return 0;
+}
+
+
+### Chunk 8 (from runtime/llms.txt)
+# subtract runtime
+
+Deployed scripts for ~/.subtract/. These are what install.sh copies.
+
+## Files
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/subtract
+  Entry point. Boots tmux with shell + claude + docs side by side.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/subtract.sh
+  Translation layer. Sources into your shell, intercepts unknown commands,
+  routes through T0 (lookup) -> T0.5 (man pages) -> T2 (local model) -> T4 (cloud).
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/ask
+  Query local model directly. Claude without the browser.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/lookdown.tsv
+  Personal fork lookup table. Seed copy; yours lives at ~/.subtract/lookdown.tsv.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/kiwix
+  Query local Kiwix corpus (Wikipedia, Stack Exchange, etc).
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/kiwix-search
+  Kiwix search helper.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/cheatsheet.txt
+  Quick reference.
+
+## Shell hooks
+
+Source ONE of these in your shell rc file. They load subtract.sh and wire up
+the command_not_found hook for your shell.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/hooks/bash.sh
+  For ~/.bashrc: source ~/.subtract/hooks/bash.sh
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/hooks/zsh.sh
+  For ~/.zshrc: source ~/.subtract/hooks/zsh.sh
+
+## Install
+
+
+### Chunk 9 (from index.html)
+| +--------+-----+--------+---------+--------+---------+-------+----+----+ |
++--------------------------------------------------------------------------+
+
+ HARDWARE
++--------------------------------------------------------------------------+
+|   NIC        GPU        CPU        RAM        Keyboard        Mouse      |
++--------------------------------------------------------------------------+
+</pre>
+
+<pre>
+syscall
+  |
+  +-- kernel (already there)
+  +-- shell (already there)
+  +-- subtract.ing (command_not_found_handle)
+  +-- lookdown.tsv (routing table)
+  +-- busybox httpd (ships with the OS)
+  +-- browser (already on every computer)
+  |
+  |   -- everything below this line moves control beyond your computer --
+  |
+  +-- npm/pip/cargo
+  +-- language runtime
+  +-- framework
+  +-- ORM, database server
+  +-- API gateway, auth service
+  +-- container runtime, orchestrator
+  +-- cloud provider, CI/CD, CDN
+  +-- monitoring SaaS, billing SaaS
+</pre>
+
+    <p><strong>Install</strong></p>
+<pre>curl -sL https://subtract.ing/install.sh | bash</pre>
+    <p class="dim">or: curl -sLO https://subtract.ing/install.sh && less install.sh && bash install.sh</p>
+
+    <hr>
+
+    <p><a href="/subtracting.html">Subtracting</a> <span class="dim">— why subtract exists</span></p>
+    <p><a href="/hosuni.txt">Hosuni</a> <span class="dim">— the framebuffer interface</span></p>
+
+
+
+### Chunk 10 (from install.sh)
+        echo "ABORT: manifest signature verification failed."
+        echo "The files at $BASE_URL may be compromised or the signing key rotated."
+        echo "Verify manually: https://subtract.ing/authorized_signers"
+        rm -f "$SUBTRACT_DIR/llms.txt" "$SUBTRACT_DIR/llms.txt.sig" "$SUBTRACT_DIR/authorized_signers"
+        exit 1
+    fi
+    echo "manifest signature verified: hodori@subtract.ing"
+elif [ "$MODE" = "local" ]; then
+    if [ -f "$SCRIPT_DIR/llms.txt" ] && [ -f "$SCRIPT_DIR/llms.txt.sig" ] && [ -f "$SCRIPT_DIR/authorized_signers" ]; then
+        if ! ssh-keygen -Y verify -f "$SCRIPT_DIR/authorized_signers" \
+            -I hodori@subtract.ing -n subtract.ing \
+            -s "$SCRIPT_DIR/llms.txt.sig" < "$SCRIPT_DIR/llms.txt" >/dev/null 2>&1; then
+            echo "WARNING: local manifest signature verification failed. Proceeding from trusted checkout."
+        else
+            echo "manifest signature verified: hodori@subtract.ing"
+        fi
+    fi
+fi
+
+# T0 core
+fetch "runtime/subtract.sh" "$SUBTRACT_DIR/subtract.sh"
+fetch "runtime/index.html" "$SUBTRACT_DIR/index.html"
+fetch "runtime/hooks/bash.sh" "$SUBTRACT_DIR/hooks/bash.sh"
+fetch "runtime/hooks/zsh.sh" "$SUBTRACT_DIR/hooks/zsh.sh"
+
+# mark as onboarded (fat lookdown.tsv makes interactive setup unnecessary)
+touch "$SUBTRACT_DIR/.onboarded"
+
+# Base lookdown (don't overwrite user's fork)
+[ ! -f "$SUBTRACT_DIR/lookdown.universal.tsv" ] && fetch "lookdown.universal.tsv" "$SUBTRACT_DIR/lookdown.universal.tsv"
+
+# Browser shell (ttyd) - for new users who know browser but not terminal
+TTYD_VERSION="1.7.7"
+case "$(uname -s)-$(uname -m)" in
+    Linux-x86_64)  TTYD_BIN="ttyd.x86_64" ;;
+    Linux-aarch64) TTYD_BIN="ttyd.aarch64" ;;
+    Darwin-arm64)  TTYD_BIN="ttyd.darwin-arm64" ;;
+    Darwin-x86_64) TTYD_BIN="ttyd.darwin-x86_64" ;;
+    *) TTYD_BIN="" ;;
+esac
+
+
+### Chunk 11 (from variance-lab/data/manifest-agents/manifest-walk.sh)
+#!/bin/bash
+set -euo pipefail
+# manifest-walk.sh — walk subtract.ing repo, output TSV manifest
+# Usage: ./manifest-walk.sh /path/to/repo > manifest.tsv
+# Output: path<TAB>sha256<TAB>lines<TAB>description
+
+REPO="${1:-.}"
+
+cd "$REPO"
+
+find . -type f \( -name "*.txt" -o -name "*.html" -o -name "*.md" \
+  -o -name "*.c" -o -name "*.h" -o -name "*.sh" -o -name "*.tsv" \
+  -o -name "*.ts" -o -name "*.conf" \) \
+  ! -path "./.git/*" ! -path "*/node_modules/*" \
+  ! -name "stb_truetype.h" \
+  | sort | while IFS= read -r f; do
+    hash=$(shasum -a 256 "$f" | cut -d' ' -f1)
+    lines=$(wc -l < "$f" | tr -d ' ')
+    # first non-empty, non-comment line as description
+    desc=$(grep -m1 -v '^\s*$' "$f" | grep -v '^\s*#\|^\s*//' | head -c 120 || echo "(no description)")
+    [ -z "$desc" ] && desc=$(head -1 "$f" | head -c 120)
+    printf '%s\t%s\t%s\t%s\n' "$f" "$hash" "$lines" "$desc"
+done
+
+
+### Chunk 12 (from runtime/subtract.sh)
+            local skill_dir="$SUBTRACT_SKILLS/$(dirname "$skill_path")"
+            local skill_file="$SUBTRACT_SKILLS/${skill_path}.md"
+            mkdir -p "$skill_dir"
+            if [ ! -f "$skill_file" ]; then
+                cat > "$skill_file" <<'TMPL'
+---
+aliases:
+tags:
+---
+
+TITLE
+
+Steps:
+1.
+TMPL
+            fi
+            ${EDITOR:-vi} "$skill_file"
+            bash "$SUBTRACT_DIR/skills-rebuild.sh"
+            _SUBTRACT_FROM_HANDLER=1
+            return 0
+            ;;
+        "skill rm "*)
+            local skill_path="${input#* rm }"
+            local skill_file="$SUBTRACT_SKILLS/${skill_path}.md"
+            if [ -f "$skill_file" ]; then
+                echo "[DESTRUCTIVE] remove skill: $skill_path"
+                printf '[y/n] '; read -r confirm
+                if [ "$confirm" = "y" ]; then
+                    rm "$skill_file"
+                    bash "$SUBTRACT_DIR/skills-rebuild.sh"
+                    echo "removed."
+                else
+                    echo "kept."
+                fi
+            else
+                echo "skill not found: $skill_path"
+            fi
+            _SUBTRACT_FROM_HANDLER=1
+            return 0
+            ;;
+
+
+
+## Question
+What is kiosk.sh and what does it configure?

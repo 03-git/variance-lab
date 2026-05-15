@@ -1,0 +1,80 @@
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print every <a> tag's href and link text."""
+
+import sys
+from html.parser import HTMLParser
+from urllib.request import urlopen, Request
+
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []          # list of [href, text]
+        self._current_href = None
+        self._text_parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href is not None:
+                self._current_href = href
+                self._text_parts = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._text_parts.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            text = " ".join("".join(self._text_parts).split())
+            self.links.append([self._current_href, text])
+            self._current_href = None
+            self._text_parts = []
+
+
+def main(url="https://example.com"):
+    req = Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urlopen(req) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkExtractor()
+    parser.feed(html)
+
+    if not parser.links:
+        print("No links found.")
+        return
+
+    for href, text in parser.links:
+        print(f"{href}\t{text!r}")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1] if len(sys.argv) > 1 else "https://example.com")
+```
+
+**How to run it**
+
+1. Save it as `links.py` (uses only the Python standard library — no `pip install` needed; Python 3.x).
+2. Run:
+
+```bash
+python3 links.py
+```
+
+or pass a different URL:
+
+```bash
+python3 links.py https://www.iana.org
+```
+
+**Expected output for example.com** (one line per link, `href` then the text):
+
+```
+https://www.iana.org/domains/example	'More information...'
+```
+
+Notes:
+- Uses `html.parser` from the stdlib so it works out of the box. If you'd rather use `requests` + `beautifulsoup4`, that's a small swap — say the word.
+- `href` values are printed as-is (relative links won't be resolved to absolute). Add `urllib.parse.urljoin(url, href)` if you want them absolute.

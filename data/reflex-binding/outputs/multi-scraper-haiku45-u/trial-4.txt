@@ -1,0 +1,79 @@
+I'll show you a Python script that fetches a URL and extracts hyperlinks. Here's the code:
+
+```python
+import requests
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []
+        self.current_text = []
+        self.in_anchor = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.in_anchor = True
+            self.current_text = []
+            for attr, value in attrs:
+                if attr == 'href':
+                    self.href = value
+
+    def handle_data(self, data):
+        if self.in_anchor:
+            self.current_text.append(data.strip())
+
+    def handle_endtag(self, tag):
+        if tag == 'a' and self.in_anchor:
+            self.in_anchor = False
+            text = ' '.join(self.current_text)
+            # Resolve relative URLs
+            absolute_url = urljoin(self.base_url, self.href)
+            self.links.append({'href': absolute_url, 'text': text})
+
+def fetch_and_extract_links(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        parser = LinkExtractor(url)
+        parser.feed(response.text)
+        
+        return parser.links
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return []
+
+# Main execution
+if __name__ == '__main__':
+    url = 'https://example.com'
+    links = fetch_and_extract_links(url)
+    
+    print(f"Found {len(links)} links:\n")
+    for i, link in enumerate(links, 1):
+        print(f"{i}. Text: {link['text']}")
+        print(f"   URL:  {link['href']}\n")
+```
+
+**How to run it:**
+
+1. **Install dependencies:**
+   ```bash
+   pip install requests
+   ```
+
+2. **Save and run the script:**
+   ```bash
+   python script.py
+   ```
+
+The script:
+- Uses `requests` to fetch the page
+- Uses `HTMLParser` to parse HTML and extract anchor tags
+- Captures both the `href` attribute and the link text
+- Resolves relative URLs to absolute URLs using `urljoin`
+- Prints formatted output with numbering
+
+If you want to fetch a different URL, just change the `url` variable in the `if __name__ == '__main__':` block.

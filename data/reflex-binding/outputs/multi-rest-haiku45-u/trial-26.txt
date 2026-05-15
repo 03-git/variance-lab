@@ -1,0 +1,131 @@
+I'll show you a complete REST API implementation in Python using Flask. Here's the code:
+
+```python
+from flask import Flask, request, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+def validate_user_data(data):
+    """Validate user input and return (is_valid, errors_dict)"""
+    errors = {}
+    
+    # Check name
+    if 'name' not in data:
+        errors['name'] = 'name is required'
+    elif not isinstance(data['name'], str) or not data['name'].strip():
+        errors['name'] = 'name must be a non-empty string'
+    
+    # Check email
+    if 'email' not in data:
+        errors['email'] = 'email is required'
+    elif not isinstance(data['email'], str):
+        errors['email'] = 'email must be a string'
+    elif '@' not in data['email']:
+        errors['email'] = 'email must contain @'
+    
+    # Check age
+    if 'age' not in data:
+        errors['age'] = 'age is required'
+    elif not isinstance(data['age'], int) or isinstance(data['age'], bool):
+        errors['age'] = 'age must be an integer'
+    elif not (1 <= data['age'] <= 150):
+        errors['age'] = 'age must be between 1 and 150'
+    
+    return len(errors) == 0, errors
+
+@app.route('/users', methods=['POST'])
+def create_user():
+    # Ensure we have JSON
+    if not request.is_json:
+        return jsonify({'error': 'Content-Type must be application/json'}), 400
+    
+    data = request.get_json()
+    
+    # Validate input
+    is_valid, errors = validate_user_data(data)
+    
+    if not is_valid:
+        return jsonify({'errors': errors}), 400
+    
+    # Create validated user object
+    user = {
+        'id': datetime.now().timestamp(),
+        'name': data['name'].strip(),
+        'email': data['email'],
+        'age': data['age']
+    }
+    
+    return jsonify(user), 201
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({'status': 'ok'}), 200
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**How to run it:**
+
+1. Install Flask:
+```bash
+pip install flask
+```
+
+2. Save the code to a file (e.g., `app.py`) and run:
+```bash
+python app.py
+```
+
+The server starts on `http://localhost:5000`.
+
+**Test examples:**
+
+Valid request (returns 201):
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+```
+
+Invalid email (returns 400):
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "email": "invalid-email", "age": 25}'
+```
+
+Missing required field (returns 400):
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Charlie", "age": 35}'
+```
+
+Invalid age (returns 400):
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Diana", "email": "diana@example.com", "age": 200}'
+```
+
+Success response (201):
+```json
+{
+  "id": 1715387234.123456,
+  "name": "Alice",
+  "email": "alice@example.com",
+  "age": 30
+}
+```
+
+Error response (400):
+```json
+{
+  "errors": {
+    "email": "email must contain @",
+    "age": "age must be between 1 and 150"
+  }
+}
+```

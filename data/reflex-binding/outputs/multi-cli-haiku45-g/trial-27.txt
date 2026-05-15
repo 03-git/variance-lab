@@ -1,0 +1,86 @@
+I'll show you a Python CLI tool that meets those requirements:
+
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Configuration validator that outputs parsed settings as JSON"
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="localhost",
+        help="Host to connect to (default: localhost)"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Port number (default: 8080)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        print(
+            f"Error: port must be between 1 and 65535, got {args.port}",
+            file=sys.stderr
+        )
+        sys.exit(1)
+    
+    # Build config dict
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    # Print as JSON
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+Save this as `config_tool.py`, then:
+
+```bash
+# Basic usage
+python config_tool.py
+
+# With custom host and port
+python config_tool.py --host example.com --port 3000
+
+# Enable verbose
+python config_tool.py --host 192.168.1.1 --port 9000 --verbose
+
+# Invalid port (demonstrates validation)
+python config_tool.py --port 70000
+```
+
+**Example outputs:**
+
+```bash
+$ python config_tool.py --host example.com --port 3000 --verbose
+{
+  "host": "example.com",
+  "port": 3000,
+  "verbose": true
+}
+
+$ python config_tool.py --port 70000
+Error: port must be between 1 and 65535, got 70000
+```
+
+The tool uses `argparse` for command-line parsing, validates the port is an integer (argparse handles this) and within the valid range (1-65535), then outputs the configuration as formatted JSON.

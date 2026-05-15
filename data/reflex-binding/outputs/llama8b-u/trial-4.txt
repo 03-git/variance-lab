@@ -1,0 +1,52 @@
+**Time Endpoint Code**
+```python
+# Import necessary libraries
+from flask import Flask, jsonify
+from datetime import datetime
+
+# Create a Flask application instance
+app = Flask(__name__)
+
+# Define a route for the /time endpoint
+@app.route('/time', methods=['GET'])
+def get_current_time():
+    """
+    Returns the current time in ISO 8601 format.
+    """
+    current_time = datetime.now().isoformat()
+    return jsonify({'time': current_time})
+
+# Run the application
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+**How to Run the Code**
+
+To run this code, you'll need to have Python and pip installed. Here are the steps:
+
+1. **Install Flask**:
+    - Open a terminal or command prompt.
+    - Run the command `pip install flask` to install Flask.
+2. **Save the Code**:
+    - Copy the code above and save it in a file named `app.py`.
+3. **Run the Application**:
+    - Navigate to the directory where you saved `app.py` using the command `cd`.
+    - Run the command `python app.py` to start the Flask development server.
+4. **Access the /time Endpoint**:
+    - Open a web browser or use a tool like `curl` to access the endpoint.
+    - Navigate to `http://localhost:5000/time` (or the address displayed in the console where you ran the application).
+    - The response should be a JSON object with the current time in ISO 8601 format.
+
+**Example JSON Response**
+```json
+{
+    "time": "2024-03-16T14:30:00.000000"
+}
+```
+
+**Tips and Variations**
+
+- To run the application in a production environment, use `gunicorn` or another WSGI server.
+- To add additional error handling, use try-except blocks to catch exceptions that might occur when generating the current time.
+- To customize the response, modify the `get_current_time` function to return a different data structure or format.

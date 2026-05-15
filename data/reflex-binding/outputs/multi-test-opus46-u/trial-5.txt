@@ -1,0 +1,79 @@
+Here's a `pytest` suite for `celsius_to_fahrenheit`:
+
+```python
+# test_temperature.py
+import pytest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32
+
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212
+
+
+def test_minus_forty_is_equal():
+    # -40°C == -40°F, the one place the scales cross
+    assert celsius_to_fahrenheit(-40) == -40
+
+
+def test_non_numeric_input_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("not a number")
+```
+
+A few notes:
+
+- The `-40` case is the natural fixed point of the conversion, so it doubles as a sanity check on the formula.
+- For non-numeric input, the function doesn't validate anything itself — but `"abc" * 9` is a string repetition and then `+ 32` raises `TypeError`, so `pytest.raises(TypeError)` is the right expectation. (A `None` input would also raise `TypeError`; a list would too.)
+- If you'd rather the function explicitly reject bad input, add `if not isinstance(c, (int, float)): raise TypeError(...)` at the top — the test above still passes.
+
+## How to run it
+
+```bash
+pip install pytest
+pytest test_temperature.py -v
+```
+
+Or, without installing anything extra, using the stdlib `unittest` variant:
+
+```python
+# test_temperature_unittest.py
+import unittest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_forty_is_equal(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_input_raises(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("not a number")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+```bash
+python -m unittest test_temperature_unittest.py -v
+# or just:
+python test_temperature_unittest.py
+```
+
+In a real project, replace the inline `celsius_to_fahrenheit` definition in the test file with `from yourmodule import celsius_to_fahrenheit`.

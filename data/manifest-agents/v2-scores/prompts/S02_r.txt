@@ -1,0 +1,453 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from runtime/hosuni/hosuni.c)
+        else if (strcmp(argv[i], "-S") == 0 && i + 1 < argc) font_large_size = atof(argv[++i]);
+        else if (strcmp(argv[i], "-h") == 0 && i + 1 < argc) strncpy(app.infer_host, argv[++i], 63);
+        else if (strcmp(argv[i], "-p") == 0 && i + 1 < argc) app.infer_port = atoi(argv[++i]);
+        else if (strcmp(argv[i], "--soul") == 0 && i + 1 < argc) soul_path = argv[++i];
+        else if (argv[i][0] != '-') edit_file = argv[i];
+        else usage();
+    }
+
+    /* load lookdown tables */
+    char *home = getenv("HOME");
+    lookdown_reload(&app);
+    hosuni_log_init("hosuni");
+
+    /* load SOUL (system prompt) */
+    app.soul[0] = '\0';
+    if (!soul_path && home) {
+        static char default_soul[512];
+        snprintf(default_soul, sizeof(default_soul),
+                 "%s/subtract.ing/SOUL.txt", home);
+        if (access(default_soul, R_OK) == 0) soul_path = default_soul;
+    }
+    if (soul_path) {
+        FILE *sf = fopen(soul_path, "r");
+        if (sf) {
+            int n = fread(app.soul, 1, sizeof(app.soul) - 1, sf);
+            app.soul[n] = '\0';
+            fclose(sf);
+        }
+    }
+
+    /* find a font if none specified */
+    if (!font_path) {
+        static const char *search[] = {
+            "/usr/share/fonts/liberation-mono/LiberationMono-Regular.ttf",
+            "/usr/share/fonts/liberation-mono-fonts/LiberationMono-Regular.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+            "/usr/share/fonts/TTF/LiberationMono-Regular.ttf",
+            "/System/Library/Fonts/Menlo.ttc",
+            "/System/Library/Fonts/SFMono-Regular.otf",
+            "/Library/Fonts/SF-Mono-Regular.otf",
+
+
+### Chunk 2 (from runtime/hosuni/hosuni.c)
+    chat_msg history[MAX_HIST_MSGS];
+    int history_count;
+} ask_ctx;
+
+/* ================================================================
+   main application
+   ================================================================ */
+
+typedef struct {
+    int sel;
+    int scroll;
+    int count;
+    char filter[64];
+    int filter_len;
+    int show_all;
+} run_ctx;
+
+typedef struct {
+    hosuni_surface surface;
+    hosuni_font font;
+    hosuni_font font_large;
+    hosuni_font font_small;
+    hosuni_mode mode;
+    vi_ctx vi;
+    ask_ctx ask;
+    run_ctx run;
+    int running;
+    int shift;
+    int ctrl;
+    char infer_host[64];
+    int infer_port;
+    int margin;
+    char soul[16384];
+    int starred;
+    focused_ctx focused;
+} hosuni_app;
+
+/* ================================================================
+   conversation history + message building
+   ================================================================ */
+
+
+### Chunk 3 (from hosuni.txt)
+  macOS:  cc -O2 -o hosuni hosuni.c platform_macos.m -framework Cocoa
+
+## Source
+
+  runtime/hosuni/hosuni.c          main source (canonical)
+  runtime/hosuni/hosuni.h          platform contract, types, colors
+  runtime/hosuni/platform_linux.c  DRM/KMS + evdev
+  runtime/hosuni/platform_macos.m  Cocoa + NSEvent
+  runtime/hosuni/stb_truetype.h    font rendering (vendored)
+
+
+### Chunk 4 (from runtime/hosuni.sh)
+#!/usr/bin/env bash
+# hosuni — tool-use daemon for local inference
+# listens on a port via nc. receives JSON, checks lookdown,
+# routes inference through parsimony (coproc via named pipes),
+# parses tool calls, executes, loops, logs. pure bash + jq.
+# falls back to curl if parsimony pipes not present.
+#
+# run:   hosuni.sh [port]
+# call:  echo '{"input":"list files","channel":"terminal"}' | nc localhost 8091
+
+set -euo pipefail
+
+export PATH="$HOME/.subtract/bin:$HOME/.subtract:$PATH"
+
+SUBTRACT_DIR="${SUBTRACT_DIR:-$HOME/.subtract}"
+HOSUNI_DIR="${HOSUNI_DIR:-$HOME/.hosuni}"
+INFERENCE_HOST=$(cat "$SUBTRACT_DIR/inference_host" 2>/dev/null || echo "localhost")
+INFERENCE_PORT=$(cat "$SUBTRACT_DIR/inference_port" 2>/dev/null || echo "8085")
+RESEARCH_PORT=$(cat "$SUBTRACT_DIR/research_port" 2>/dev/null || echo "")
+RESEARCH_HOST=$(cat "$SUBTRACT_DIR/research_host" 2>/dev/null || echo "")
+PARSIMONY_IN="$SUBTRACT_DIR/.parsimony.in"
+PARSIMONY_OUT="$SUBTRACT_DIR/.parsimony.out"
+PARSIMONY_LOCK="$SUBTRACT_DIR/.parsimony.lock"
+LOOKDOWN_NODE="$SUBTRACT_DIR/lookdown.$(hostname).tsv"
+LOOKDOWN_UNIVERSAL="$SUBTRACT_DIR/lookdown.universal.tsv"
+TOOLS_FILE="$HOSUNI_DIR/tools.tsv"
+LOG_DIR="$SUBTRACT_DIR/log"
+DAEMON_LOG="$HOME/human/sessions/hosuni.log"
+MAX_TURNS=20
+TOOL_TIMEOUT=300
+
+SOUL_FILE="$HOME/subtract.ing/SOUL.txt"
+SYSTEM_MSG=$(cat "$SOUL_FILE" 2>/dev/null || echo "")
+
+mkdir -p "$LOG_DIR" "$HOSUNI_DIR"
+
+ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+log_daemon() { printf "[%s] %s\n" "$(ts)" "$1" >> "$DAEMON_LOG"; }
+
+
+
+### Chunk 5 (from runtime/hosuni/hosuni.h)
+
+/* --- modes --- */
+
+typedef enum {
+    MODE_READ,
+    MODE_RUN,
+    MODE_TEACH,
+    MODE_COUNT
+} hosuni_mode;
+
+/* --- colors --- */
+
+#define COL_BG        0xFF000000
+#define COL_FG        0xFFFFFFFF
+#define COL_GREEN     0xFF50FA7B
+#define COL_YELLOW    0xFFFFB86C
+#define COL_DIM       0xFF666666
+#define COL_CURSOR    0xFFFF79C6
+#define COL_INPUT_BG  0xFF111111
+
+/* --- font --- */
+
+typedef struct {
+    unsigned char *bitmap;
+    int w, h;
+    float scale;
+    int ascent, descent, linegap;
+    void *info; /* stbtt_fontinfo* */
+    void *fallback_info; /* stbtt_fontinfo* for CJK fallback */
+    unsigned char *fallback_data;
+} hosuni_font;
+
+int  hosuni_font_init(hosuni_font *f, const char *ttf_path, float px);
+void hosuni_font_free(hosuni_font *f);
+void hosuni_draw_char(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   uint32_t cp, uint32_t color);
+int  hosuni_draw_text(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   const char *text, uint32_t color);
+int  hosuni_char_width(hosuni_font *f, uint32_t cp);
+int  hosuni_line_height(hosuni_font *f);
+
+
+### Chunk 6 (from runtime/hosuni/hosuni.h)
+int  hosuni_infer_recv(int sock, char *chunk, int chunk_max);
+
+/* --- session log --- */
+
+void hosuni_log_init(const char *program);
+void hosuni_log_trial(const char *program, int trial,
+                   const char *stimulus, const char *response,
+                   int latency_ms, int correct);
+
+#endif
+
+
+### Chunk 7 (from runtime/hosuni/hosuni.h)
+/*
+ * hosuni.h — framebuffer computing for humans
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+#ifndef HOSUNI_H
+#define HOSUNI_H
+
+#include <stdint.h>
+
+/* --- platform contract --- */
+
+typedef struct {
+    uint32_t *pixels;
+    int width;
+    int height;
+    int stride; /* bytes per row */
+} hosuni_surface;
+
+typedef enum { HOSUNI_KEY, HOSUNI_MOUSE, HOSUNI_TOUCH } hosuni_input_type;
+
+typedef struct {
+    hosuni_input_type type;
+    int code;   /* KEY_* from linux/input-event-codes.h */
+    int value;  /* 1=press 0=release 2=repeat */
+    int x, y;   /* mouse/touch coords, 0 for keys */
+} hosuni_event;
+
+int  platform_init(hosuni_surface *s);
+int  platform_event(hosuni_event *ev, int timeout_ms);
+void platform_flip(hosuni_surface *s);
+void platform_cleanup(void);
+void platform_yield(void);
+void platform_reclaim(void);
+void platform_drain_input(void);
+void platform_close_child_fds(void);
+void platform_xkb_update(int evdev_code, int value);
+int  platform_key_utf8(int evdev_code, char *out, int out_max);
+
+
+### Chunk 8 (from runtime/hosuni/hosuni.c)
+} hosuni_app;
+
+/* ================================================================
+   conversation history + message building
+   ================================================================ */
+
+static void history_add(ask_ctx *a, const char *role, const char *content) {
+    if (a->history_count >= MAX_HIST_MSGS) {
+        memmove(a->history, a->history + 2,
+                (MAX_HIST_MSGS - 2) * sizeof(a->history[0]));
+        a->history_count -= 2;
+    }
+    snprintf(a->history[a->history_count].role,
+             sizeof(a->history[0].role), "%s", role);
+    snprintf(a->history[a->history_count].content,
+             sizeof(a->history[0].content), "%s", content);
+    a->history_count++;
+}
+
+static int build_messages_json(const char *soul, ask_ctx *a,
+                                const char *query, char *out, int out_max) {
+    int o = 0;
+    int need_comma = 0;
+    o += snprintf(out + o, out_max - o, "[");
+
+    if (soul && soul[0]) {
+        static char esc[32768];
+        json_escape(soul, esc, sizeof(esc));
+        o += snprintf(out + o, out_max - o,
+            "{\"role\":\"system\",\"content\":\"%s\"}", esc);
+        if (o >= out_max) return out_max - 1;
+        need_comma = 1;
+    }
+
+    for (int i = 0; i < a->history_count; i++) {
+        static char esc_hist[8192];
+        json_escape(a->history[i].content, esc_hist, sizeof(esc_hist));
+        if (need_comma) o += snprintf(out + o, out_max - o, ",");
+        o += snprintf(out + o, out_max - o,
+            "{\"role\":\"%s\",\"content\":\"%s\"}",
+
+
+### Chunk 9 (from hosuni.txt)
+White text on black background, fixed-width font rendered via
+stb_truetype. The cursor is a colored block. The status bar shows
+the current mode, and in READ mode, inference timing.
+
+## What it uses from subtract.ing
+
+  lookdown.tsv        The same pattern-matching routing tables that the
+                      shell translation layer uses. hosuni.c loads both
+                      the per-host (~/.subtract/lookdown.<hostname>.tsv)
+                      and universal (~/.subtract/lookdown.universal.tsv)
+                      tables at startup. In READ mode, lookdown intercepts
+                      queries that match a pattern and answers instantly
+                      without inference. In RUN mode, lookdown provides
+                      the program list.
+
+  inference endpoint  hosuni.c connects to whatever answers on the host
+                      and port read from ~/.subtract/inference_host and
+                      ~/.subtract/inference_port (default 127.0.0.1:8087).
+                      In the subtract.ing formation, that's parsimony
+                      proxying to llama.cpp, but hosuni.c is endpoint-
+                      agnostic — anything speaking OpenAI-compatible chat
+                      completions works.
+
+  hosuni-prefetch     Before sending a query to inference, hosuni.c forks
+                      ~/.subtract/bin/hosuni-prefetch, which enriches the
+                      query with external context. The enriched prompt goes
+                      to the model; the user's original query stays clean.
+
+  SOUL                System prompt loaded via --soul flag. Plain text file
+                      that sets the model's disposition for the conversation.
+
+  ~/.subtract/        Config files: inference_host, inference_port.
+                      Session logs written to ~/.subtract/sessions/.
+                      Starred entries saved to ~/.subtract/.starred.
+
+## How it renders
+
+hosuni.c talks directly to the display hardware:
+
+  Linux:  DRM/KMS — opens /dev/dri/card*, sets mode, double-buffered
+
+
+### Chunk 10 (from variance-lab.txt)
+`$HOME/subtract.ing/SOUL.txt`. ESC clears history.
+
+**Why:** cal.c sent single stateless prompts with no system
+context. Every query was independent — no SOUL (personality/
+constraints), no memory of prior turns. The model couldn't
+maintain a conversation or follow standing instructions.
+
+**Architecture decision:** cal.c builds its own messages array
+and sends directly to llama-server via HTTP, rather than
+routing through hosuni.sh. This avoids modifying hosuni's
+non-streaming inference path and keeps the streaming socket
+approach that already works. Hosuni integration for tool use
+and cloud fallback deferred to a future leg.
+
+**Rubric:** seven binary criteria pre-committed before dispatch
+(messages format, SOUL loading, history ring, history lifecycle,
+non-regression, JSON escaping, buffer safety).
+
+**Dispatch:** two reviewers (local llama excluded — context
+window too small for 1600-line file).
+  - Sonnet 4.6 (rousseau, `claude -p`)
+  - Opus 4.6 (emile, `ssh m2mini "claude -p"`)
+
+**Results:**
+
+| Criterion | Sonnet 4.6 | Opus 4.6 |
+|-----------|-----------|----------|
+| C1 messages format | pass | pass |
+| C2 SOUL loading | FAIL (false positive*) | pass |
+| C3 history ring | pass | pass |
+| C4 history lifecycle | pass | pass |
+| C5 non-regression | pass | pass |
+| C6 JSON escaping | pass | pass |
+| C7 buffer safety | FAIL | FAIL |
+
+*Sonnet read the null-terminator initializer `app.soul[0] =
+'\0'` as a space character and flagged it as a bug. Verified
+on disk: the code is correct. First false positive from a
+Claude model in this series — prior false positives were only
+from the local llama.
+
+
+### Chunk 11 (from runtime/hosuni/hosuni.h)
+                   uint32_t cp, uint32_t color);
+int  hosuni_draw_text(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   const char *text, uint32_t color);
+int  hosuni_char_width(hosuni_font *f, uint32_t cp);
+int  hosuni_line_height(hosuni_font *f);
+
+/* --- gap buffer --- */
+
+#define GAP_INIT 4096
+
+typedef struct {
+    char *buf;
+    int gap_start;
+    int gap_end;
+    int cap;
+} gap_buf;
+
+void gap_init(gap_buf *g);
+void gap_free(gap_buf *g);
+void gap_insert(gap_buf *g, char c);
+void gap_insert_str(gap_buf *g, const char *s, int len);
+void gap_delete(gap_buf *g);
+void gap_backspace(gap_buf *g);
+void gap_move(gap_buf *g, int pos);
+int  gap_length(gap_buf *g);
+char gap_char_at(gap_buf *g, int pos);
+int  gap_pos(gap_buf *g);
+void gap_get_text(gap_buf *g, char *out, int max);
+
+/* --- inference --- */
+
+int  hosuni_infer(const char *host, int port, const char *prompt,
+               char *resp, int resp_max);
+int  hosuni_infer_stream(const char *host, int port, const char *prompt,
+                      int *sock_out);
+int  hosuni_infer_recv(int sock, char *chunk, int chunk_max);
+
+/* --- session log --- */
+
+void hosuni_log_init(const char *program);
+
+
+### Chunk 12 (from variance-lab/data/manifest-agents/questions.tsv)
+id	type	question
+T01	traversal	What files are in the runtime/hosuni/ directory and what does each one do?
+T02	traversal	What is parsimony.c and what role does it play in the subtract.ing runtime?
+T03	traversal	List all .tsv files in the repository and describe the format of each.
+T04	traversal	What does the install.sh script do?
+T05	traversal	What is in runtime/llms.txt and how does it differ from the root llms.txt?
+T06	traversal	What shell hooks exist in runtime/hooks/ and what do they intercept?
+T07	traversal	What is kiosk.sh and what does it configure?
+T08	traversal	What files define the lookdown system and how are they organized?
+T09	traversal	What is squared.c and what does it compute?
+T10	traversal	List every file that contains a sha256 hash or references sha256 verification.
+S01	synthesis	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?
+S02	synthesis	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?
+S03	synthesis	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?
+S04	synthesis	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.
+S05	synthesis	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?
+S06	synthesis	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?
+S07	synthesis	Which files mention the concept of a "formation" and what does the term mean across them?
+S08	synthesis	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?
+S09	synthesis	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?
+S10	synthesis	What does lineage.txt credit and how do those credits connect to specific components in the codebase?
+C01	change	What changed in hosuni.c between commit d4e860d and HEAD?
+C02	change	What was the most recent change to variance-lab.txt and what confound did it resolve?
+C03	change	Which files were modified in the commit that added CJK font fallback support?
+C04	change	Has SOUL.txt been rewritten recently? What was the nature of the change?
+C05	change	What is the most recent addition to the llms.txt index?
+M01	similarity	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?
+M02	similarity	Find files related to the concept of signing and verification. Group them by function.
+M03	similarity	Which components share the pattern of reading a manifest or index file to decide what to do next?
+M04	similarity	What files discuss the boundary between human authority and agent execution? How do they differ in framing?
+M05	similarity	Find all components that use llama.cpp or local inference. How are they related?
+
+
+
+## Question
+What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?

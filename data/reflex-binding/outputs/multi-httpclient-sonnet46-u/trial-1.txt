@@ -1,0 +1,39 @@
+```python
+import sys
+import urllib.request
+
+def fetch(url):
+    with urllib.request.urlopen(url) as response:
+        print(f"Status: {response.status}")
+        print("\nHeaders:")
+        for key, value in response.headers.items():
+            print(f"  {key}: {value}")
+        body = response.read(500).decode("utf-8", errors="replace")
+        print(f"\nBody (first 500 chars):\n{body}")
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <url>")
+        sys.exit(1)
+    fetch(sys.argv[1])
+```
+
+`urllib.request.urlopen` follows redirects by default. No third-party dependencies needed.
+
+**Run it:**
+
+```bash
+python fetch.py https://httpbin.org/get
+```
+
+Or save it inline with a one-liner if you don't want a file:
+
+```bash
+python - https://httpbin.org/get <<'EOF'
+import sys, urllib.request
+with urllib.request.urlopen(sys.argv[1]) as r:
+    print(f"Status: {r.status}")
+    [print(f"  {k}: {v}") for k, v in r.headers.items()]
+    print(r.read(500).decode("utf-8", errors="replace"))
+EOF
+```

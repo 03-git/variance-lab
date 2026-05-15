@@ -1,0 +1,82 @@
+Here's a clean async TCP echo server using Python's `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client {addr} connected")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            if not data:
+                # Client disconnected
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            print(f"Echo to {addr}: {data.decode().strip()}")
+    
+    except asyncio.CancelledError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client {addr} disconnected")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        9999
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+   ```bash
+   python echo_server.py
+   ```
+
+2. **In another terminal, connect a client (using `nc` or `telnet`):**
+   ```bash
+   nc localhost 9999
+   ```
+
+3. **Type a message and press Enter** — it gets echoed back:
+   ```
+   hello world
+   hello world
+   ```
+
+**To test with multiple clients simultaneously:**
+
+```bash
+# Terminal 2
+nc localhost 9999
+
+# Terminal 3 (at the same time)
+nc localhost 9999
+```
+
+Each client runs independently and the server handles them concurrently thanks to `asyncio`. The server uses:
+- `asyncio.start_server()` to listen for connections
+- `handle_client()` as an async coroutine that runs for each connection
+- `reader.readline()` to read lines (non-blocking)
+- `writer.drain()` to ensure data is flushed before reading the next line

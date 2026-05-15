@@ -1,0 +1,57 @@
+**Endpoint Code:**
+
+We'll use Python and the Flask web framework to create the HTTP endpoint.
+
+```python
+# time_endpoint.py
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_current_time():
+    """Return the current time as JSON."""
+    current_time = datetime.now().isoformat()
+    return jsonify({'time': current_time})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+**Explanation:**
+
+1. Import Flask and the `datetime` module.
+2. Create a Flask app instance.
+3. Define a route for the `/time` endpoint using the `@app.route` decorator. The `methods=['GET']` parameter specifies that this endpoint only handles GET requests.
+4. Define a function `get_current_time` to handle the GET request. This function uses `datetime.now().isoformat()` to get the current time in ISO 8601 format.
+5. Return a JSON response with the current time using `jsonify`.
+6. Run the Flask app using `app.run(debug=True)`. This sets the app to run in debug mode.
+
+**Running the Endpoint:**
+
+To run the endpoint, you'll need to have Python and pip installed on your system. You'll also need to install Flask using pip:
+
+```bash
+pip install flask
+```
+
+Then, run the Flask app:
+
+```bash
+python time_endpoint.py
+```
+
+By default, Flask will run the app on `http://localhost:5000/`. You can access the `/time` endpoint by navigating to `http://localhost:5000/time` in your web browser.
+
+**Example Response:**
+
+When you visit `http://localhost:5000/time` in your web browser, you should see a JSON response like this:
+
+```json
+{
+  "time": "2023-02-20T14:30:00.000000"
+}
+```
+
+This response includes the current time in ISO 8601 format.

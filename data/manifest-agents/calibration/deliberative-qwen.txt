@@ -1,0 +1,3 @@
+1. One factual error or unsupported claim: "BM25 not embedding-based" (BM25 is a ranking algorithm that can be based on embeddings, though it is traditionally not).
+2. One framing drift: "Selection: Arm M wins cost and audit. Quality is a draw. No arm dominates on >=3 of 4 metrics." (This implies a clear winner, but the summary states that no arm dominates on three or more metrics).
+3. One thing that should be added or cut: "Boundaries where BM25 wins: zero curation cost, possibly semantic similarity, change detection (both fail equally)." (This could be expanded or clarified, but it's not essential to the main findings).

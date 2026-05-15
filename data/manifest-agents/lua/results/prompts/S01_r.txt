@@ -1,0 +1,509 @@
+You are answering questions about the Lua 5.4 source code. Use ONLY the provided context to answer. Be specific — cite file names, function names, and quote relevant code.
+
+
+## lgc.c (lines 1-40)
+/*
+** $Id: lgc.c $
+** Garbage Collector
+** See Copyright Notice in lua.h
+*/
+
+#define lgc_c
+#define LUA_CORE
+
+#include "lprefix.h"
+
+#include <string.h>
+
+
+#include "lua.h"
+
+#include "ldebug.h"
+#include "ldo.h"
+#include "lfunc.h"
+#include "lgc.h"
+#include "lmem.h"
+#include "lobject.h"
+#include "lstate.h"
+#include "lstring.h"
+#include "ltable.h"
+#include "ltm.h"
+
+
+/*
+** Maximum number of elements to sweep in each single step.
+** (Large enough to dissipate fixed overheads but small enough
+** to allow small steps for the collector.)
+*/
+#define GCSWEEPMAX	20
+
+
+/*
+** Cost (in work units) of running one finalizer.
+*/
+#define CWUFIN	10
+
+## lgc.c (lines 1681-1720)
+    }
+    default: lua_assert(0); return 0;
+  }
+  g->gcstopem = 0;
+  return stepresult;
+}
+
+
+/*
+** Advances the garbage collector until it reaches the given state.
+** (The option 'fast' is only for testing; in normal code, 'fast'
+** here is always true.)
+*/
+void luaC_runtilstate (lua_State *L, int state, int fast) {
+  global_State *g = G(L);
+  lua_assert(g->gckind == KGC_INC);
+  while (state != g->gcstate)
+    singlestep(L, fast);
+}
+
+
+
+/*
+** Performs a basic incremental step. The step size is
+** converted from bytes to "units of work"; then the function loops
+** running single steps until adding that many units of work or
+** finishing a cycle (pause state). Finally, it sets the debt that
+** controls when next step will be performed.
+*/
+static void incstep (lua_State *L, global_State *g) {
+  l_mem stepsize = applygcparam(g, STEPSIZE, 100);
+  l_mem work2do = applygcparam(g, STEPMUL, stepsize / cast_int(sizeof(void*)));
+  l_mem stres;
+  int fast = (work2do == 0);  /* special case: do a full collection */
+  do {  /* repeat until enough work */
+    stres = singlestep(L, fast);  /* perform one single step */
+    if (stres == step2minor)  /* returned to minor collections? */
+      return;  /* nothing else to be done here */
+    else if (stres == step2pause || (stres == atomicstep && !fast))
+      break;  /* end of cycle or atomic */
+
+## lgc.h (lines 1-40)
+/*
+** $Id: lgc.h $
+** Garbage Collector
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lgc_h
+#define lgc_h
+
+
+#include <stddef.h>
+
+
+#include "lobject.h"
+#include "lstate.h"
+
+/*
+** Collectable objects may have one of three colors: white, which means
+** the object is not marked; gray, which means the object is marked, but
+** its references may be not marked; and black, which means that the
+** object and all its references are marked.  The main invariant of the
+** garbage collector, while marking objects, is that a black object can
+** never point to a white one. Moreover, any gray object must be in a
+** "gray list" (gray, grayagain, weak, allweak, ephemeron) so that it
+** can be visited again before finishing the collection cycle. (Open
+** upvalues are an exception to this rule, as they are attached to
+** a corresponding thread.)  These lists have no meaning when the
+** invariant is not being enforced (e.g., sweep phase).
+*/
+
+
+/*
+** Possible states of the Garbage Collector
+*/
+#define GCSpropagate	0
+#define GCSenteratomic	1
+#define GCSatomic	2
+#define GCSswpallgc	3
+#define GCSswpfinobj	4
+#define GCSswptobefnz	5
+
+## lstate.h (lines 1-40)
+/*
+** $Id: lstate.h $
+** Global State
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lstate_h
+#define lstate_h
+
+#include "lua.h"
+
+
+/* Some header files included here need this definition */
+typedef struct CallInfo CallInfo;
+
+
+#include "lobject.h"
+#include "ltm.h"
+#include "lzio.h"
+
+
+/*
+** Some notes about garbage-collected objects: All objects in Lua must
+** be kept somehow accessible until being freed, so all objects always
+** belong to one (and only one) of these lists, using field 'next' of
+** the 'CommonHeader' for the link:
+**
+** 'allgc': all objects not marked for finalization;
+** 'finobj': all objects marked for finalization;
+** 'tobefnz': all objects ready to be finalized;
+** 'fixedgc': all objects that are not to be collected (currently
+** only small strings, such as reserved words).
+**
+** For the generational collector, some of these lists have marks for
+** generations. Each mark points to the first element in the list for
+** that particular generation; that generation goes until the next mark.
+**
+** 'allgc' -> 'survival': new objects;
+** 'survival' -> 'old': objects that survived one collection;
+** 'old1' -> 'reallyold': objects that became old in last collection;
+
+## lgc.h (lines 161-200)
+
+
+/*
+** {======================================================
+** Default Values for GC parameters
+** =======================================================
+*/
+
+/*
+** Minor collections will shift to major ones after LUAI_MINORMAJOR%
+** bytes become old.
+*/
+#define LUAI_MINORMAJOR         70
+
+/*
+** Major collections will shift to minor ones after a collection
+** collects at least LUAI_MAJORMINOR% of the new bytes.
+*/
+#define LUAI_MAJORMINOR         50
+
+/*
+** A young (minor) collection will run after creating LUAI_GENMINORMUL%
+** new bytes.
+*/
+#define LUAI_GENMINORMUL         20
+
+
+/* incremental */
+
+/* Number of bytes must be LUAI_GCPAUSE% before starting new cycle */
+#define LUAI_GCPAUSE    250
+
+/*
+** Step multiplier: The collector handles LUAI_GCMUL% work units for
+** each new allocated word. (Each "work unit" corresponds roughly to
+** sweeping one object or traversing one slot.)
+*/
+#define LUAI_GCMUL      200
+
+/* How many bytes to allocate before next GC step */
+
+## ldo.h (lines 1-40)
+/*
+** $Id: ldo.h $
+** Stack and Call structure of Lua
+** See Copyright Notice in lua.h
+*/
+
+#ifndef ldo_h
+#define ldo_h
+
+
+#include "llimits.h"
+#include "lobject.h"
+#include "lstate.h"
+#include "lzio.h"
+
+
+/*
+** Macro to check stack size and grow stack if needed.  Parameters
+** 'pre'/'pos' allow the macro to preserve a pointer into the
+** stack across reallocations, doing the work only when needed.
+** It also allows the running of one GC step when the stack is
+** reallocated.
+** 'condmovestack' is used in heavy tests to force a stack reallocation
+** at every check.
+*/
+
+#if !defined(HARDSTACKTESTS)
+#define condmovestack(L,pre,pos)	((void)0)
+#else
+/* realloc stack keeping its size */
+#define condmovestack(L,pre,pos)  \
+  { int sz_ = stacksize(L); pre; luaD_reallocstack((L), sz_, 0); pos; }
+#endif
+
+#define luaD_checkstackaux(L,n,pre,pos)  \
+	if (l_unlikely(L->stack_last.p - L->top.p <= (n))) \
+	  { pre; luaD_growstack(L, n, 1); pos; } \
+	else { condmovestack(L,pre,pos); }
+
+/* In general, 'pre'/'pos' are empty (nothing to save) */
+
+## ltable.c (lines 241-280)
+** long strings are also compared by identity.  Once a key is dead,
+** its corresponding value may be collected, and then another value
+** can be created with the same address. If this other value is given
+** to 'next', 'equalkey' will signal a false positive. In a regular
+** traversal, this situation should never happen, as all keys given to
+** 'next' came from the table itself, and therefore could not have been
+** collected. Outside a regular traversal, we have garbage in, garbage
+** out. What is relevant is that this false positive does not break
+** anything.  (In particular, 'next' will return some other valid item
+** on the table or nil.)
+*/
+static int equalkey (const TValue *k1, const Node *n2, int deadok) {
+  if (rawtt(k1) != keytt(n2)) {  /* not the same variants? */
+    if (keyisshrstr(n2) && ttislngstring(k1)) {
+      /* an external string can be equal to a short-string key */
+      return luaS_eqstr(tsvalue(k1), keystrval(n2));
+    }
+    else if (deadok && keyisdead(n2) && iscollectable(k1)) {
+      /* a collectable value can be equal to a dead key */
+      return gcvalue(k1) == gcvalueraw(keyval(n2));
+   }
+   else
+     return 0;  /* otherwise, different variants cannot be equal */
+  }
+  else {  /* equal variants */
+    switch (keytt(n2)) {
+      case LUA_VNIL: case LUA_VFALSE: case LUA_VTRUE:
+        return 1;
+      case LUA_VNUMINT:
+        return (ivalue(k1) == keyival(n2));
+      case LUA_VNUMFLT:
+        return luai_numeq(fltvalue(k1), fltvalueraw(keyval(n2)));
+      case LUA_VLIGHTUSERDATA:
+        return pvalue(k1) == pvalueraw(keyval(n2));
+      case LUA_VLCF:
+        return fvalue(k1) == fvalueraw(keyval(n2));
+      case ctb(LUA_VLNGSTR):
+        return luaS_eqstr(tsvalue(k1), keystrval(n2));
+      default:
+        return gcvalue(k1) == gcvalueraw(keyval(n2));
+
+## luaconf.h (lines 601-640)
+*/
+#define lua_pointer2str(buff,sz,p)	l_sprintf(buff,sz,"%p",p)
+
+
+/*
+@@ lua_number2strx converts a float to a hexadecimal numeral.
+** In C99, 'sprintf' (with format specifiers '%a'/'%A') does that.
+** Otherwise, you can leave 'lua_number2strx' undefined and Lua will
+** provide its own implementation.
+*/
+#if !defined(LUA_USE_C89)
+#define lua_number2strx(L,b,sz,f,n)  \
+	((void)L, l_sprintf(b,sz,f,(LUAI_UACNUMBER)(n)))
+#endif
+
+
+/*
+** 'strtof' and 'opf' variants for math functions are not valid in
+** C89. Otherwise, the macro 'HUGE_VALF' is a good proxy for testing the
+** availability of these variants. ('math.h' is already included in
+** all files that use these macros.)
+*/
+#if defined(LUA_USE_C89) || (defined(HUGE_VAL) && !defined(HUGE_VALF))
+#undef l_mathop  /* variants not available */
+#undef lua_str2number
+#define l_mathop(op)		(lua_Number)op  /* no variant */
+#define lua_str2number(s,p)	((lua_Number)strtod((s), (p)))
+#endif
+
+
+/*
+@@ LUA_KCONTEXT is the type of the context ('ctx') for continuation
+** functions.  It must be a numerical type; Lua will use 'intptr_t' if
+** available, otherwise it will use 'ptrdiff_t' (the nearest thing to
+** 'intptr_t' in C89)
+*/
+#define LUA_KCONTEXT	ptrdiff_t
+
+#if !defined(LUA_USE_C89) && defined(__STDC_VERSION__) && \
+    __STDC_VERSION__ >= 199901L
+
+## lstate.h (lines 321-360)
+} LX;
+
+
+/*
+** 'global state', shared by all threads of this state
+*/
+typedef struct global_State {
+  lua_Alloc frealloc;  /* function to reallocate memory */
+  void *ud;         /* auxiliary data to 'frealloc' */
+  l_mem GCtotalbytes;  /* number of bytes currently allocated + debt */
+  l_mem GCdebt;  /* bytes counted but not yet allocated */
+  l_mem GCmarked;  /* number of objects marked in a GC cycle */
+  l_mem GCmajorminor;  /* auxiliary counter to control major-minor shifts */
+  stringtable strt;  /* hash table for strings */
+  TValue l_registry;
+  TValue nilvalue;  /* a nil value */
+  unsigned int seed;  /* randomized seed for hashes */
+  lu_byte gcparams[LUA_GCPN];
+  lu_byte currentwhite;
+  lu_byte gcstate;  /* state of garbage collector */
+  lu_byte gckind;  /* kind of GC running */
+  lu_byte gcstopem;  /* stops emergency collections */
+  lu_byte gcstp;  /* control whether GC is running */
+  lu_byte gcemergency;  /* true if this is an emergency collection */
+  GCObject *allgc;  /* list of all collectable objects */
+  GCObject **sweepgc;  /* current position of sweep in list */
+  GCObject *finobj;  /* list of collectable objects with finalizers */
+  GCObject *gray;  /* list of gray objects */
+  GCObject *grayagain;  /* list of objects to be traversed atomically */
+  GCObject *weak;  /* list of tables with weak values */
+  GCObject *ephemeron;  /* list of ephemeron tables (weak keys) */
+  GCObject *allweak;  /* list of all-weak tables */
+  GCObject *tobefnz;  /* list of userdata to be GC */
+  GCObject *fixedgc;  /* list of objects not to be collected */
+  /* fields for generational collector */
+  GCObject *survival;  /* start of objects that survived one GC cycle */
+  GCObject *old1;  /* start of old1 objects */
+  GCObject *reallyold;  /* objects more than one cycle old ("really old") */
+  GCObject *firstold1;  /* first OLD1 object in the list (if any) */
+  GCObject *finobjsur;  /* list of survival objects with finalizers */
+
+## lstring.c (lines 81-120)
+      unsigned int h = lmod(p->hash, nsize);  /* new position */
+      p->u.hnext = vect[h];  /* chain it into array */
+      vect[h] = p;
+      p = hnext;
+    }
+  }
+}
+
+
+/*
+** Resize the string table. If allocation fails, keep the current size.
+** (This can degrade performance, but any non-zero size should work
+** correctly.)
+*/
+void luaS_resize (lua_State *L, int nsize) {
+  stringtable *tb = &G(L)->strt;
+  int osize = tb->size;
+  TString **newvect;
+  if (nsize < osize)  /* shrinking table? */
+    tablerehash(tb->hash, osize, nsize);  /* depopulate shrinking part */
+  newvect = luaM_reallocvector(L, tb->hash, osize, nsize, TString*);
+  if (l_unlikely(newvect == NULL)) {  /* reallocation failed? */
+    if (nsize < osize)  /* was it shrinking table? */
+      tablerehash(tb->hash, nsize, osize);  /* restore to original size */
+    /* leave table as it was */
+  }
+  else {  /* allocation succeeded */
+    tb->hash = newvect;
+    tb->size = nsize;
+    if (nsize > osize)
+      tablerehash(newvect, osize, nsize);  /* rehash for new size */
+  }
+}
+
+
+/*
+** Clear API string cache. (Entries cannot be empty, so fill them with
+** a non-collectable string.)
+*/
+void luaS_clearcache (global_State *g) {
+
+## ldo.c (lines 881-920)
+      luaV_finishOp(L);  /* finish interrupted instruction */
+      luaV_execute(L, ci);  /* execute down to higher C 'boundary' */
+    }
+  }
+}
+
+
+/*
+** Try to find a suspended protected call (a "recover point") for the
+** given thread.
+*/
+static CallInfo *findpcall (lua_State *L) {
+  CallInfo *ci;
+  for (ci = L->ci; ci != NULL; ci = ci->previous) {  /* search for a pcall */
+    if (ci->callstatus & CIST_YPCALL)
+      return ci;
+  }
+  return NULL;  /* no pending pcall */
+}
+
+
+/*
+** Signal an error in the call to 'lua_resume', not in the execution
+** of the coroutine itself. (Such errors should not be handled by any
+** coroutine error handler and should not kill the coroutine.)
+*/
+static int resume_error (lua_State *L, const char *msg, int narg) {
+  api_checkpop(L, narg);
+  L->top.p -= narg;  /* remove args from the stack */
+  setsvalue2s(L, L->top.p, luaS_new(L, msg));  /* push error message */
+  api_incr_top(L);
+  lua_unlock(L);
+  return LUA_ERRRUN;
+}
+
+
+/*
+** Do the work for 'lua_resume' in protected mode. Most of the work
+** depends on the status of the coroutine: initial state, suspended
+** inside a hook, or regularly suspended (optionally with a continuation
+
+## lgc.c (lines 1601-1640)
+** For indivisible work, a step goes to the next state. When marking
+** (propagating), a step traverses one object. When sweeping, a step
+** sweeps GCSWEEPMAX objects, to avoid a big overhead for sweeping
+** objects one by one. (Sweeping is inexpensive, no matter the
+** object.) When 'fast' is true, 'singlestep' tries to finish a state
+** "as fast as possible". In particular, it skips the propagation
+** phase and leaves all objects to be traversed by the atomic phase:
+** That avoids traversing twice some objects, such as threads and
+** weak tables.
+*/
+
+#define step2pause	-3  /* finished collection; entered pause state */
+#define atomicstep	-2  /* atomic step */
+#define step2minor	-1  /* moved to minor collections */
+
+
+static l_mem singlestep (lua_State *L, int fast) {
+  global_State *g = G(L);
+  l_mem stepresult;
+  lua_assert(!g->gcstopem);  /* collector is not reentrant */
+  g->gcstopem = 1;  /* no emergency collections while collecting */
+  switch (g->gcstate) {
+    case GCSpause: {
+      restartcollection(g);
+      g->gcstate = GCSpropagate;
+      stepresult = 1;
+      break;
+    }
+    case GCSpropagate: {
+      if (fast || g->gray == NULL) {
+        g->gcstate = GCSenteratomic;  /* finish propagate phase */
+        stepresult = 1;
+      }
+      else
+        stepresult = propagatemark(g);  /* traverse one gray object */
+      break;
+    }
+    case GCSenteratomic: {
+      atomic(L);
+      if (checkmajorminor(L, g))
+
+## Question
+How does Lua's garbage collector work? Trace the implementation across files.

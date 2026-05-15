@@ -1,0 +1,45 @@
+**time_service.py**
+```python
+from datetime import datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+class TimeRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'time': datetime.now().isoformat().replace('+00:00', 'Z')}).encode())
+        else:
+            self.send_response(404)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(b'Not Found')
+
+def run_server():
+    server_address = ('', 8000)
+    httpd = HTTPServer(server_address, TimeRequestHandler)
+    print('Server running at http://localhost:8000/time')
+    httpd.serve_forever()
+
+import json
+if __name__ == '__main__':
+    run_server()
+```
+
+**Running the server:**
+
+1. Save the above code in a file named `time_service.py`.
+2. Install the `http.server` module (if you haven't already): `pip install http.server` (Note: `http.server` is a built-in module in Python, but you may need to install it if you're using a Python version older than 3.7)
+3. Run the server: `python time_service.py`
+
+**Testing the endpoint:**
+
+1. Open a web browser and navigate to `http://localhost:8000/time`
+2. The browser should display the current time as JSON in the format `{"time": "<ISO 8601 timestamp>"}`.
+
+You can also use a tool like `curl` to test the endpoint from the command line:
+
+```bash
+curl http://localhost:8000/time
+```

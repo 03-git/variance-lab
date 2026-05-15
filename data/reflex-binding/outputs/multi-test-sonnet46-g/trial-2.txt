@@ -1,0 +1,48 @@
+```python
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+
+import unittest
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_negative_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_raises(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Save this as `test_temp.py` and run it:
+
+```
+python test_temp.py -v
+```
+
+Expected output:
+
+```
+test_boiling (__main__.TestCelsiusToFahrenheit) ... ok
+test_freezing (__main__.TestCelsiusToFahrenheit) ... ok
+test_negative_forty (__main__.TestCelsiusToFahrenheit) ... ok
+test_non_numeric_raises (__main__.TestCelsiusToFahrenheit) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+```
+
+The `-40` case is the natural fixed point of the two scales (`c * 9/5 + 32 = c` solves to `-40`), so it doubles as a sanity check on the formula itself. The `TypeError` for `"hot"` is raised by the multiplication, not by explicit validation — that's the correct behavior for a pure math function.

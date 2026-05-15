@@ -1,0 +1,57 @@
+```python
+# test_celsius_to_fahrenheit.py
+
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_equal_point(self):
+        # -40 is the point where Celsius and Fahrenheit are equal
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_input(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+**To run it:**
+
+Save the file as `test_celsius_to_fahrenheit.py`, then:
+
+```bash
+# Run all tests
+python -m unittest test_celsius_to_fahrenheit
+
+# Or run the file directly
+python test_celsius_to_fahrenheit.py
+
+# For verbose output
+python -m unittest test_celsius_to_fahrenheit -v
+```
+
+**Expected output (verbose):**
+```
+test_boiling_point ... ok
+test_equal_point ... ok
+test_freezing_point ... ok
+test_non_numeric_input ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+```
+
+A note on the `TypeError` test: Python will naturally raise `TypeError` when you try to multiply a string by a float, so no extra validation is needed in the function itself — the test passes as-is.

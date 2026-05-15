@@ -1,0 +1,48 @@
+**Building the HTTP Endpoint**
+
+We'll use Flask, a lightweight Python web framework, to create the HTTP endpoint. Here's the code:
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_current_time():
+    """Returns the current time as ISO 8601 timestamp"""
+    current_time = datetime.now().isoformat()
+    return jsonify({'time': current_time})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+**Explanation**
+
+1. We import Flask and the `jsonify` function to return JSON data.
+2. We import `datetime` to get the current date and time.
+3. We create a Flask app instance.
+4. We define a route for the `/time` endpoint with the `GET` method.
+5. In the `get_current_time` function, we get the current date and time using `datetime.now()`.
+6. We convert the date and time to an ISO 8601 timestamp using the `isoformat()` method.
+7. We return the timestamp as JSON using `jsonify`.
+8. Finally, we run the app with the `debug=True` parameter to enable debug mode.
+
+**Running the Code**
+
+To run the code, you'll need to have Python and Flask installed on your system. You can install Flask using pip:
+```bash
+pip install flask
+```
+Save the code in a file, for example, `app.py`. Then, run the file using:
+```bash
+python app.py
+```
+This will start the Flask development server, and you can access the `/time` endpoint by opening a web browser and navigating to `http://localhost:5000/time`. You should see the current time as an ISO 8601 timestamp in JSON format.
+
+**Tips**
+
+* You can customize the endpoint and the response format to suit your needs.
+* You can also use other libraries, such as `flask-cors`, to enable cross-origin resource sharing (CORS) if needed.
+* For production use, consider using a WSGI server, such as Gunicorn, and a reverse proxy, such as Nginx.

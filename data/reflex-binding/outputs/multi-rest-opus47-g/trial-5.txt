@@ -1,0 +1,47 @@
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+app = FastAPI()
+
+class User(BaseModel):
+    name: str = Field(..., min_length=1)
+    email: str
+    age: int = Field(..., ge=1, le=150)
+
+    @field_validator("email")
+    @classmethod
+    def must_have_at(cls, v: str) -> str:
+        if "@" not in v:
+            raise ValueError("email must contain @")
+        return v
+
+@app.post("/users", status_code=201)
+def create_user(user: User):
+    return user
+```
+
+Run:
+```
+pip install fastapi uvicorn
+uvicorn main:app --reload
+```
+
+Test:
+```
+curl -X POST http://127.0.0.1:8000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Josh","email":"j@x","age":40}'
+```
+
+FastAPI returns 422 by default on Pydantic validation errors. If you need 400 specifically, add:
+
+```python
+from fastapi import Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(status_code=400, content={"errors": exc.errors()})
+```

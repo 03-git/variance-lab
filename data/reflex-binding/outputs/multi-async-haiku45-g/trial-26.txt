@@ -1,0 +1,81 @@
+I'll show you an async TCP echo server using Python's `asyncio` module. This approach is clean and handles multiple concurrent clients efficiently.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read up to 1024 bytes (one line of text)
+            data = await reader.readline()
+            
+            # If no data, client disconnected
+            if not data:
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error with {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client, '127.0.0.1', 8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+   ```bash
+   python3 echo_server.py
+   ```
+   Output: `Server listening on ('127.0.0.1', 8888)`
+
+2. **In another terminal, connect with netcat and send text:**
+   ```bash
+   nc localhost 8888
+   ```
+   Then type:
+   ```
+   hello
+   world
+   test message
+   ```
+   Each line will be echoed back immediately.
+
+3. **Or use telnet:**
+   ```bash
+   telnet localhost 8888
+   ```
+
+**How it works:**
+- `asyncio.start_server()` creates a server that calls `handle_client()` for each new connection
+- `reader.readline()` waits for one line of input (non-blocking)
+- `writer.write()` + `await writer.drain()` sends data back
+- Multiple clients run concurrently because `await` yields control to the event loop
+- The server can handle hundreds of concurrent clients without threads
+
+Press `Ctrl+C` to stop the server.

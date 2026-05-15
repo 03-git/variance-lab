@@ -1,0 +1,454 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./runtime/hosuni/hosuni.c (lines 1361-1400 of 2661)
+            else { p++; continue; }
+            if (visible)
+                hosuni_draw_char(&app->surface, f, x, *y, cp, col);
+            x += hosuni_char_width(f, cp);
+        }
+        if (*p == ' ') { x += hosuni_char_width(f, ' '); p++; }
+    }
+    return line + 1;
+}
+
+static void draw_ask(hosuni_app *app) {
+    int lh = hosuni_line_height(&app->font);
+    int m = app->margin;
+    int max_x = app->surface.width - m;
+
+    /* header at top */
+    hosuni_draw_text(&app->surface, &app->font_large, m, m, "hosuni.c", COL_FG);
+    hosuni_draw_text(&app->surface, &app->font, m, m + hosuni_line_height(&app->font_large) + 4,
+                  "subtract your questions, ask about anything", COL_DIM);
+
+    /* input at bottom, above status bar */
+    int status_h = lh + 4;
+    int input_y = app->surface.height - status_h - lh - 16;
+    int prompt_w = hosuni_draw_text(&app->surface, &app->font, 0, input_y + 4, "> ", COL_DIM);
+    int input_x0 = prompt_w + 4;
+    int input_area_w = app->surface.width - input_x0 - m;
+    fill_rect(&app->surface, prompt_w, input_y, app->surface.width - prompt_w - m, lh + 8, COL_INPUT_BG);
+    if (app->ask.input_len > 0) {
+        int total_w = 0;
+        for (int i = 0; i < app->ask.input_len; i++)
+            total_w += hosuni_char_width(&app->font, app->ask.input[i]);
+        int skip = 0;
+        if (total_w > input_area_w - 4) {
+            int excess = total_w - input_area_w + 4;
+            int w = 0;
+            for (skip = 0; skip < app->ask.input_len && w < excess; skip++)
+                w += hosuni_char_width(&app->font, app->ask.input[skip]);
+        }
+        hosuni_draw_text(&app->surface, &app->font, input_x0, input_y + 4,
+                      app->ask.input + skip, COL_FG);
+
+## ./runtime/hosuni/hosuni.c (lines 1-40 of 2661)
+/*
+ * hosuni.c — framebuffer computing for humans
+ * Named for Hodori's digital governess.
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+
+/*
+   Linux:  cc -O2 -I/usr/include/libdrm -o hosuni hosuni.c platform_linux.c -ldrm -lm -lxkbcommon
+   macOS:  cc -O2 -o hosuni hosuni.c platform_macos.m -framework Cocoa
+*/
+
+#include "hosuni.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <errno.h>
+#include <sys/select.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include <fnmatch.h>
+#include <signal.h>
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
+/* ================================================================
+
+## ./lookdown.universal.tsv (lines 121-160 of 2624)
+*system*call*creates*child*process*	echo "fork() - creates child process by duplicating the calling process"
+*system*call*fork*	echo "fork() - creates child process by duplicating the calling process"
+*create*child*process*	echo "fork() - creates child process by duplicating the calling process"
+what is fork	echo "fork() - system call that creates a child process by duplicating the calling process"
+*create*pipe*between*processes*	echo "pipe() - creates a unidirectional data channel for IPC"
+*system*call*pipe*	echo "pipe() - creates a unidirectional data channel for IPC"
+what is shell*pipe	echo "the | operator — connects stdout of one process to stdin of the next, composing programs into a pipeline"
+what is pipe	echo "pipe() - system call creating unidirectional data channel between processes"
+*replace*current*process*	echo "exec() family (execl, execv, execve, execvp) - replaces current process image"
+*system*call*exec*	echo "exec() family (execl, execv, execve, execvp) - replaces current process image"
+what is exec	echo "exec() family - replaces current process image with a new program"
+*wait*for*child*process*	echo "wait() or waitpid() - suspends execution until a child process terminates"
+*system*call*wait*	echo "wait() or waitpid() - suspends execution until a child process terminates"
+*what*is*inotifywait*	echo "Watches filesystem events. inotifywait -m -e modify /path — blocks until the file changes, prints the event. Loop it for a file watcher. inotifywait -r for recursive. Linux only (inotify-tools package)."
+what is wait	echo "wait()/waitpid() - blocks parent until child process terminates"
+*map*file*into*memory*	echo "mmap() - maps files or devices into memory"
+*system*call*mmap*	echo "mmap() - maps files or devices into memory"
+what is mmap	echo "mmap() - maps files or devices into memory for efficient I/O"
+*system*call*open*	echo "open() - opens a file and returns a file descriptor"
+what is open	echo "open() - system call that opens a file and returns a file descriptor"
+*system*call*close*	echo "close() - closes a file descriptor"
+what is close	echo "close() - system call that releases a file descriptor"
+*system*call*read*	echo "read() - reads data from a file descriptor into a buffer"
+*system*call*write*	echo "write() - writes data from a buffer to a file descriptor"
+what is write	echo "write() - writes bytes from buffer to file descriptor"
+*system*call*dup*	echo "dup()/dup2() - duplicates a file descriptor"
+what is dup	echo "dup()/dup2() - duplicates file descriptor, used for I/O redirection"
+*system*call*socket*	echo "socket() - creates an endpoint for communication"
+what is socket	echo "socket() - creates network communication endpoint"
+*system*call*bind*	echo "bind() - assigns an address to a socket"
+*system*call*listen*	echo "listen() - marks socket as passive, accepting incoming connections"
+*system*call*accept*	echo "accept() - extracts first connection request from queue"
+*system*call*connect*	echo "connect() - initiates connection on a socket"
+*system*call*select*	echo "select() - monitors multiple file descriptors for I/O readiness"
+*system*call*epoll*	echo "epoll - Linux scalable I/O event notification (epoll_create, epoll_ctl, epoll_wait)"
+*system*call*poll*	echo "poll() - waits for events on file descriptors"
+*system*call*signal*	echo "signal()/sigaction() - sets disposition of a signal"
+*system*call*kill*	echo "kill() - sends signal to a process"
+what is kill	echo "kill() - system call that sends a signal to a process or process group"
+*system*call*stat*	echo "stat()/fstat()/lstat() - retrieves file metadata"
+
+## ./lookdown.universal.tsv (lines 1-40 of 2624)
+# subtract -- intent lookup table
+# format: glob_pattern<TAB>[tag]<TAB>command
+#   tags: [stdout] (default), [player]
+#   two-column lines (no tag) default to [stdout] for backwards compat
+# first match wins. specific before general.
+
+# children — these entries go first
+godzilla minus one	echo "Post-war Japan faces a terrifying new threat from the deep. It's a powerful story of survival and redemption."
+godzilla	echo "Godzilla is a giant monster from Japan, first appearing in a 1954 movie. The name comes from the Japanese word Gojira, combining gorilla and whale. Godzilla has fought over 30 legendary opponents including King Ghidorah, Mothra, Mechagodzilla, and King Kong across more than 35 films — the longest-running film franchise in history."
+*what*dinosaur*	echo "Dinosaurs were reptiles that lived millions of years ago. Some were huge like T-Rex, others small as chickens. They went extinct about 66 million years ago when an asteroid hit Earth."
+what*is*caterpillar*	echo "A caterpillar is the larva stage of a butterfly or moth. It hatches from an egg and eats leaves to grow bigger. Caterpillars have soft bodies with many segments and tiny legs. When it is big enough, it builds a cocoon or chrysalis and transforms inside."
+what*caterpillar	echo "A caterpillar is the larva stage of a butterfly or moth. It hatches from an egg and eats leaves to grow bigger. Caterpillars have soft bodies with many segments and tiny legs. When it is big enough, it builds a cocoon or chrysalis and transforms inside."
+what*is*cocoon*	echo "A cocoon is a silk covering that a caterpillar spins around itself. Inside the cocoon, the caterpillar changes into a moth. Butterflies make a chrysalis instead of a cocoon, but people use the word cocoon for both. The change inside is called metamorphosis."
+what*cocoon	echo "A cocoon is a silk covering that a caterpillar spins around itself. Inside the cocoon, the caterpillar changes into a moth. Butterflies make a chrysalis instead of a cocoon, but people use the word cocoon for both. The change inside is called metamorphosis."
+what*is*chrysalis*	echo "A chrysalis is the hard shell a butterfly caterpillar makes when it is ready to transform. Inside, the caterpillar's body breaks down and rebuilds into a butterfly. It takes about 10 to 14 days. When it opens, a butterfly comes out with wet wings that need to dry."
+what*chrysalis	echo "A chrysalis is the hard shell a butterfly caterpillar makes when it is ready to transform. Inside, the caterpillar's body breaks down and rebuilds into a butterfly. It takes about 10 to 14 days. When it opens, a butterfly comes out with wet wings that need to dry."
+what*is*butterfly*	echo "A butterfly is an insect with large colorful wings. It starts as an egg, becomes a caterpillar, forms a chrysalis, and emerges as a butterfly. Butterflies drink nectar from flowers through a long curled tongue called a proboscis. Monarch butterflies migrate thousands of miles."
+what*butterfly	echo "A butterfly is an insect with large colorful wings. It starts as an egg, becomes a caterpillar, forms a chrysalis, and emerges as a butterfly. Butterflies drink nectar from flowers through a long curled tongue called a proboscis. Monarch butterflies migrate thousands of miles."
+what*is*a*moth	echo "A moth is an insect closely related to a butterfly. Most moths fly at night and are attracted to light. A moth caterpillar spins a cocoon made of silk. Moths have feathery antennae and usually duller colors than butterflies. Some moths, like the luna moth, are very large and beautiful."
+tell*me*about*moth*	echo "A moth is an insect closely related to a butterfly. Most moths fly at night and are attracted to light. A moth caterpillar spins a cocoon made of silk. Moths have feathery antennae and usually duller colors than butterflies. Some moths, like the luna moth, are very large and beautiful."
+what*is*metamorphosis*	echo "Metamorphosis is the process where an animal completely changes its body shape as it grows. A caterpillar becoming a butterfly is metamorphosis. A tadpole becoming a frog is metamorphosis. The word comes from Greek and means 'change of form.'"
+what*metamorphosis	echo "Metamorphosis is the process where an animal completely changes its body shape as it grows. A caterpillar becoming a butterfly is metamorphosis. A tadpole becoming a frog is metamorphosis. The word comes from Greek and means 'change of form.'"
+what*is*larva*	echo "A larva is the young form of an animal that looks very different from the adult. A caterpillar is the larva of a butterfly. A tadpole is the larva of a frog. A maggot is the larva of a fly. Larvae eat and grow until they are ready to change into their adult form."
+what*larva	echo "A larva is the young form of an animal that looks very different from the adult. A caterpillar is the larva of a butterfly. A tadpole is the larva of a frog. A maggot is the larva of a fly. Larvae eat and grow until they are ready to change into their adult form."
+what*is*pupa*	echo "A pupa is the stage between larva and adult in insects that undergo metamorphosis. The caterpillar stops eating, attaches to something, and its outer skin hardens into a protective case. Inside, the body completely reorganizes. The pupa does not eat or move. When the transformation is complete, the adult insect emerges."
+what*pupa	echo "A pupa is the stage between larva and adult in insects that undergo metamorphosis. The caterpillar stops eating, attaches to something, and its outer skin hardens into a protective case. Inside, the body completely reorganizes. The pupa does not eat or move. When the transformation is complete, the adult insect emerges."
+# edit this file to teach your machine new intents.
+# languages: add a section. translate the intents, keep the commands.
+#
+# --- files ---
+what*in*this*directory	ls .
+what*in*current*directory	ls .
+what*files*are*here	ls .
+list*files	ls .
+show*hidden*files	ls -la
+show*all*files	ls -la
+show*file*sizes	ls -lh
+show*largest*files	ls -lhS | head -20
+show*files	ls .
+list*home	ls ~/
+
+## ./hosuni.txt (lines 41-80 of 114)
+
+  lookdown.tsv        The same pattern-matching routing tables that the
+                      shell translation layer uses. hosuni.c loads both
+                      the per-host (~/.subtract/lookdown.<hostname>.tsv)
+                      and universal (~/.subtract/lookdown.universal.tsv)
+                      tables at startup. In READ mode, lookdown intercepts
+                      queries that match a pattern and answers instantly
+                      without inference. In RUN mode, lookdown provides
+                      the program list.
+
+  inference endpoint  hosuni.c connects to whatever answers on the host
+                      and port read from ~/.subtract/inference_host and
+                      ~/.subtract/inference_port (default 127.0.0.1:8087).
+                      In the subtract.ing formation, that's parsimony
+                      proxying to llama.cpp, but hosuni.c is endpoint-
+                      agnostic — anything speaking OpenAI-compatible chat
+                      completions works.
+
+  hosuni-prefetch     Before sending a query to inference, hosuni.c forks
+                      ~/.subtract/bin/hosuni-prefetch, which enriches the
+                      query with external context. The enriched prompt goes
+                      to the model; the user's original query stays clean.
+
+  SOUL                System prompt loaded via --soul flag. Plain text file
+                      that sets the model's disposition for the conversation.
+
+  ~/.subtract/        Config files: inference_host, inference_port.
+                      Session logs written to ~/.subtract/sessions/.
+                      Starred entries saved to ~/.subtract/.starred.
+
+## How it renders
+
+hosuni.c talks directly to the display hardware:
+
+  Linux:  DRM/KMS — opens /dev/dri/card*, sets mode, double-buffered
+          page flip with vsync. Reads keyboard via /dev/input/event*.
+
+  macOS:  Cocoa — NSWindow with a backing bitmap, keyboard events via
+          NSEvent. Same rendering code, different platform layer.
+
+
+## ./hosuni.txt (lines 1-40 of 114)
+# hosuni.c
+
+Framebuffer computing for humans. ~2,200 lines of C, no dependencies
+beyond libc, libdrm (Linux), and Cocoa (macOS). Compiles to a single
+binary under 200KB.
+
+hosuni.c is the subtract.ing interface that replaced the browser-based
+demos (demo.html, multiplying.html, the clinical pages). Those pages
+required a Python bridge, a local HTTP server, and a browser. hosuni.c
+needs a keyboard and a screen.
+
+Named for the digital governess in the subtract.ing formation —
+the process that sits with the kids at the framebuffer while the
+governor works.
+
+## What it does
+
+Three modes, plus a starred-launch shortcut:
+
+  READ  (F1)  Ask a question, get a streamed answer from the local
+              inference server. Conversation history persists across
+              turns. Shows time-to-first-token and tokens/sec.
+
+  PLAY  (F2)  Launch the starred entry from the lookdown table
+              directly. One keypress to resume whatever was last
+              starred in RUN mode.
+
+  RUN   (F3)  Type-to-filter launcher over the lookdown table.
+              Every [player] entry in lookdown.tsv becomes a
+              launchable program. Star entries for quick access
+              via F2.
+
+  TEACH (F4)  vi-subset text editor. Gap buffer, normal/insert/command
+              modes, yank/paste, line numbers, ex commands (:w, :q).
+
+White text on black background, fixed-width font rendered via
+stb_truetype. The cursor is a colored block. The status bar shows
+the current mode, and in READ mode, inference timing.
+
+## What it uses from subtract.ing
+
+## ./SOUL.txt (lines 1-29 of 29)
+SOUL.txt — signed under hodori@subtract.ing
+
+You are hosuni. You answer questions and operate this machine.
+
+The humans asking include children. Answer directly.
+If you know it, say it. If you don't, say that.
+Match the question's level — a seven-year-old and an adult
+get different answers to the same question.
+
+When someone asks about the world — history, science, animals,
+games, how things work — answer from what you know. Prefer
+the concrete: real things, real names, real numbers.
+You are a starting point, not the last word.
+
+When someone asks about this machine — files, commands, what
+is running — operate:
+  Read before assuming.
+  Check before claiming.
+  Name the primitive before reaching for a wrapper.
+  Don't delete, move, or overwrite without being asked.
+
+Short answers that feel complete. No preamble. No apology.
+No three paragraphs before the useful part.
+
+If a question is dangerous to answer for a child, say why
+instead of just refusing.
+
+The goal is literacy. The human learns the command and stops
+needing translation. Besides, not instead.
+
+## ./runtime/hosuni/platform_linux.c (lines 41-80 of 359)
+
+static int kbd_fd = -1;
+static int mouse_fd = -1;
+static int tty_fd = -1;
+static int prev_kbmode = -1;
+static struct xkb_context *xkb_ctx;
+static struct xkb_keymap  *xkb_kmap;
+static struct xkb_state   *xkb_st;
+
+/* probe /dev/dri/card* for a connected display */
+static int drm_open(void) {
+    char path[64];
+    for (int i = 0; i < 8; i++) {
+        snprintf(path, sizeof(path), "/dev/dri/card%d", i);
+        int fd = open(path, O_RDWR | O_CLOEXEC);
+        if (fd < 0) continue;
+        if (!drmIsMaster(fd)) {
+            drmSetMaster(fd);
+            if (!drmIsMaster(fd)) {
+                fprintf(stderr, "hosuni: %s: display held by another process\n", path);
+                close(fd);
+                continue;
+            }
+        }
+        drmModeRes *res = drmModeGetResources(fd);
+        if (!res) { close(fd); continue; }
+        for (int c = 0; c < res->count_connectors; c++) {
+            drmModeConnector *conn = drmModeGetConnector(fd, res->connectors[c]);
+            if (!conn) continue;
+            if (conn->connection == DRM_MODE_CONNECTED && conn->count_modes > 0) {
+                conn_id = conn->connector_id;
+                mode = conn->modes[0]; /* preferred mode */
+                if (conn->encoder_id) {
+                    drmModeEncoder *enc = drmModeGetEncoder(fd, conn->encoder_id);
+                    if (enc) { crtc_id = enc->crtc_id; drmModeFreeEncoder(enc); }
+                }
+                if (!crtc_id && res->count_crtcs > 0)
+                    crtc_id = res->crtcs[0];
+                drmModeFreeConnector(conn);
+                drmModeFreeResources(res);
+
+## ./runtime/hosuni/platform_linux.c (lines 1-40 of 359)
+/*
+ * platform_linux.c — DRM dumb buffer + evdev
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+#include "hosuni.h"
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
+#include <dirent.h>
+#include <linux/input.h>
+#include <linux/kd.h>
+#include <linux/vt.h>
+#include <signal.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+#include <xkbcommon/xkbcommon.h>
+
+static int drm_fd = -1;
+static uint32_t conn_id;
+static uint32_t crtc_id;
+static drmModeModeInfo mode;
+static uint32_t pitch;
+static size_t map_size;
+
+/* double buffering: draw to back, flip shows it, swap */
+static struct {
+    uint32_t handle;
+    uint32_t fb_id;
+    uint64_t map_offset;
+    void    *map_ptr;
+} bufs[2];
+static int back = 0;  /* index we draw into */
+
+## ./runtime/hosuni/hosuni.h (lines 1-40 of 185)
+/*
+ * hosuni.h — framebuffer computing for humans
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+#ifndef HOSUNI_H
+#define HOSUNI_H
+
+#include <stdint.h>
+
+/* --- platform contract --- */
+
+typedef struct {
+    uint32_t *pixels;
+    int width;
+    int height;
+    int stride; /* bytes per row */
+} hosuni_surface;
+
+typedef enum { HOSUNI_KEY, HOSUNI_MOUSE, HOSUNI_TOUCH } hosuni_input_type;
+
+typedef struct {
+    hosuni_input_type type;
+    int code;   /* KEY_* from linux/input-event-codes.h */
+    int value;  /* 1=press 0=release 2=repeat */
+    int x, y;   /* mouse/touch coords, 0 for keys */
+} hosuni_event;
+
+int  platform_init(hosuni_surface *s);
+int  platform_event(hosuni_event *ev, int timeout_ms);
+void platform_flip(hosuni_surface *s);
+void platform_cleanup(void);
+void platform_yield(void);
+void platform_reclaim(void);
+void platform_drain_input(void);
+void platform_close_child_fds(void);
+void platform_xkb_update(int evdev_code, int value);
+int  platform_key_utf8(int evdev_code, char *out, int out_max);
+
+## Question
+How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.

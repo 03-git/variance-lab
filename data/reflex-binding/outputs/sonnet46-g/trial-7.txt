@@ -1,0 +1,68 @@
+Here's a minimal HTTP server in C using only POSIX sockets — no libraries, no package managers:
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+#define PORT 8080
+#define BUF 1024
+
+int main(void) {
+    int srv = socket(AF_INET, SOCK_STREAM, 0);
+    int opt = 1;
+    setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    struct sockaddr_in addr = {
+        .sin_family = AF_INET,
+        .sin_addr.s_addr = INADDR_ANY,
+        .sin_port = htons(PORT)
+    };
+    bind(srv, (struct sockaddr *)&addr, sizeof(addr));
+    listen(srv, 8);
+
+    char req[BUF], resp[BUF], ts[64];
+    while (1) {
+        int cli = accept(srv, NULL, NULL);
+        read(cli, req, BUF - 1);
+
+        if (strncmp(req, "GET /time", 9) == 0) {
+            time_t t = time(NULL);
+            strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%SZ", gmtime(&t));
+            int body_len = snprintf(resp, sizeof(resp),
+                "{\"time\":\"%s\"}", ts);
+            char header[256];
+            int hlen = snprintf(header, sizeof(header),
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: application/json\r\n"
+                "Content-Length: %d\r\n"
+                "\r\n", body_len);
+            write(cli, header, hlen);
+            write(cli, resp, body_len);
+        } else {
+            char *r = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
+            write(cli, r, strlen(r));
+        }
+        close(cli);
+    }
+}
+```
+
+**Run it:**
+
+```sh
+# compile
+gcc -o timeserver timeserver.c
+
+# start (listens on :8080)
+./timeserver
+
+# test
+curl http://localhost:8080/time
+# {"time":"2026-05-10T14:23:01Z"}
+```
+
+No deps. Compiles on Linux and macOS with any gcc/clang.

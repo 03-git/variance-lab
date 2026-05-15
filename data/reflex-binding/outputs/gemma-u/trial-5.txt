@@ -1,0 +1,68 @@
+To build this endpoint, I will use **Python** with the **FastAPI** framework. FastAPI is modern, extremely fast, and automatically handles the conversion of Python dictionaries to JSON.
+
+### 1. The Code
+
+Create a file named `main.py` and paste the following code:
+
+```python
+from fastapi import FastAPI
+from datetime import datetime
+
+# Initialize the FastAPI application
+app = FastAPI()
+
+@app.get("/time")
+async def get_current_time():
+    """
+    Endpoint that returns the current time in ISO 8601 format.
+    """
+    # Get current UTC time and format it as ISO 8601
+    current_time = datetime.utcnow().isoformat() + "Z"
+    
+    return {"time": current_time}
+
+if __name__ == "__main__":
+    import uvicorn
+    # Run the server using uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
+---
+
+### 2. How to Run It
+
+Follow these steps in your terminal/command prompt:
+
+#### Step 1: Install the dependencies
+You will need `fastapi` and `uvicorn` (the server that runs the code).
+```bash
+pip install fastapi uvicorn
+```
+
+#### Step 2: Start the server
+Run the script using Python:
+```bash
+python main.py
+```
+*You should see output indicating that the server is running at `http://0.0.0.0:8000`.*
+
+#### Step 3: Test the endpoint
+Open your web browser or use a tool like `curl` in a new terminal window:
+
+**Using Browser:**
+Navigate to: `http://127.0.0.1:8000/time`
+
+**Using Terminal (curl):**
+```bash
+curl http://127.0.0.1:8000/time
+```
+
+**Expected Output:**
+```json
+{"time": "2023-10-27T10:30:05.123456Z"}
+```
+
+---
+
+### 3. Bonus: Interactive Documentation
+One of the best features of FastAPI is that it automatically generates documentation for your API. While your server

@@ -1,0 +1,59 @@
+Here's a Python script that does what you're asking for:
+
+```python
+#!/usr/bin/env python3
+import sys
+import requests
+
+if len(sys.argv) != 2:
+    print("Usage: python script.py <URL>", file=sys.stderr)
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    response = requests.get(url, allow_redirects=True, timeout=10)
+    
+    print(f"Status Code: {response.status_code}\n")
+    
+    print("Response Headers:")
+    for key, value in response.headers.items():
+        print(f"  {key}: {value}")
+    
+    print(f"\nFirst 500 characters of body:")
+    print(response.text[:500])
+    
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}", file=sys.stderr)
+    sys.exit(1)
+```
+
+**To run it:**
+
+```bash
+# First, make sure requests is installed
+pip install requests
+
+# Then run with a URL
+python script.py https://example.com
+```
+
+**Example output:**
+```
+Status Code: 200
+
+Response Headers:
+  Content-Type: text/html; charset=utf-8
+  Content-Length: 1256
+  Server: ECD (sac/2516)
+  ...
+
+First 500 characters of body:
+<!doctype html>
+<html>
+<head>
+    <title>Example Domain</title>
+    ...
+```
+
+The script automatically follows redirects via `allow_redirects=True`, has a 10-second timeout, and handles connection errors gracefully.

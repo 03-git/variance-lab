@@ -1,0 +1,86 @@
+I'll show you a Python CLI tool that meets your requirements:
+
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Print parsed configuration as JSON'
+    )
+    parser.add_argument(
+        '--host',
+        default='localhost',
+        help='Host to connect to (default: localhost)'
+    )
+    parser.add_argument(
+        '--port',
+        type=int,
+        default=8080,
+        help='Port number (default: 8080)'
+    )
+    parser.add_argument(
+        '--verbose',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    
+    args = parser.parse_args()
+    
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        print(
+            f"error: port must be between 1 and 65535, got {args.port}",
+            file=sys.stderr
+        )
+        sys.exit(1)
+    
+    # Build configuration
+    config = {
+        'host': args.host,
+        'port': args.port,
+        'verbose': args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == '__main__':
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage
+python cli.py
+
+# With custom host and port
+python cli.py --host example.com --port 3000
+
+# With verbose flag
+python cli.py --host 0.0.0.0 --port 9000 --verbose
+
+# Invalid port (exits with error)
+python cli.py --port 99999
+```
+
+**Example outputs:**
+
+```bash
+$ python cli.py
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": false
+}
+
+$ python cli.py --host api.example.com --port 443 --verbose
+{
+  "host": "api.example.com",
+  "port": 443,
+  "verbose": true
+}
+```
+
+The `argparse` module handles type validation for the port (ensures it's an integer), and the explicit range check catches out-of-bounds values with a clear error message.

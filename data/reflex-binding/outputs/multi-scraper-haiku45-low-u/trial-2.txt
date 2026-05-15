@@ -1,0 +1,66 @@
+I'll show you a Python script that fetches a webpage and extracts all hyperlinks. Here's the code:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+
+def extract_links(url):
+    """Fetch a URL and extract all hyperlinks."""
+    try:
+        # Fetch the webpage
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        # Parse the HTML
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Find all anchor tags
+        links = soup.find_all('a')
+        
+        if not links:
+            print("No links found on the page.")
+            return
+        
+        print(f"Found {len(links)} links:\n")
+        for link in links:
+            href = link.get('href')
+            text = link.get_text(strip=True)
+            
+            # Skip links with no href or empty text
+            if href:
+                # Convert relative URLs to absolute
+                absolute_url = urljoin(url, href)
+                print(f"Text: {text or '(no text)'}")
+                print(f"URL:  {absolute_url}\n")
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+
+if __name__ == "__main__":
+    # Change this to any URL you want to scrape
+    url = "https://example.com"
+    extract_links(url)
+```
+
+## How to run it:
+
+1. **Install required libraries:**
+   ```bash
+   pip install requests beautifulsoup4
+   ```
+
+2. **Run the script:**
+   ```bash
+   python script.py
+   ```
+
+## Key features:
+
+- **`requests.get()`** — Fetches the webpage
+- **`BeautifulSoup`** — Parses the HTML
+- **`soup.find_all('a')`** — Finds all anchor tags
+- **`urljoin()`** — Converts relative URLs to absolute ones (so `/page` becomes `https://example.com/page`)
+- **Error handling** — Catches network errors gracefully
+
+For `https://example.com`, you'll get the links in that page (typically showing example resource links). You can modify the `url` variable to scrape any website you have permission to access.

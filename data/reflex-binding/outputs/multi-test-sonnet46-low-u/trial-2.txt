@@ -1,0 +1,36 @@
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+def test_freezing():
+    assert celsius_to_fahrenheit(0) == 32.0
+
+def test_boiling():
+    assert celsius_to_fahrenheit(100) == 212.0
+
+def test_negative_forty():
+    # -40 is where Celsius and Fahrenheit converge
+    assert celsius_to_fahrenheit(-40) == -40.0
+
+def test_non_numeric():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+**To run it:**
+
+1. Save the file as `test_celsius.py`
+2. Install pytest if needed: `pip install pytest`
+3. Run: `pytest test_celsius.py -v`
+
+Expected output:
+```
+test_celsius.py::test_freezing     PASSED
+test_celsius.py::test_boiling      PASSED
+test_celsius.py::test_negative_forty PASSED
+test_celsius.py::test_non_numeric  PASSED
+```
+
+The `-40` test is a useful sanity check since it's the one temperature where both scales are equal, making it easy to verify mentally.

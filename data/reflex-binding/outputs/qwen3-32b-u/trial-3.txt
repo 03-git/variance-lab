@@ -1,0 +1,91 @@
+To create a lightweight HTTP server that returns the current time in ISO 8601 format as JSON from the endpoint `/time`, we can use the **FastAPI** web framework in Python. FastAPI is a modern, fast (high-performance), and easy-to-use framework for building APIs with Python 3.7+ based on standard Python type hints.
+
+---
+
+### ✅ What this API does:
+
+- **Endpoint**: `GET /time`
+- **Response**: A JSON object with the current time in ISO 8601 format:
+  ```json
+  {
+    "time": "2025-04-05T14:30:45.123456+00:00"
+  }
+  ```
+
+---
+
+### 🧾 Code
+
+Save the following code in a file called `main.py`:
+
+```python
+from fastapi import FastAPI
+from datetime import datetime, timezone
+
+app = FastAPI()
+
+@app.get("/time")
+async def get_time():
+    current_time = datetime.now(tz=timezone.utc)
+    return {"time": current_time.isoformat()}
+```
+
+---
+
+### 🚀 How to Run the Server
+
+1. **Install Dependencies**  
+   First, install `fastapi` and the `uvicorn` ASGI server:
+
+   ```bash
+   pip install fastapi uvicorn
+   ```
+
+2. **Start the Server**  
+   Run the server using the following command in your terminal:
+
+   ```bash
+   uvicorn main:app --reload
+   ```
+
+   - `main` is the filename (`main.py`)
+   - `app` is the FastAPI instance inside the file
+   - `--reload` enables auto-reloading on code changes (great for development)
+
+   The server will start on `http://127.0.0.1:8000`.
+
+3. **Access the Endpoint**  
+   Open your browser or use a tool like `curl` or Postman to visit:
+
+   ```
+   http://127.0.0.1:8000/time
+   ```
+
+   You should see a JSON response similar to:
+
+   ```json
+   {
+     "time": "2025-04-05T14:30:45.123456+00:00"
+   }
+   ```
+
+---
+
+### 🧪 Testing with `curl`
+
+You can quickly test the endpoint from the terminal:
+
+```bash
+curl http://127.0.0.1:8000/time
+```
+
+---
+
+### 📝 Notes
+
+- The time returned is in **UTC**, as required by ISO 8601 when including the `+00:00` offset.
+- If you're deploying to a production environment, you may want to use a production-grade server like **Uvicorn** with **Gunicorn** or **Hypercorn**.
+
+---
+
+This is a clean and minimal example of a time API using Python and FastAPI. You can expand this to support other time zones, formatting styles, or even add authentication if needed.

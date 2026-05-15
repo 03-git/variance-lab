@@ -1,0 +1,104 @@
+Here's a self-contained implementation using **Python + Flask**.
+
+```python
+# app.py
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+
+def validate_user(data):
+    """Return (cleaned_user, errors). errors is a dict field -> message."""
+    errors = {}
+
+    if not isinstance(data, dict):
+        return None, {"_body": "Request body must be a JSON object"}
+
+    # name: required string
+    name = data.get("name")
+    if name is None:
+        errors["name"] = "name is required"
+    elif not isinstance(name, str) or not name.strip():
+        errors["name"] = "name must be a non-empty string"
+
+    # email: required string containing '@'
+    email = data.get("email")
+    if email is None:
+        errors["email"] = "email is required"
+    elif not isinstance(email, str) or "@" not in email:
+        errors["email"] = "email must be a string containing '@'"
+
+    # age: required integer 1-150
+    age = data.get("age")
+    if age is None:
+        errors["age"] = "age is required"
+    elif not isinstance(age, int) or isinstance(age, bool):
+        errors["age"] = "age must be an integer"
+    elif not (1 <= age <= 150):
+        errors["age"] = "age must be between 1 and 150"
+
+    if errors:
+        return None, errors
+
+    return {"name": name, "email": email, "age": age}, None
+
+
+@app.route("/users", methods=["POST"])
+def create_user():
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
+
+    user, errors = validate_user(data)
+    if errors:
+        return jsonify({"error": "Validation failed", "details": errors}), 400
+
+    # In a real app you'd persist the user here.
+    return jsonify(user), 201
+
+
+if __name__ == "__main__":
+    app.run(port=5000, debug=True)
+```
+
+## How to run
+
+```bash
+pip install flask
+python app.py
+```
+
+The server starts on `http://localhost:5000`.
+
+## Try it
+
+Valid request → `201`:
+```bash
+curl -i -X POST http://localhost:5000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name": "Ada Lovelace", "email": "ada@example.com", "age": 36}'
+```
+```
+HTTP/1.1 201 CREATED
+{"age":36,"email":"ada@example.com","name":"Ada Lovelace"}
+```
+
+Invalid request → `400`:
+```bash
+curl -i -X POST http://localhost:5000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name": "", "email": "not-an-email", "age": 200}'
+```
+```
+HTTP/1.1 400 BAD REQUEST
+{"error":"Validation failed","details":{
+  "name":"name must be a non-empty string",
+  "email":"email must be a string containing '@'",
+  "age":"age must be between 1 and 150"}}
+```
+
+A couple of notes on the validation choices:
+- `isinstance(age, bool)` is rejected explicitly because in Python `True`/`False` are instances of `int` — without that check `{"age": true}` would sneak through as `1`.
+- `request.get_json(silent=True)` returns `None` on malformed JSON or a missing `Content-Type`, which is handled before validation.
+
+Want this in a different stack (Node/Express, FastAPI, Go)? Let me know.

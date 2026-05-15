@@ -1,0 +1,56 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using pytest.
+
+```python
+import pytest
+
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+
+class TestCelsiusToFahrenheit:
+    def test_zero_celsius(self):
+        """0°C should be 32°F."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """100°C should be 212°F."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty(self):
+        """−40°C should be −40°F (same in both scales)."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("0")
+```
+
+**How to run it:**
+
+1. **Install pytest** (if you don't have it):
+   ```bash
+   pip install pytest
+   ```
+
+2. **Save the code** to a file like `test_temperature.py`
+
+3. **Run the tests**:
+   ```bash
+   pytest test_temperature.py -v
+   ```
+
+**Output** (all tests pass):
+```
+test_temperature.py::TestCelsiusToFahrenheit::test_zero_celsius PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_negative_forty PASSED
+test_temperature.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+```
+
+The test suite covers:
+- **Normal cases**: 0°C (freezing point) → 32°F, 100°C (boiling) → 212°F
+- **Edge case**: −40°C (where both scales meet) → −40°F
+- **Error case**: String input should raise `TypeError`

@@ -1,0 +1,46 @@
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._current_text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            attrs = dict(attrs)
+            self._current_href = attrs.get("href")
+            self._current_text = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._current_text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            self.links.append((self._current_href, "".join(self._current_text).strip()))
+            self._current_href = None
+            self._current_text = []
+
+with urllib.request.urlopen("https://example.com") as response:
+    html = response.read().decode("utf-8")
+
+parser = LinkParser()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"{text!r:30} -> {href}")
+```
+
+**How to run** (no dependencies, stdlib only):
+
+```bash
+python3 script.py
+```
+
+Uses only `urllib.request` and `html.parser` from the standard library — no pip installs needed. For `example.com` specifically, expect one link ("More information..." -> `https://www.iana.org/domains/reserved`).
+
+If you need to handle JavaScript-rendered pages or relative URL resolution, the next step up would be `requests` + `beautifulsoup4`, but this covers the stated task cleanly.

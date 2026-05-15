@@ -1,0 +1,63 @@
+To build an HTTP endpoint that returns the current time as JSON, we can use a lightweight web framework like Flask in Python. Below is the code for the endpoint and instructions on how to run it.
+
+### Code
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_current_time():
+    current_time = datetime.now().isoformat()
+    return jsonify({"time": current_time})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+### Steps to Run the Code
+
+1. **Install Flask**: If you haven't installed Flask yet, you can do so using pip.
+
+   ```sh
+   pip install Flask
+   ```
+
+2. **Save the Code**: Save the above code in a file, for example, `app.py`.
+
+3. **Run the Flask Application**: Run the Flask application using the following command.
+
+   ```sh
+   python app.py
+   ```
+
+4. **Access the Endpoint**: Open a web browser or use a tool like `curl` to access the endpoint.
+
+   ```sh
+   curl http://127.0.0.1:5000/time
+   ```
+
+   Or, if you prefer using a browser, visit `http://127.0.0.1:5000/time`.
+
+### Example Output
+
+When you access the endpoint, you should see an output similar to the following:
+
+```json
+{
+  "time": "2023-10-04T14:48:00.123456Z"
+}
+```
+
+This output will reflect the current time in ISO 8601 format.
+
+### Explanation
+
+- **Flask**: A lightweight WSGI web application framework in Python.
+- **datetime.now()**: Gets the current date and time.
+- **isoformat()**: Converts the current datetime to an ISO 8601 formatted string.
+- **jsonify**: Converts the Python dictionary to a JSON response.
+
+The `debug=True` parameter in `app.run()` enables debug mode, which provides helpful error messages if there are any issues with the application.

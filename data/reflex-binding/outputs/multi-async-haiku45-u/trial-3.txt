@@ -1,0 +1,73 @@
+I'll show you an async TCP echo server using Python's `asyncio` module that handles multiple concurrent clients efficiently.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If client closes connection, data will be empty
+            if not data:
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    except Exception as e:
+        print(f"Error with client {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+1. **Start the server** (in one terminal):
+```bash
+python echo_server.py
+```
+
+2. **Connect clients** (in other terminals, use `nc` or `telnet`):
+```bash
+nc localhost 8888
+```
+or
+```bash
+telnet localhost 8888
+```
+
+3. **Send text** from each client—it echoes back immediately. You can open multiple terminals and connect multiple clients; the server handles them all concurrently.
+
+**How it works:**
+- `asyncio.start_server()` creates a server that accepts multiple connections
+- `handle_client()` is called once per client and runs concurrently for each connection
+- `reader.readline()` waits for a line without blocking other clients
+- `writer.write()` + `writer.drain()` sends data back to the client
+- The server scales to thousands of clients without creating threads

@@ -1,0 +1,52 @@
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_negative_forty(self):
+        # -40 is the crossover point where C == F
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_raises(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+**To run it**, paste the code into a file (e.g. `test_temp.py`) and:
+
+```bash
+python test_temp.py
+```
+
+Or with verbose output:
+
+```bash
+python -m unittest test_temp -v
+```
+
+Expected output:
+```
+test_boiling ... ok
+test_freezing ... ok
+test_negative_forty ... ok
+test_non_numeric_raises ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.000s
+
+OK
+```
+
+The `TypeError` test works because `"hot" * 9/5` raises naturally — no explicit type-checking needed in the function itself.

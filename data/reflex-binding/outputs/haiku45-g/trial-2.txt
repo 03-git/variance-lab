@@ -1,0 +1,58 @@
+Here's a simple Node.js example with Express:
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.get('/time', (req, res) => {
+  res.json({ time: new Date().toISOString() });
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
+```
+
+**To run:**
+
+```bash
+# Install Express (one time)
+npm install express
+
+# Save the code above to a file (e.g., server.js) and run:
+node server.js
+```
+
+**Test it:**
+
+```bash
+curl http://localhost:3000/time
+# Returns: {"time":"2026-05-10T15:42:31.234Z"}
+```
+
+---
+
+If you prefer Python with Flask:
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    return jsonify({'time': datetime.utcnow().isoformat() + 'Z'})
+
+if __name__ == '__main__':
+    app.run(port=3000)
+```
+
+**To run:**
+
+```bash
+pip install flask
+python server.py
+```
+
+Either works equally well. The Node version is slightly lighter; the Python version integrates easily if you're already in a Python environment.

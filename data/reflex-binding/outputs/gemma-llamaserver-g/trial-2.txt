@@ -1,0 +1,52 @@
+**Kernel Primitive:** TCP socket listener via `http.server`.
+
+### Implementation (Python)
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            
+            response = {
+                "time": datetime.now().isoformat()
+            }
+            
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b'Not Found')
+
+def run(server_class=HTTPServer, handler_class=TimeHandler, port=8000):
+    server_address = ('', port)
+    httpd = server_class(server_address, handler_class)
+    print(f"Server running at http://localhost:{port}/time")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\nShutting down server.")
+        httpd.server_close()
+
+if __name__ == '__main__':
+    run()
+```
+
+### How to run
+
+1. Save the code above as `server.py`.
+2. Open your terminal.
+3. Run the script:
+   ```bash
+   python3 server.py
+   ```
+4. Test the endpoint using `curl` in a new terminal window:
+   ```bash
+   curl http://localhost:8000/time
+   ```

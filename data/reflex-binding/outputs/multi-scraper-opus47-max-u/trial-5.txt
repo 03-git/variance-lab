@@ -1,0 +1,68 @@
+Here's a self-contained script using `requests` and `BeautifulSoup`:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+url = "https://example.com"
+response = requests.get(url, timeout=10)
+response.raise_for_status()
+
+soup = BeautifulSoup(response.text, "html.parser")
+
+for a in soup.find_all("a"):
+    href = a.get("href", "")
+    text = a.get_text(strip=True)
+    print(f"{text!r} -> {href}")
+```
+
+**Run it:**
+
+```bash
+pip install requests beautifulsoup4
+python script.py
+```
+
+**Expected output** (example.com has just one link):
+
+```
+'More information...' -> https://www.iana.org/domains/example
+```
+
+**Stdlib-only alternative** (no pip install needed):
+
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._href = None
+        self._text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            self._href = dict(attrs).get("href")
+            self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href is not None:
+            self.links.append((self._href, "".join(self._text).strip()))
+            self._href = None
+
+with urllib.request.urlopen("https://example.com", timeout=10) as r:
+    html = r.read().decode("utf-8")
+
+parser = LinkExtractor()
+parser.feed(html)
+for href, text in parser.links:
+    print(f"{text!r} -> {href}")
+```
+
+Run with just `python script.py` — no dependencies.

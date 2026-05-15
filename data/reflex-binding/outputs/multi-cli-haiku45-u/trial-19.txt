@@ -1,0 +1,87 @@
+Here's a complete Python CLI tool with argument validation:
+
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='CLI tool with host, port, and verbose configuration'
+    )
+    
+    parser.add_argument(
+        '--host',
+        type=str,
+        default='localhost',
+        help='Host to connect to (default: localhost)'
+    )
+    
+    parser.add_argument(
+        '--port',
+        type=int,
+        help='Port number (must be 1-65535)'
+    )
+    
+    parser.add_argument(
+        '--verbose',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    
+    args = parser.parse_args()
+    
+    # Validate port range if provided
+    if args.port is not None:
+        if args.port < 1 or args.port > 65535:
+            print(f'Error: Port must be between 1 and 65535, got {args.port}', 
+                  file=sys.stderr)
+            sys.exit(1)
+    
+    # Build and output configuration as JSON
+    config = {
+        'host': args.host,
+        'port': args.port,
+        'verbose': args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == '__main__':
+    main()
+```
+
+**Usage examples:**
+
+```bash
+# Basic usage
+python cli.py --host example.com --port 8080 --verbose
+
+# Output:
+# {
+#   "host": "example.com",
+#   "port": 8080,
+#   "verbose": true
+# }
+
+# With defaults
+python cli.py --port 3000
+
+# Output:
+# {
+#   "host": "localhost",
+#   "port": 3000,
+#   "verbose": false
+# }
+
+# Invalid port (fails validation)
+python cli.py --port 99999
+# Error: Port must be between 1 and 65535, got 99999
+
+# Port not an integer
+python cli.py --port abc
+# usage: cli.py [-h] [--host HOST] [--port PORT] [--verbose]
+# error: argument --port: invalid int value: 'abc'
+```
+
+The tool uses `argparse` for argument parsing, validates the port range, and outputs the configuration as formatted JSON. `argparse` automatically handles type validation for the `--port` argument (int), and the custom range check catches values outside 1-65535.

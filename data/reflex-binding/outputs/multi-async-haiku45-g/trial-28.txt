@@ -1,0 +1,72 @@
+I'll show you an async TCP echo server using Python's `asyncio` library. This handles multiple concurrent clients efficiently.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    client_addr = writer.get_extra_info('peername')
+    print(f"Client connected: {client_addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If client closes connection, data will be empty
+            if not data:
+                print(f"Client disconnected: {client_addr}")
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            print(f"Echoed to {client_addr}: {data.decode().strip()}")
+    except Exception as e:
+        print(f"Error handling {client_addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        5000
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**To run it:**
+
+```bash
+# Terminal 1: Start the server
+python3 echo_server.py
+```
+
+```bash
+# Terminal 2+: Connect clients (use netcat or telnet)
+nc localhost 5000
+# or
+telnet localhost 5000
+
+# Type a message and press Enter — it will echo back
+```
+
+**Key points:**
+- `asyncio.start_server()` handles incoming connections
+- `handle_client()` runs concurrently for each client via `await`
+- `reader.readline()` waits for a newline, non-blocking
+- `writer.drain()` ensures data is sent before continuing
+- Multiple clients can connect and get echoed simultaneously

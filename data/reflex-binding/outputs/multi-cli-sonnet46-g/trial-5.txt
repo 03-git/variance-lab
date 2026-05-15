@@ -1,0 +1,51 @@
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(description="Network configuration tool")
+    parser.add_argument("--host", required=True, help="Target hostname or IP")
+    parser.add_argument("--port", required=True, type=int, help="Port number (1-65535)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    args = parser.parse_args()
+
+    if not (1 <= args.port <= 65535):
+        print(f"error: port {args.port} is out of range (1-65535)", file=sys.stderr)
+        sys.exit(1)
+
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**Run it:**
+
+```bash
+python tool.py --host example.com --port 8080 --verbose
+```
+
+Output:
+```json
+{
+  "host": "example.com",
+  "port": 8080,
+  "verbose": true
+}
+```
+
+**Error cases:**
+
+```bash
+# Invalid port (out of range)
+python tool.py --host example.com --port 99999
+# error: port 99999 is out of range (1-65535)
+
+# Non-integer port — argparse rejects before your code runs
+python tool.py --host example.com --port abc
+# error: argument --port: invalid int value: 'abc'
+```
+
+`argparse` handles the non-integer rejection automatically via `type=int`; the manual bounds check covers the 1–65535 constraint.

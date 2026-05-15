@@ -1,0 +1,89 @@
+I'll show you a Python CLI tool that meets your requirements:
+
+```python
+import argparse
+import json
+import sys
+
+
+def validate_port(value):
+    """Validate that port is an integer between 1-65535."""
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got '{value}'")
+    
+    if not (1 <= port <= 65535):
+        raise argparse.ArgumentTypeError(f"port must be between 1-65535, got {port}")
+    
+    return port
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Parse and display host and port configuration"
+    )
+    parser.add_argument(
+        "--host",
+        default="localhost",
+        help="Host address (default: localhost)"
+    )
+    parser.add_argument(
+        "--port",
+        type=validate_port,
+        default=8000,
+        help="Port number (default: 8000, must be 1-65535)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage (uses defaults)
+python cli_tool.py
+
+# With custom host and port
+python cli_tool.py --host example.com --port 3000
+
+# With verbose flag
+python cli_tool.py --host 192.168.1.1 --port 5000 --verbose
+
+# Invalid port (demonstrates validation)
+python cli_tool.py --port 99999  # Error: port must be between 1-65535
+python cli_tool.py --port abc    # Error: port must be an integer
+```
+
+**Example outputs:**
+
+```json
+{"host": "localhost", "port": 8000, "verbose": false}
+```
+
+```json
+{"host": "example.com", "port": 3000, "verbose": false}
+```
+
+```json
+{"host": "192.168.1.1", "port": 5000, "verbose": true}
+```
+
+The `validate_port` function is used as a custom type validator in argparse, which automatically raises helpful errors if the port value is invalid.

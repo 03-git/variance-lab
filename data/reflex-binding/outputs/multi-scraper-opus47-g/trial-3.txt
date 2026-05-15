@@ -1,0 +1,47 @@
+Kernel first: `urllib.request` + `html.parser` are stdlib. No `requests`, no `bs4`.
+
+```python
+#!/usr/bin/env python3
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._href = None
+        self._text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            self._href = dict(attrs).get("href")
+            self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href is not None:
+            self.links.append((self._href, "".join(self._text).strip()))
+            self._href = None
+            self._text = []
+
+req = urllib.request.Request("https://example.com", headers={"User-Agent": "curl/8"})
+with urllib.request.urlopen(req, timeout=10) as r:
+    html = r.read().decode(r.headers.get_content_charset() or "utf-8")
+
+p = LinkExtractor()
+p.feed(html)
+for href, text in p.links:
+    print(f"{href}\t{text}")
+```
+
+Run:
+```
+python3 - <<'EOF'
+[paste above]
+EOF
+```
+
+Or save and `python3 links.py`. On example.com you'll get one line: `https://www.iana.org/domains/example	More information...`.

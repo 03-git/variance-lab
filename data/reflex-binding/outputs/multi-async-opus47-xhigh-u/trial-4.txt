@@ -1,0 +1,48 @@
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    print(f"connected: {addr}")
+    try:
+        while True:
+            line = await reader.readline()
+            if not line:
+                break
+            writer.write(line)
+            await writer.drain()
+    except ConnectionResetError:
+        pass
+    finally:
+        print(f"disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"serving on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+```
+
+**How to run**
+
+1. Save as `echo_server.py` and start it: `python echo_server.py`
+2. Connect from another terminal — any of these work:
+   - `nc 127.0.0.1 8888` then type a line and press Enter
+   - `telnet 127.0.0.1 8888`
+   - Open several at once to confirm concurrency: each client gets its own `handle_client` coroutine, all multiplexed on one event loop thread.
+
+**How it works**
+
+- `asyncio.start_server` accepts connections and spawns `handle_client` per client.
+- `reader.readline()` awaits until a `\n`-terminated line arrives (or EOF — empty bytes — which breaks the loop).
+- `writer.write()` + `await writer.drain()` echoes the line back and applies backpressure if the client is slow.
+- `writer.wait_closed()` ensures the socket is fully torn down before the coroutine exits.

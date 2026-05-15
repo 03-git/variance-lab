@@ -1,0 +1,53 @@
+Here's a test suite using Python's built-in `unittest`:
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_equal_point(self):
+        # -40 is the point where Celsius and Fahrenheit are equal
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_input(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+**To run it:**
+
+Save the code to a file (e.g. `test_temp.py`) and run:
+
+```bash
+python -m unittest test_temp          # by module name
+# or
+python test_temp.py                   # via __main__
+```
+
+**Expected output:**
+
+```
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+```
+
+**A few notes:**
+
+- The `-40` test works because that's the crossover point where both scales agree, making it a clean sanity check.
+- The `TypeError` test verifies that the function doesn't silently handle bad input — Python's `*` operator will raise `TypeError` on a string naturally, so no extra guard is needed in the function itself.
+- If you want floating-point tolerance (e.g. for values like `37°C → 98.6°F`), swap `assertEqual` for `assertAlmostEqual(result, expected, places=1)`.

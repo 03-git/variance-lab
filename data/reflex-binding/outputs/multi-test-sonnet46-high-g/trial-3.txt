@@ -1,0 +1,40 @@
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_equal_point(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+**To run it:**
+
+Save as `test_temp.py`, then:
+
+```bash
+python test_temp.py
+```
+
+Or with verbose output:
+
+```bash
+python -m unittest test_temp -v
+```
+
+Note: the `test_non_numeric` case passes because `str * float` raises `TypeError` in Python — no extra validation needed in the function itself.

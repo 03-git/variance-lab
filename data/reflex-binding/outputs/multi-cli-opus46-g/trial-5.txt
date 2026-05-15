@@ -1,0 +1,63 @@
+Kernel primitive here is `sys.argv` (the kernel hands the process its argument vector); `argparse` is the stdlib parser over it — no third-party dep needed.
+
+```python
+#!/usr/bin/env python3
+"""cli_config.py — parse --host/--port/--verbose, validate, emit JSON."""
+import argparse
+import json
+import sys
+
+
+def port_type(value):
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value!r}")
+    if not (1 <= port <= 65535):
+        raise argparse.ArgumentTypeError(f"port must be between 1 and 65535, got {port}")
+    return port
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Print parsed CLI configuration as JSON.")
+    parser.add_argument("--host", default="127.0.0.1", help="hostname or IP (default: 127.0.0.1)")
+    parser.add_argument("--port", type=port_type, default=8080, help="TCP port, 1-65535 (default: 8080)")
+    parser.add_argument("--verbose", action="store_true", help="enable verbose output")
+    args = parser.parse_args(argv)
+
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    print(json.dumps(config, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+How to run it:
+
+```
+$ python3 cli_config.py --host example.com --port 443 --verbose
+{
+  "host": "example.com",
+  "port": 443,
+  "verbose": true
+}
+
+$ python3 cli_config.py            # all defaults
+{
+  "host": "127.0.0.1",
+  "port": 8080,
+  "verbose": false
+}
+
+$ python3 cli_config.py --port 70000
+usage: cli_config.py [-h] [--host HOST] [--port PORT] [--verbose]
+cli_config.py: error: argument --port: port must be between 1 and 65535, got 70000
+
+$ python3 cli_config.py --port abc
+usage: cli_config.py [-h] [--host HOST] [--port PORT] [--verbose]
+cli_config.py: error: argument --port: port must be an integer, got 'abc'
+```
+
+`argparse` exits with status 2 on validation failure and prints the error to stderr, so it composes correctly in scripts. Nothing written to disk — paste the block into a file yourself if you want to keep it.

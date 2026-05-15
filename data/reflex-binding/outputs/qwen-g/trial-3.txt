@@ -1,0 +1,71 @@
+Certainly! Below is a simple example of an HTTP server in Python using the Flask framework that provides an endpoint `/time` which returns the current time in ISO 8601 format as a JSON response.
+
+### Step 1: Install Flask
+
+First, you need to install Flask. You can do this via pip:
+
+```sh
+pip install flask
+```
+
+### Step 2: Create the Flask Application
+
+Create a Python file, e.g., `app.py`, and add the following code:
+
+```python
+from flask import Flask, jsonify
+import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_current_time():
+    now = datetime.datetime.now().isoformat()
+    return jsonify({"time": now})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+```
+
+### Step 3: Run the Flask Application
+
+You can run the application by executing the following command in your terminal:
+
+```sh
+python app.py
+```
+
+### Step 4: Test the Endpoint
+
+Once the server is running, you can test the endpoint by visiting `http://localhost:5000/time` in your web browser or using `curl` or `httpie`:
+
+```sh
+curl http://localhost:5000/time
+```
+
+or
+
+```sh
+http GET http://localhost:5000/time
+```
+
+You should see a JSON response similar to:
+
+```json
+{
+  "time": "2023-11-14T12:34:56.789012Z"
+}
+```
+
+### Explanation
+
+- **Flask**: A lightweight WSGI web application framework in Python.
+- **`datetime.datetime.now().isoformat()`**: Returns the current time in ISO 8601 format.
+- **`jsonify`**: Converts the Python dictionary into a JSON response.
+
+### Additional Notes
+
+- The server runs on `0.0.0.0` (all interfaces) and listens on port `5000`.
+- You can change the port or host if needed.
+
+This setup is simple and suitable for development purposes. For a production environment, you might want to consider more robust configurations and security measures.

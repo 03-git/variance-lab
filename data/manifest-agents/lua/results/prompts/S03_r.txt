@@ -1,0 +1,509 @@
+You are answering questions about the Lua 5.4 source code. Use ONLY the provided context to answer. Be specific — cite file names, function names, and quote relevant code.
+
+
+## ldebug.c (lines 121-160)
+
+
+/*
+** This function can be called during a signal, under "reasonable"
+** assumptions.
+** Fields 'basehookcount' and 'hookcount' (set by 'resethookcount')
+** are for debug only, and it is no problem if they get arbitrary
+** values (causes at most one wrong hook call). 'hookmask' is an atomic
+** value. We assume that pointers are atomic too (e.g., gcc ensures that
+** for all platforms where it runs). Moreover, 'hook' is always checked
+** before being called (see 'luaD_hook').
+*/
+LUA_API void lua_sethook (lua_State *L, lua_Hook func, int mask, int count) {
+  if (func == NULL || mask == 0) {  /* turn off hooks? */
+    mask = 0;
+    func = NULL;
+  }
+  L->hook = func;
+  L->basehookcount = count;
+  resethookcount(L);
+  L->hookmask = cast_byte(mask);
+  if (mask)
+    settraps(L->ci);  /* to trace inside 'luaV_execute' */
+}
+
+
+LUA_API lua_Hook lua_gethook (lua_State *L) {
+  return L->hook;
+}
+
+
+LUA_API int lua_gethookmask (lua_State *L) {
+  return L->hookmask;
+}
+
+
+LUA_API int lua_gethookcount (lua_State *L) {
+  return L->basehookcount;
+}
+
+
+## ldo.c (lines 841-880)
+** the call to 'adjustresults', we do not know the number of results
+** of the function called by 'lua_callk'/'lua_pcallk', so we are
+** conservative and use LUA_MULTRET (always adjust).
+*/
+static void finishCcall (lua_State *L, CallInfo *ci) {
+  int n;  /* actual number of results from C function */
+  if (ci->callstatus & CIST_CLSRET) {  /* was closing TBC variable? */
+    lua_assert(ci->callstatus & CIST_TBC);
+    n = ci->u2.nres;  /* just redo 'luaD_poscall' */
+    /* don't need to reset CIST_CLSRET, as it will be set again anyway */
+  }
+  else {
+    TStatus status = LUA_YIELD;  /* default if there were no errors */
+    lua_KFunction kf = ci->u.c.k;  /* continuation function */
+    /* must have a continuation and must be able to call it */
+    lua_assert(kf != NULL && yieldable(L));
+    if (ci->callstatus & CIST_YPCALL)   /* was inside a 'lua_pcallk'? */
+      status = finishpcallk(L, ci);  /* finish it */
+    adjustresults(L, LUA_MULTRET);  /* finish 'lua_callk' */
+    lua_unlock(L);
+    n = (*kf)(L, APIstatus(status), ci->u.c.ctx);  /* call continuation */
+    lua_lock(L);
+    api_checknelems(L, n);
+  }
+  luaD_poscall(L, ci, n);  /* finish 'luaD_call' */
+}
+
+
+/*
+** Executes "full continuation" (everything in the stack) of a
+** previously interrupted coroutine until the stack is empty (or another
+** interruption long-jumps out of the loop).
+*/
+static void unroll (lua_State *L, void *ud) {
+  CallInfo *ci;
+  UNUSED(ud);
+  while ((ci = L->ci) != &L->base_ci) {  /* something in the stack */
+    if (!isLua(ci))  /* C function? */
+      finishCcall(L, ci);  /* complete its execution */
+    else {  /* Lua function */
+
+## ldebug.c (lines 401-440)
+  if (*what == '>') {
+    ci = NULL;
+    func = s2v(L->top.p - 1);
+    api_check(L, ttisfunction(func), "function expected");
+    what++;  /* skip the '>' */
+    L->top.p--;  /* pop function */
+  }
+  else {
+    ci = ar->i_ci;
+    func = s2v(ci->func.p);
+    lua_assert(ttisfunction(func));
+  }
+  cl = ttisclosure(func) ? clvalue(func) : NULL;
+  status = auxgetinfo(L, what, ar, cl, ci);
+  if (strchr(what, 'f')) {
+    setobj2s(L, L->top.p, func);
+    api_incr_top(L);
+  }
+  if (strchr(what, 'L'))
+    collectvalidlines(L, cl);
+  lua_unlock(L);
+  return status;
+}
+
+
+/*
+** {======================================================
+** Symbolic Execution
+** =======================================================
+*/
+
+
+static int filterpc (int pc, int jmptarget) {
+  if (pc < jmptarget)  /* is code conditional (inside a jump)? */
+    return -1;  /* cannot know who sets that register */
+  else return pc;  /* current position sets that register */
+}
+
+
+/*
+
+## ldebug.c (lines 921-960)
+}
+
+
+/*
+** Traces the execution of a Lua function. Called before the execution
+** of each opcode, when debug is on. 'L->oldpc' stores the last
+** instruction traced, to detect line changes. When entering a new
+** function, 'npci' will be zero and will test as a new line whatever
+** the value of 'oldpc'.  Some exceptional conditions may return to
+** a function without setting 'oldpc'. In that case, 'oldpc' may be
+** invalid; if so, use zero as a valid value. (A wrong but valid 'oldpc'
+** at most causes an extra call to a line hook.)
+** This function is not "Protected" when called, so it should correct
+** 'L->top.p' before calling anything that can run the GC.
+*/
+int luaG_traceexec (lua_State *L, const Instruction *pc) {
+  CallInfo *ci = L->ci;
+  lu_byte mask = cast_byte(L->hookmask);
+  const Proto *p = ci_func(ci)->p;
+  int counthook;
+  if (!(mask & (LUA_MASKLINE | LUA_MASKCOUNT))) {  /* no hooks? */
+    ci->u.l.trap = 0;  /* don't need to stop again */
+    return 0;  /* turn off 'trap' */
+  }
+  pc++;  /* reference is always next instruction */
+  ci->u.l.savedpc = pc;  /* save 'pc' */
+  counthook = (mask & LUA_MASKCOUNT) && (--L->hookcount == 0);
+  if (counthook)
+    resethookcount(L);  /* reset count */
+  else if (!(mask & LUA_MASKLINE))
+    return 1;  /* no line hook and count != 0; nothing to be done now */
+  if (ci->callstatus & CIST_HOOKYIELD) {  /* hook yielded last time? */
+    ci->callstatus &= ~CIST_HOOKYIELD;  /* erase mark */
+    return 1;  /* do not call hook again (VM yielded, so it did not move) */
+  }
+  if (!luaP_isIT(*(ci->u.l.savedpc - 1)))  /* top not being used? */
+    L->top.p = ci->top.p;  /* correct top */
+  if (counthook)
+    luaD_hook(L, LUA_HOOKCOUNT, -1, 0, 0);  /* call count hook */
+  if (mask & LUA_MASKLINE) {
+
+## ldo.c (lines 881-920)
+      luaV_finishOp(L);  /* finish interrupted instruction */
+      luaV_execute(L, ci);  /* execute down to higher C 'boundary' */
+    }
+  }
+}
+
+
+/*
+** Try to find a suspended protected call (a "recover point") for the
+** given thread.
+*/
+static CallInfo *findpcall (lua_State *L) {
+  CallInfo *ci;
+  for (ci = L->ci; ci != NULL; ci = ci->previous) {  /* search for a pcall */
+    if (ci->callstatus & CIST_YPCALL)
+      return ci;
+  }
+  return NULL;  /* no pending pcall */
+}
+
+
+/*
+** Signal an error in the call to 'lua_resume', not in the execution
+** of the coroutine itself. (Such errors should not be handled by any
+** coroutine error handler and should not kill the coroutine.)
+*/
+static int resume_error (lua_State *L, const char *msg, int narg) {
+  api_checkpop(L, narg);
+  L->top.p -= narg;  /* remove args from the stack */
+  setsvalue2s(L, L->top.p, luaS_new(L, msg));  /* push error message */
+  api_incr_top(L);
+  lua_unlock(L);
+  return LUA_ERRRUN;
+}
+
+
+/*
+** Do the work for 'lua_resume' in protected mode. Most of the work
+** depends on the status of the coroutine: initial state, suspended
+** inside a hook, or regularly suspended (optionally with a continuation
+
+## ldo.c (lines 801-840)
+** to 'finishCcall' (when that '__close' method finally returns) and
+** 'finishpcallk' will run again and close any still pending '__close'
+** methods. Similarly, if a '__close' method errs, 'precover' calls
+** 'unroll' which calls ''finishCcall' and we are back here again, to
+** close any pending '__close' methods.
+** Note that, up to the call to 'luaF_close', the corresponding
+** 'CallInfo' is not modified, so that this repeated run works like the
+** first one (except that it has at least one less '__close' to do). In
+** particular, field CIST_RECST preserves the error status across these
+** multiple runs, changing only if there is a new error.
+*/
+static TStatus finishpcallk (lua_State *L,  CallInfo *ci) {
+  TStatus status = getcistrecst(ci);  /* get original status */
+  if (l_likely(status == LUA_OK))  /* no error? */
+    status = LUA_YIELD;  /* was interrupted by an yield */
+  else {  /* error */
+    StkId func = restorestack(L, ci->u2.funcidx);
+    L->allowhook = getoah(ci);  /* restore 'allowhook' */
+    func = luaF_close(L, func, status, 1);  /* can yield or raise an error */
+    luaD_seterrorobj(L, status, func);
+    luaD_shrinkstack(L);   /* restore stack size in case of overflow */
+    setcistrecst(ci, LUA_OK);  /* clear original status */
+  }
+  ci->callstatus &= ~CIST_YPCALL;
+  L->errfunc = ci->u.c.old_errfunc;
+  /* if it is here, there were errors or yields; unlike 'lua_pcallk',
+     do not change status */
+  return status;
+}
+
+
+/*
+** Completes the execution of a C function interrupted by an yield.
+** The interruption must have happened while the function was either
+** closing its tbc variables in 'moveresults' or executing
+** 'lua_callk'/'lua_pcallk'. In the first case, it just redoes
+** 'luaD_poscall'. In the second case, the call to 'finishpcallk'
+** finishes the interrupted execution of 'lua_pcallk'.  After that, it
+** calls the continuation of the interrupted function and finally it
+** completes the job of the 'luaD_call' that called the function.  In
+
+## lparser.c (lines 1-40)
+/*
+** $Id: lparser.c $
+** Lua Parser
+** See Copyright Notice in lua.h
+*/
+
+#define lparser_c
+#define LUA_CORE
+
+#include "lprefix.h"
+
+
+#include <limits.h>
+#include <string.h>
+
+#include "lua.h"
+
+#include "lcode.h"
+#include "ldebug.h"
+#include "ldo.h"
+#include "lfunc.h"
+#include "llex.h"
+#include "lmem.h"
+#include "lobject.h"
+#include "lopcodes.h"
+#include "lparser.h"
+#include "lstate.h"
+#include "lstring.h"
+#include "ltable.h"
+
+
+
+/* maximum number of variable declarations per function (must be
+   smaller than 250, due to the bytecode format) */
+#define MAXVARS		200
+
+
+#define hasmultret(k)		((k) == VCALL || (k) == VVARARG)
+
+
+
+## lapi.c (lines 81-120)
+    else {  /* light C function or Lua function (through a hook)?) */
+      api_check(L, ttislcf(s2v(ci->func.p)), "caller not a C function");
+      return &G(L)->nilvalue;  /* no upvalues */
+    }
+  }
+}
+
+
+
+/*
+** Convert a valid actual index (not a pseudo-index) to its address.
+*/
+static StkId index2stack (lua_State *L, int idx) {
+  CallInfo *ci = L->ci;
+  if (idx > 0) {
+    StkId o = ci->func.p + idx;
+    api_check(L, o < L->top.p, "invalid index");
+    return o;
+  }
+  else {    /* non-positive index */
+    api_check(L, idx != 0 && -idx <= L->top.p - (ci->func.p + 1),
+                 "invalid index");
+    api_check(L, !ispseudo(idx), "invalid index");
+    return L->top.p + idx;
+  }
+}
+
+
+LUA_API int lua_checkstack (lua_State *L, int n) {
+  int res;
+  CallInfo *ci;
+  lua_lock(L);
+  ci = L->ci;
+  api_check(L, n >= 0, "negative 'n'");
+  if (L->stack_last.p - L->top.p > n)  /* stack large enough? */
+    res = 1;  /* yes; check is OK */
+  else  /* need to grow stack */
+    res = luaD_growstack(L, n, 0);
+  if (res && ci->top.p < L->top.p + n)
+    ci->top.p = L->top.p + n;  /* adjust frame top */
+
+## ldebug.c (lines 601-640)
+      }
+      default: break;  /* go through to return NULL */
+    }
+  }
+  return NULL;  /* could not find reasonable name */
+}
+
+
+/*
+** Try to find a name for a function based on the code that called it.
+** (Only works when function was called by a Lua function.)
+** Returns what the name is (e.g., "for iterator", "method",
+** "metamethod") and sets '*name' to point to the name.
+*/
+static const char *funcnamefromcode (lua_State *L, const Proto *p,
+                                     int pc, const char **name) {
+  TMS tm = (TMS)0;  /* (initial value avoids warnings) */
+  Instruction i = p->code[pc];  /* calling instruction */
+  switch (GET_OPCODE(i)) {
+    case OP_CALL:
+    case OP_TAILCALL:
+      return getobjname(p, pc, GETARG_A(i), name);  /* get function name */
+    case OP_TFORCALL: {  /* for iterator */
+      *name = "for iterator";
+       return "for iterator";
+    }
+    /* other instructions can do calls through metamethods */
+    case OP_SELF: case OP_GETTABUP: case OP_GETTABLE:
+    case OP_GETI: case OP_GETFIELD:
+      tm = TM_INDEX;
+      break;
+    case OP_SETTABUP: case OP_SETTABLE: case OP_SETI: case OP_SETFIELD:
+      tm = TM_NEWINDEX;
+      break;
+    case OP_MMBIN: case OP_MMBINI: case OP_MMBINK: {
+      tm = cast(TMS, GETARG_C(i));
+      break;
+    }
+    case OP_UNM: tm = TM_UNM; break;
+    case OP_BNOT: tm = TM_BNOT; break;
+
+## lapi.c (lines 481-520)
+  return (!ttisthread(o)) ? NULL : thvalue(o);
+}
+
+
+/*
+** Returns a pointer to the internal representation of an object.
+** Note that ISO C does not allow the conversion of a pointer to
+** function to a 'void*', so the conversion here goes through
+** a 'size_t'. (As the returned pointer is only informative, this
+** conversion should not be a problem.)
+*/
+LUA_API const void *lua_topointer (lua_State *L, int idx) {
+  const TValue *o = index2value(L, idx);
+  switch (ttypetag(o)) {
+    case LUA_VLCF: return cast_voidp(cast_sizet(fvalue(o)));
+    case LUA_VUSERDATA: case LUA_VLIGHTUSERDATA:
+      return touserdata(o);
+    default: {
+      if (iscollectable(o))
+        return gcvalue(o);
+      else
+        return NULL;
+    }
+  }
+}
+
+
+
+/*
+** push functions (C -> stack)
+*/
+
+
+LUA_API void lua_pushnil (lua_State *L) {
+  lua_lock(L);
+  setnilvalue2s(L->top.p);
+  api_incr_top(L);
+  lua_unlock(L);
+}
+
+
+## ldebug.c (lines 201-240)
+  if (isLua(ci)) {
+    if (n < 0)  /* access to vararg values? */
+      return findvararg(ci, n, pos);
+    else
+      name = luaF_getlocalname(ci_func(ci)->p, n, currentpc(ci));
+  }
+  if (name == NULL) {  /* no 'standard' name? */
+    StkId limit = (ci == L->ci) ? L->top.p : ci->next->func.p;
+    if (limit - base >= n && n > 0) {  /* is 'n' inside 'ci' stack? */
+      /* generic name for any valid slot */
+      name = isLua(ci) ? "(temporary)" : "(C temporary)";
+    }
+    else
+      return NULL;  /* no name */
+  }
+  if (pos)
+    *pos = base + (n - 1);
+  return name;
+}
+
+
+LUA_API const char *lua_getlocal (lua_State *L, const lua_Debug *ar, int n) {
+  const char *name;
+  lua_lock(L);
+  if (ar == NULL) {  /* information about non-active function? */
+    if (!isLfunction(s2v(L->top.p - 1)))  /* not a Lua function? */
+      name = NULL;
+    else  /* consider live variables at function start (parameters) */
+      name = luaF_getlocalname(clLvalue(s2v(L->top.p - 1))->p, n, 0);
+  }
+  else {  /* active function; get information through 'ar' */
+    StkId pos = NULL;  /* to avoid warnings */
+    name = luaG_findlocal(L, ar->i_ci, n, &pos);
+    if (name) {
+      setobjs2s(L, L->top.p, pos);
+      api_incr_top(L);
+    }
+  }
+  lua_unlock(L);
+  return name;
+
+## lapi.c (lines 1081-1120)
+  lua_lock(L);
+  api_check(L, k == NULL || !isLua(L->ci),
+    "cannot use continuations inside hooks");
+  api_checkpop(L, nargs + 1);
+  api_check(L, L->status == LUA_OK, "cannot do calls on non-normal thread");
+  checkresults(L, nargs, nresults);
+  if (errfunc == 0)
+    func = 0;
+  else {
+    StkId o = index2stack(L, errfunc);
+    api_check(L, ttisfunction(s2v(o)), "error handler must be a function");
+    func = savestack(L, o);
+  }
+  c.func = L->top.p - (nargs+1);  /* function to be called */
+  if (k == NULL || !yieldable(L)) {  /* no continuation or no yieldable? */
+    c.nresults = nresults;  /* do a 'conventional' protected call */
+    status = luaD_pcall(L, f_call, &c, savestack(L, c.func), func);
+  }
+  else {  /* prepare continuation (call is already protected by 'resume') */
+    CallInfo *ci = L->ci;
+    ci->u.c.k = k;  /* save continuation */
+    ci->u.c.ctx = ctx;  /* save context */
+    /* save information for error recovery */
+    ci->u2.funcidx = cast_int(savestack(L, c.func));
+    ci->u.c.old_errfunc = L->errfunc;
+    L->errfunc = func;
+    setoah(ci, L->allowhook);  /* save value of 'allowhook' */
+    ci->callstatus |= CIST_YPCALL;  /* function can do error recovery */
+    luaD_call(L, c.func, nresults);  /* do the call */
+    ci->callstatus &= ~CIST_YPCALL;
+    L->errfunc = ci->u.c.old_errfunc;
+    status = LUA_OK;  /* if it is here, there were no errors */
+  }
+  adjustresults(L, nresults);
+  lua_unlock(L);
+  return APIstatus(status);
+}
+
+
+LUA_API int lua_load (lua_State *L, lua_Reader reader, void *data,
+
+## Question
+Trace a Lua function call from the C API through to bytecode execution.

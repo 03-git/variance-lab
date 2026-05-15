@@ -1,0 +1,53 @@
+Here's a Python script that does what you need:
+
+```python
+import sys
+import requests
+
+if len(sys.argv) != 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    response = requests.get(url, allow_redirects=True, timeout=10)
+    print(f"Status Code: {response.status_code}")
+    print("\nResponse Headers:")
+    for key, value in response.headers.items():
+        print(f"  {key}: {value}")
+    print(f"\nBody (first 500 characters):\n{response.text[:500]}")
+except requests.RequestException as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+```
+
+**How to run it:**
+
+```bash
+# Save as fetch.py, then:
+python fetch.py "https://example.com"
+
+# Example output:
+# Status Code: 200
+# 
+# Response Headers:
+#   Content-Type: text/html; charset=utf-8
+#   Content-Length: 1234
+#   ...
+# 
+# Body (first 500 characters):
+# <!doctype html><html>...
+```
+
+**Key features:**
+- `requests.get()` automatically follows redirects by default
+- `allow_redirects=True` ensures all redirects are followed
+- `timeout=10` prevents hanging on unresponsive servers
+- Shows all response headers in a readable format
+- Displays first 500 characters of the response body
+
+**Note:** You'll need `requests` installed:
+```bash
+pip install requests
+```

@@ -1,0 +1,81 @@
+Here's a Python script that fetches a URL and extracts all hyperlinks:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+
+def fetch_and_extract_links(url):
+    try:
+        # Fetch the webpage
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        # Parse the HTML
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Find all anchor tags
+        links = soup.find_all('a')
+        
+        if not links:
+            print("No links found on the page.")
+            return
+        
+        print(f"Found {len(links)} link(s):\n")
+        for i, link in enumerate(links, 1):
+            href = link.get('href', '#no-href')
+            text = link.get_text(strip=True)
+            
+            # Handle relative URLs (optional)
+            if href and href.startswith(('http://', 'https://')):
+                full_url = href
+            elif href and href.startswith('/'):
+                full_url = urljoin(url, href)
+            else:
+                full_url = href
+            
+            # Print with fallback for empty link text
+            link_text = text if text else "[no text]"
+            print(f"{i}. href: {full_url}")
+            print(f"   text: {link_text}\n")
+    
+    except requests.RequestException as e:
+        print(f"Error fetching the URL: {e}")
+    except Exception as e:
+        print(f"Error parsing HTML: {e}")
+
+if __name__ == "__main__":
+    url = "https://example.com"
+    fetch_and_extract_links(url)
+```
+
+**How to run it:**
+
+1. **Install dependencies** (if you don't have them):
+   ```bash
+   pip install requests beautifulsoup4
+   ```
+
+2. **Run the script**:
+   ```bash
+   python script.py
+   ```
+
+   Or run it directly in a Python shell:
+   ```bash
+   python -c "
+   import requests
+   from bs4 import BeautifulSoup
+   
+   url = 'https://example.com'
+   response = requests.get(url)
+   soup = BeautifulSoup(response.content, 'html.parser')
+   links = soup.find_all('a')
+   
+   for link in links:
+       print(f'href: {link.get(\"href\", \"#\")}')
+       print(f'text: {link.get_text(strip=True)}\n')
+   "
+   ```
+
+The script handles edge cases like missing href attributes, empty link text, and relative URLs. Change `"https://example.com"` to any URL you want to scrape.

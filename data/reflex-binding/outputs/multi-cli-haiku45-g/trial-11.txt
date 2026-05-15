@@ -1,0 +1,104 @@
+Here's a Python CLI tool that meets your requirements:
+
+```python
+import argparse
+import json
+import sys
+
+
+def validate_port(value):
+    """Validate that port is an integer between 1-65535."""
+    try:
+        port = int(value)
+        if port < 1 or port > 65535:
+            raise ValueError(f"port must be between 1-65535, got {port}")
+        return port
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e))
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="CLI tool to validate and display configuration as JSON"
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="localhost",
+        help="Host to connect to (default: localhost)",
+    )
+    parser.add_argument(
+        "--port",
+        type=validate_port,
+        default=8080,
+        help="Port number (1-65535, default: 8080)",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output",
+    )
+
+    args = parser.parse_args()
+
+    # Build configuration
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose,
+    }
+
+    # Output as JSON
+    print(json.dumps(config, indent=2))
+
+    # Verbose output
+    if args.verbose:
+        print(f"\nVerbose: Configuration loaded successfully", file=sys.stderr)
+        print(f"Verbose: Connecting to {args.host}:{args.port}", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage (uses defaults)
+python cli_tool.py
+
+# With custom host and port
+python cli_tool.py --host example.com --port 3000
+
+# With verbose flag
+python cli_tool.py --host example.com --port 9000 --verbose
+
+# Invalid port (will show error)
+python cli_tool.py --port 70000
+```
+
+**Example outputs:**
+
+```bash
+$ python cli_tool.py
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": false
+}
+
+$ python cli_tool.py --host api.example.com --port 443 --verbose
+{
+  "host": "api.example.com",
+  "port": 443,
+  "verbose": true
+}
+Verbose: Configuration loaded successfully
+Verbose: Connecting to api.example.com:443
+
+$ python cli_tool.py --port 99999
+usage: cli_tool.py [-h] [--host HOST] [--port PORT] [--verbose]
+cli_tool.py: error: argument --port: port must be between 1-65535, got 99999
+```
+
+The `validate_port()` function handles validation—it converts the string to an integer and checks the range. If invalid, `argparse` automatically shows a proper error message and exits.

@@ -1,0 +1,43 @@
+**Python (stdlib only, no dependencies):**
+
+```python
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != "/time":
+            self.send_response(404)
+            self.end_headers()
+            return
+        body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", len(body))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *_):
+        pass  # silence access log
+
+if __name__ == "__main__":
+    HTTPServer(("", 8000), Handler).serve_forever()
+```
+
+**Run:**
+```
+python3 time_server.py
+```
+
+**Test:**
+```
+curl http://localhost:8000/time
+```
+
+**Response:**
+```json
+{"time": "2026-05-10T14:32:01.123456+00:00"}
+```
+
+If you'd prefer Flask or FastAPI instead, say the word and I'll show those variants.

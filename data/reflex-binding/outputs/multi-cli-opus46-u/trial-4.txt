@@ -1,0 +1,73 @@
+```python
+#!/usr/bin/env python3
+"""A small CLI that parses --host, --port, and --verbose, then prints the config as JSON."""
+
+import argparse
+import json
+import sys
+
+
+def port_type(value):
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value!r}")
+    if not (1 <= port <= 65535):
+        raise argparse.ArgumentTypeError(f"port must be between 1 and 65535, got {port}")
+    return port
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Print a host/port configuration as JSON.")
+    parser.add_argument("--host", default="localhost", help="host name or address (default: localhost)")
+    parser.add_argument("--port", type=port_type, default=8080, help="port number, 1-65535 (default: 8080)")
+    parser.add_argument("--verbose", action="store_true", help="enable verbose output")
+
+    args = parser.parse_args(argv)
+
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    print(json.dumps(config, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+How to run it:
+
+```
+# Save the code as cli.py, then:
+
+$ python3 cli.py --host example.com --port 9000 --verbose
+{
+  "host": "example.com",
+  "port": 9000,
+  "verbose": true
+}
+
+# Defaults (no flags):
+$ python3 cli.py
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": false
+}
+
+# Invalid port — argparse exits with status 2 and an error message:
+$ python3 cli.py --port 70000
+usage: cli.py [-h] [--host HOST] [--port PORT] [--verbose]
+cli.py: error: argument --port: port must be between 1 and 65535, got 70000
+
+$ python3 cli.py --port abc
+usage: cli.py [-h] [--host HOST] [--port PORT] [--verbose]
+cli.py: error: argument --port: port must be an integer, got 'abc'
+
+# Help:
+$ python3 cli.py --help
+```
+
+Notes:
+- Validation lives in `port_type`, so argparse rejects bad ports before `main` sees them, with a clean usage message and exit code 2.
+- `--verbose` is a boolean flag (`store_true`); present → `true`, absent → `false`.
+- Optionally make it executable (`chmod +x cli.py`) and run `./cli.py ...` thanks to the shebang.

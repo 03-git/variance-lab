@@ -1,0 +1,72 @@
+Health check is clean (signature verifies). Quick reflex.1 note before the library: the thing actually doing the work here is the kernel's readiness-notification syscall — `kqueue(2)` on this Mac (`epoll(2)` on Linux) — plus `socket`/`bind`/`listen`/`accept`. "Concurrency" here means one thread parking in `kqueue` until any of N sockets is readable. `asyncio` is the stdlib wrapper over that; `asyncio.start_server` is the wrapper over the `socket`/`bind`/`listen`/`accept` sequence. No third-party anything needed.
+
+## Code
+
+```python
+#!/usr/bin/env python3
+"""Async TCP echo server. One line in, same line back. Many clients at once."""
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    peer = writer.get_extra_info("peername")
+    print(f"+ connect {peer}")
+    try:
+        while True:
+            line = await reader.readline()      # b"" on EOF, includes trailing \n
+            if not line:
+                break
+            writer.write(line)
+            await writer.drain()                # backpressure: wait if kernel sendbuf is full
+    except ConnectionResetError:
+        pass
+    finally:
+        print(f"- disconnect {peer}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"listening on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nbye")
+```
+
+## How to run it
+
+```sh
+python3 echo_server.py        # needs 3.8+; pure stdlib
+```
+
+Then, in another terminal — any of these:
+
+```sh
+nc 127.0.0.1 8888             # type a line, it bounces back; Ctrl-C to quit
+```
+
+```sh
+# prove concurrency: 50 clients in parallel, each sends one line
+for i in $(seq 1 50); do (echo "client $i" | nc 127.0.0.1 8888) & done; wait
+```
+
+```python
+# or a Python client
+import asyncio
+async def go():
+    r, w = await asyncio.open_connection("127.0.0.1", 8888)
+    w.write(b"hello\n"); await w.drain()
+    print(await r.readline())   # b'hello\n'
+    w.close(); await w.wait_closed()
+asyncio.run(go())
+```
+
+Notes:
+- `readline()` splits on `\n`. A client that never sends a newline will have its bytes buffered (up to `reader`'s limit, 64 KiB default) — fine for a line echo, worth knowing if you adapt it.
+- Each connection is one `handle_client` coroutine; they're cheap (no thread per client). The single event loop is parked in `kqueue` between events.
+- Bound to `127.0.0.1` so it's not exposed off-box; change to `0.0.0.0` if you actually want that.

@@ -1,0 +1,114 @@
+I'll build a simple Node.js/Express REST API endpoint with validation. Here's the complete code:
+
+```javascript
+const express = require('express');
+const app = express();
+const PORT = 3000;
+
+app.use(express.json());
+
+// Validation helper
+const validateUser = (body) => {
+  const errors = [];
+
+  if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
+    errors.push('name is required and must be a non-empty string');
+  }
+
+  if (!body.email || typeof body.email !== 'string' || !body.email.includes('@')) {
+    errors.push('email is required and must contain @');
+  }
+
+  if (body.age === undefined || typeof body.age !== 'number' || body.age < 1 || body.age > 150) {
+    errors.push('age is required and must be an integer between 1 and 150');
+  }
+
+  return errors;
+};
+
+app.post('/users', (req, res) => {
+  const errors = validateUser(req.body);
+
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  const user = {
+    id: Date.now(),
+    name: req.body.name.trim(),
+    email: req.body.email.trim(),
+    age: req.body.age
+  };
+
+  res.status(201).json(user);
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+```
+
+## How to Run
+
+```bash
+# 1. Initialize a new Node.js project (if needed)
+npm init -y
+
+# 2. Install Express
+npm install express
+
+# 3. Save the code above to a file (e.g., server.js) and run it
+node server.js
+```
+
+## Test Examples
+
+**Valid request:**
+```bash
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "john@example.com", "age": 30}'
+```
+
+Response (201):
+```json
+{"id": 1715000123456, "name": "John Doe", "email": "john@example.com", "age": 30}
+```
+
+**Invalid email (missing @):**
+```bash
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Jane", "email": "invalid-email", "age": 25}'
+```
+
+Response (400):
+```json
+{"errors": ["email is required and must contain @"]}
+```
+
+**Invalid age (out of range):**
+```bash
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "email": "bob@example.com", "age": 200}'
+```
+
+Response (400):
+```json
+{"errors": ["age is required and must be an integer between 1 and 150"]}
+```
+
+**Multiple validation errors:**
+```bash
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "", "email": "bad", "age": 0}'
+```
+
+Response (400):
+```json
+{"errors": ["name is required and must be a non-empty string", "email is required and must contain @", "age is required and must be an integer between 1 and 150"]}
+```
+
+The endpoint validates all three fields and collects all errors in one response, making it easy for clients to see exactly what's wrong.

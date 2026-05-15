@@ -1,0 +1,47 @@
+Kernel primitive first (reflex.1): an HTTP GET is a TCP socket — `connect(2)`/`send(2)`/`recv(2)` on an AF_INET stream socket, plus a DNS lookup. Python's stdlib `urllib.request` wraps that; no third-party `requests` needed. `urllib` follows redirects by default via `HTTPRedirectHandler`.
+
+```python
+#!/usr/bin/env python3
+import sys
+import urllib.request
+import urllib.error
+
+def main():
+    if len(sys.argv) != 2:
+        sys.exit(f"usage: {sys.argv[0]} URL")
+    url = sys.argv[1]
+
+    req = urllib.request.Request(url, headers={"User-Agent": "fetch.py"})
+    try:
+        # urlopen follows 3xx redirects automatically
+        resp = urllib.request.urlopen(req, timeout=30)
+    except urllib.error.HTTPError as e:
+        resp = e  # HTTPError is itself a response-like object
+    except urllib.error.URLError as e:
+        sys.exit(f"request failed: {e.reason}")
+
+    body = resp.read(500).decode("utf-8", errors="replace")
+
+    print(f"Status: {resp.status} {resp.reason}")
+    print(f"Final URL: {resp.url}")
+    print("Headers:")
+    for k, v in resp.headers.items():
+        print(f"  {k}: {v}")
+    print("\nBody (first 500 chars):")
+    print(body)
+
+if __name__ == "__main__":
+    main()
+```
+
+Run it:
+
+```bash
+python3 fetch.py https://example.com
+```
+
+Notes:
+- Stdlib only — works on any Python 3 without `pip install`.
+- `urlopen` transparently follows redirects; `resp.url` shows where you landed.
+- 4xx/5xx raise `HTTPError`, which still carries `.status`, `.headers`, and a readable body, so we catch it and report rather than crash.
+- `resp.read(500)` reads at most 500 bytes off the socket; for multibyte UTF-8 a trailing partial char is handled by `errors="replace"`.

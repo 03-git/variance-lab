@@ -1,0 +1,43 @@
+I'll show you a complete Python test suite for the `celsius_to_fahrenheit` function using pytest.
+
+**The function:**
+```python
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+```
+
+**The test suite:**
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    def test_freezing_point(self):
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_identical_points(self):
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("0")
+```
+
+**How to run it:**
+
+1. Save the test code to a file (e.g., `test_temperature.py`)
+2. Install pytest if needed: `pip install pytest`
+3. Run the tests: `pytest test_temperature.py -v`
+
+The `-v` flag gives verbose output showing each test result. You should see all four tests pass:
+- `test_freezing_point`: 0°C = 32°F ✓
+- `test_boiling_point`: 100°C = 212°F ✓
+- `test_identical_points`: -40°C = -40°F ✓
+- `test_non_numeric_input`: Raises TypeError on string input ✓
+
+You can also run with `pytest test_temperature.py -v --tb=short` for more concise error messages if tests fail.

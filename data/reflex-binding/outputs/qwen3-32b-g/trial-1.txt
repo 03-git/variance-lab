@@ -1,0 +1,36 @@
+Here's a minimal HTTP endpoint using Python/Flask:
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime, timezone
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    current_time = datetime.now(timezone.utc).isoformat()
+    return jsonify({"time": current_time})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+```
+
+To run:
+1. Save as `time_server.py`
+2. Install Flask: `pip install flask`
+3. Execute: `python time_server.py`
+
+The server will listen on http://localhost:5000/time and return:
+```json
+{
+  "time": "2023-09-15T12:34:56.789012+00:00"
+}
+```
+
+For production use, you'd want to:
+1. Use a production WSGI server (Gunicorn, uWSGI)
+2. Add error handling
+3. Configure proper logging
+4. Use a reverse proxy (Nginx)
+
+Would you like me to sign this code artifact for verification?

@@ -1,0 +1,504 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from key-rotation.txt)
+    effective: YYYY-MM-DD
+    reason: rotation | compromise | hardware-loss
+
+  Signature: transitions/YYYYMMDD.txt.sig
+
+  Verification:
+    ssh-keygen -Y verify -f authorized_signers -I hodori@subtract.ing \
+      -n subtract.ing -s transitions/YYYYMMDD.txt.sig < transitions/YYYYMMDD.txt
+
+  The outgoing key attests its own successor. Anyone holding the old
+  authorized_signers can verify the transition, then trust the new key.
+
+---
+
+Planned rotation (key is alive):
+
+  1. Generate successor:
+     ssh-keygen -t ed25519 -f ~/.ssh/subtract_successor_ed25519
+
+  2. Write transition record, sign with current key:
+     ssh-keygen -Y sign -f ~/.ssh/current_ed25519 -n subtract.ing transitions/YYYYMMDD.txt
+
+  3. Add time bounds to authorized_signers:
+     - valid-before on current key
+     - valid-after on successor key (with overlap)
+
+  4. Sign authorized_signers with current key:
+     ssh-keygen -Y sign -f ~/.ssh/current_ed25519 -n subtract.ing authorized_signers
+
+  5. Add transition record + sigs to llms.txt manifest.
+
+  6. Push. Nodes pull new authorized_signers. Old signatures still verify
+     during overlap. New artifacts signed with successor after effective date.
+
+---
+
+Emergency recovery (key is lost):
+
+  Problem: the outgoing key cannot sign the transition because it is gone.
+
+
+
+### Chunk 2 (from key-rotation.txt)
+key-rotation.txt — signed key succession for subtract.ing
+
+Problem:
+  A signing key dies (hardware loss, compromise, planned retirement).
+  Every installer who pinned authorized_signers can no longer verify new artifacts.
+  Without a signed succession, the chain of trust breaks silently.
+
+Constraint:
+  Reflex 2: ssh-keygen -Y already does it. No new format.
+
+Primitive:
+  authorized_signers already supports valid-after and valid-before.
+  ssh-keygen -Y verify already enforces them.
+
+---
+
+Format (authorized_signers with time bounds):
+
+  hodori@subtract.ing valid-after="20260301" valid-before="20280301" ssh-ed25519 AAAA...current...
+  hodori@subtract.ing valid-after="20280201" ssh-ed25519 AAAA...successor...
+
+  Overlap window (20280201–20280301): both keys verify.
+  After 20280301: only successor verifies.
+
+---
+
+Transition record (the chain link):
+
+  File: transitions/YYYYMMDD.txt
+  Signed by: the outgoing key
+
+  Contents:
+    principal: hodori@subtract.ing
+    from: SHA256:<outgoing-fingerprint>
+    to: SHA256:<successor-fingerprint>
+    effective: YYYY-MM-DD
+    reason: rotation | compromise | hardware-loss
+
+  Signature: transitions/YYYYMMDD.txt.sig
+
+
+
+### Chunk 3 (from key-rotation.txt)
+
+Emergency recovery (key is lost):
+
+  Problem: the outgoing key cannot sign the transition because it is gone.
+
+  Pre-signed recovery envelope (created while primary key is alive):
+
+    File: recovery/recovery-envelope.txt
+    Signed by: the primary key, at time of creation
+
+    Contents:
+      principal: hodori@subtract.ing
+      recovery-key: SHA256:<recovery-fingerprint>
+      created: YYYY-MM-DD
+      scope: emergency succession only
+
+    Signature: recovery/recovery-envelope.txt.sig
+
+  The recovery key is generated at the same time as the primary.
+  The private half is stored offline (USB in safe, paper backup).
+  The envelope is published in the repo — anyone can verify the primary
+  key pre-authorized this specific recovery key.
+
+  On key loss:
+
+    1. Retrieve recovery private key from offline storage.
+
+    2. Write transition record, sign with recovery key:
+       ssh-keygen -Y sign -f /path/to/recovery_ed25519 -n subtract.ing transitions/YYYYMMDD.txt
+
+    3. Verifiers walk the two-link chain:
+
+       Link 1 — primary authorized the recovery key:
+       ssh-keygen -Y verify -f authorized_signers -I hodori@subtract.ing \
+         -n subtract.ing -s recovery/recovery-envelope.txt.sig < recovery/recovery-envelope.txt
+
+       Link 2 — recovery key signed the transition:
+       (Add recovery key to a temporary signers file with the principal)
+       echo "hodori@subtract.ing $(cat /path/to/recovery_ed25519.pub)" > /tmp/recovery-signers
+       ssh-keygen -Y verify -f /tmp/recovery-signers -I hodori@subtract.ing \
+
+
+### Chunk 4 (from lookdown.universal.tsv)
+*what*is*flexbox*	echo "CSS layout system. display: flex on a container, then justify-content (horizontal) and align-items (vertical) to position children. Replaced float hacks. flex-direction: column for vertical stacking."
+*what*is*grid*	echo "CSS Grid — two-dimensional layout. display: grid; grid-template-columns: 1fr 1fr 1fr; gives three equal columns. More powerful than flexbox for page-level layout. gap for spacing."
+*what*is*viewport*	echo "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"> — tells mobile browsers to use the device width instead of a desktop-sized virtual viewport. Required for mobile-friendly pages."
+*what*is*a*form*	echo "<form> wraps <input>, <select>, <textarea>. submit event fires on enter/button click. e.preventDefault() stops page reload. FormData(form) collects all values. Action attribute sends to server."
+*what*is*fetch*	echo "Browser API for HTTP requests. fetch('/api/data').then(r => r.json()).then(data => { ... }). Replace XMLHttpRequest. POST: fetch(url, {method:'POST', body: JSON.stringify(data)})."
+# === LANGUAGES ===
+*what*is*python*	echo "Interpreted language. Ships on most Linux/macOS. Use it with no pip: python3 -c, python3 -m http.server, python3 -m json.tool. The standard library is huge — urllib, json, sqlite3, csv, os, subprocess. No pip needed for most tasks."
+*python*without*pip*	echo "python3 -m http.server (web server), python3 -m json.tool (format JSON), python3 -c 'import urllib.request; ...' (fetch URLs), python3 -m sqlite3 (database). The stdlib replaces most pip packages."
+what*is*c*language	echo "Compiled language that maps almost directly to machine instructions. No runtime, no garbage collector. malloc/free, pointers, structs. The kernel, shells, and most system tools are written in C."
+*what*is*rust*	echo "Systems language with compile-time memory safety — no garbage collector, no use-after-free, no data races. Ownership model replaces malloc/free. Steep learning curve, very reliable binaries. cargo is the build tool."
+*what*is*deno*	echo "JavaScript/TypeScript runtime by the creator of Node.js. Secure by default (explicit permissions for network/file/env). Single binary, no node_modules. Built-in TypeScript, formatter, linter, test runner."
+what*is*mongodb	echo "MongoDB — document database. subtract uses SQLite for structured data and plain files for documents. SQLite handles more than people think."
+what*is*go*language*	echo "Compiled language from Google. Fast compilation, static binary output, built-in concurrency (goroutines). No generics drama anymore. Good for CLI tools and network services. go build produces one file."
+what*is*golang*	echo "Compiled language from Google. Fast compilation, static binary output, built-in concurrency (goroutines). No generics drama anymore. Good for CLI tools and network services. go build produces one file."
+*what*is*lua*	echo "Tiny embeddable scripting language. 200KB runtime. Used in games (LOVE2D, Roblox), nginx (OpenResty), neovim. Simple syntax, tables as the one data structure."
+# === SHELL SCRIPTING FUNDAMENTALS ===
+*what*is*set*-e*	echo "set -e — exit immediately if any command fails (non-zero exit). set -u — error on undefined variables. set -o pipefail — pipe fails if any stage fails. Combined: set -euo pipefail at the top of every script."
+*what*is*pipefail*	echo "set -o pipefail — a pipeline's exit code is the rightmost command that failed, not just the last command. Without it, 'false | true' succeeds. Always use with set -e."
+what*is*bootstrap	echo "Bootstrap — CSS/JS component framework. subtract uses vanilla HTML + CSS. The browser has flexbox, grid, and custom properties natively."
+*what*is*trap*in*bash*	echo "trap 'cleanup' EXIT — run cleanup function when the script exits (success or failure). trap '' SIGINT ignores Ctrl-C. trap 'echo caught' SIGTERM handles termination. Essential for temp file cleanup."
+*what*is*trap*command*	echo "trap 'cleanup' EXIT — run cleanup function when the script exits (success or failure). trap '' SIGINT ignores Ctrl-C. trap 'echo caught' SIGTERM handles termination. Essential for temp file cleanup."
+*what*is*heredoc*	echo "<<EOF ... EOF — inline multi-line text. cat <<EOF sends to stdout. <<'EOF' prevents variable expansion. <<-EOF strips leading tabs. Used for embedding config, SQL, multi-line strings in scripts."
+*what*is*exit*code*	echo "Every command returns 0 (success) or 1-255 (failure). \$? holds the last command's exit code. if command; then uses exit code directly. exit 1 in a script signals failure to the caller."
+*what*is*process*substitution*	echo "<(command) — bash treats command output as a file. diff <(sort file1) <(sort file2). Avoids temp files. Only in bash/zsh, not sh."
+*what*is*command*substitution*	echo "\$(command) — captures command output as a string. today=\$(date +%F). Replaces backticks. Can nest: echo \$(basename \$(pwd))."
+*what*is*parameter*expansion*	echo "Shell string manipulation without external tools. \${var#prefix} strip prefix, \${var%suffix} strip suffix, \${var/old/new} replace, \${var:-default} default value, \${#var} length."
+# === SSH AND SIGNING ===
+*what*is*ssh*keygen*sign*	echo "ssh-keygen -Y sign -f ~/.ssh/YOURKEY_ed25519 -n namespace FILENAME.txt — signs a file with your SSH key. Creates FILENAME.txt.sig. Namespace scopes what the signature means (e.g. subtract.ing). Default key is ~/.ssh/id_ed25519 if you didn't name yours."
+*what*is*ssh*keygen*verify*	echo "ssh-keygen -Y verify -f allowed_signers -I identity -n namespace -s file.sig < file — checks a signature against a list of trusted keys. Returns 0 if valid."
+*what*is*ssh*keygen*	echo "Generates, manages, and converts SSH keys. ssh-keygen -t ed25519 creates a key pair. -Y sign signs files. -Y verify verifies signatures. The tool subtract's entire trust chain is built on."
+how*sign*file*	echo "ssh-keygen -Y sign -f ~/.ssh/YOURKEY_ed25519 -n namespace FILENAME.txt — creates FILENAME.txt.sig. Default key: ~/.ssh/id_ed25519"
+how*sign*	echo "ssh-keygen -Y sign -f ~/.ssh/YOURKEY_ed25519 -n namespace FILENAME.txt — creates FILENAME.txt.sig. Default key: ~/.ssh/id_ed25519"
+how*create*key*	echo "ssh-keygen -t ed25519 — creates ~/.ssh/id_ed25519 (private) and ~/.ssh/id_ed25519.pub (public). It will ask for a filename and passphrase. Press enter for defaults."
+how*make*key*	echo "ssh-keygen -t ed25519 — creates ~/.ssh/id_ed25519 (private) and ~/.ssh/id_ed25519.pub (public). It will ask for a filename and passphrase. Press enter for defaults."
+how*generate*key*	echo "ssh-keygen -t ed25519 — creates ~/.ssh/id_ed25519 (private) and ~/.ssh/id_ed25519.pub (public). It will ask for a filename and passphrase. Press enter for defaults."
+what*is*signing*namespace*	echo "The -n flag in ssh-keygen -Y sign scopes what a signature means. A signature with -n subtract.ing only verifies under that namespace. Prevents a signature for one domain being replayed as proof for another."
+what*is*namespace*sign*	echo "The -n flag in ssh-keygen -Y sign scopes what a signature means. A signature with -n subtract.ing only verifies under that namespace. Prevents cross-domain signature replay."
+why*sign*	echo "Signing proves who authored a file and that it hasn't changed. Without it, any file could be modified in transit or by another process. ssh-keygen -Y verify checks the signature against authorized_signers — if it passes, the file is what the signer intended."
+*what*is*authorized*signers*	echo "A file listing trusted signing keys: 'email@domain ssh-ed25519 AAAA...'. Used by ssh-keygen -Y verify to decide whose signatures to trust. subtract ships one at subtract.ing/authorized_signers."
+*what*is*ssh*agent*	echo "Daemon that holds your private keys in memory so you don't type passphrases repeatedly. eval \$(ssh-agent) starts it. ssh-add loads a key. ssh-add -l lists loaded keys. Forwarding: ssh -A."
+
+
+### Chunk 5 (from variance-lab/data/manifest-agents/rubric.txt)
+# Manifest-agents evaluation rubric
+# Pre-committed before any experimental dispatch
+# Signed: ssh-keygen -Y sign -f ~/.ssh/jnous -n subtract.ing
+# Date: 2026-05-10
+
+## Corpus
+
+Primary: subtract.ing git repo (canonical, versioned, signed via llms.txt manifest)
+Secondary: one public corpus (Wikipedia subset or open-source GitHub project —
+named at dispatch time, before any scoring begins)
+
+## Question set (30 questions, stratified)
+
+Filed at: variance-lab/data/manifest-agents/questions.tsv
+Signed before dispatch. Not modified after arms begin.
+
+- 10 traversal ("what's in this directory", "what does this file do",
+  "list the files that define hosuni's platform layer")
+- 10 cross-file synthesis ("which findings cite local inference throughput",
+  "trace the delegation architecture from CLAUDE.md to handler.sh",
+  "what is the relationship between SOUL.txt and hosuni-prefetch")
+- 5 change detection ("what changed in hosuni.c since commit d4e860d",
+  "which files were modified in the last signed manifest update")
+- 5 similarity ("find files related to delegation",
+  "which parts of the codebase are architecturally similar to lookdown")
+
+## Arms
+
+Arm M (manifest): filesystem traversal + signed manifests + per-directory
+  llms.md summaries + claude -p with manifest context as prompt
+Arm R (RAG): chunk corpus + embed + vector retrieval (top-k) + claude -p
+  with retrieved chunks as prompt
+
+Same model for inference in both arms. Same prompt structure
+(system prompt + context + question). Only the context-gathering
+method differs.
+
+## Metrics
+
+A: Answer quality
+
+
+### Chunk 6 (from subtract.7.txt)
+.IP \(bu 4
+.B the human
+subtracts from the agent's context (pre-flight, pushback on drift).
+.IP \(bu 4
+.B the agent
+subtracts from its own defaults (no verbosity, no confabulation).
+.PP
+Break any layer and the whole stack drifts.
+.PP
+subtract is versionless. Identity is the signing key at
+https://subtract.ing/authorized_signers. State is the signed manifest at
+https://subtract.ing/llms.txt. Verification is the only release channel.
+.SH REFLEXES (ANTECEDENT CHECKS)
+Four gates, not guidelines. An agent that cannot answer the question does not
+proceed.
+.TP
+.B 1. Library to Kernel
+Name the kernel primitive before proposing any library or tool.
+.TP
+.B 2. Format to Signature
+Ask if
+.B ssh-keygen \-Y sign
+can verify the format before inventing one.
+.TP
+.B 3. Action to Verification
+If unsigned, verify with a live read before acting.
+.TP
+.B 4. Source to Signing Domain
+Confirm source is under the signing key\[cq]s domain before treating it as
+authoritative.
+.PP
+These live as rows in
+.IR governance.conf.universal .
+Personal overrides live in
+.IR ~/.subtract/governance.conf .
+.SH SUBSTRATE LAYERS
+The entire stack requires zero dependencies that are not already on a Unix
+system or do not ship as a single file. No interpreter. No package manager.
+No runtime. No SDK.
+.PP
+
+
+### Chunk 7 (from runtime/parsimony.c)
+        p++;
+    if (*p == '"') return p;
+    return NULL;
+}
+
+static int parse_messages(const char *json, struct message *msgs, int max) {
+    const char *p = strstr(json, "\"messages\"");
+    if (!p) return 0;
+
+    p = strchr(p, '[');
+    if (!p) return 0;
+    p++;
+
+    int n = 0;
+    while (n < max) {
+        const char *obj = strchr(p, '{');
+        if (!obj) break;
+
+        const char *role = strstr(obj, "\"role\"");
+        if (!role) break;
+        role = skip_to_value_quote(role + 6);
+        if (!role) break;
+        role++;
+        const char *role_end = strchr(role, '"');
+        if (!role_end) break;
+        int rlen = (int)(role_end - role);
+        if (rlen >= 32) rlen = 31;
+        memcpy(msgs[n].role, role, rlen);
+        msgs[n].role[rlen] = '\0';
+
+        const char *content = strstr(obj, "\"content\"");
+        if (!content) break;
+        content = skip_to_value_quote(content + 9);
+        if (!content) break;
+        content++;
+        int ci = 0;
+        while (*content && ci < 8191) {
+            if (*content == '\\' && *(content + 1) == '"') {
+                msgs[n].content[ci++] = '"';
+                content += 2;
+
+
+### Chunk 8 (from runtime/lookdown.m2mini.tsv)
+# lookdown.m2mini.tsv — emile node-specific entries
+# kids' media lives on acer1660ti:/mnt/media/kids/
+# adult media on m1studio — not routed from this node
+
+# --- media (kids, via acer) ---
+*smurfs*	mpv sftp://media@acer1660ti/mnt/media/kids/movies/Smurfs\ -\ The\ Lost\ Village\ \(2017\)/Smurfs.The.Lost.Village.2017.1080p.HULU.WEB-DL.DDP.5.1.H.264-PiRaTeS.mkv </dev/null >/dev/null 2>&1 & echo "playing smurfs"
+*happy*fun*time*	echo "playing happy fun time"; mpv sftp://media@acer1660ti/mnt/media/kids/misc/Home\ Arcade\ Walkthrough!\ July\ 2023\ \(2023\).mp4 </dev/null >/dev/null 2>&1 &
+*arcade*classic*	mpv sftp://media@acer1660ti/mnt/media/kids/misc/Basic\ Fun\ Arcade\ Classics\ Complete\ Collection\ 1-19.mp4 </dev/null >/dev/null 2>&1 & echo "playing arcade classics"
+*cosmic*cottage*	mpv sftp://media@acer1660ti/mnt/media/kids/misc/Home\ Arcade\ Walkthrough!\ July\ 2023\ \(2023\).mp4 </dev/null >/dev/null 2>&1 & echo "playing cosmic cottage arcade"
+*monsters*university*	f=$(ssh acer1660ti "find /mnt/media/kids/movies -maxdepth 2 -iname '*monsters*university*' -name '*.mkv' -print -quit" 2>/dev/null); [ -n "$f" ] && mpv "sftp://media@acer1660ti$f" </dev/null >/dev/null 2>&1 & echo "playing monsters university" || echo "monsters university not downloaded yet"
+watch*	f=$(ssh acer1660ti "find /mnt/media/kids -maxdepth 4 -iname '*${input#*watch }*' -print -quit" 2>/dev/null); [ -n "$f" ] && echo "playing $(basename "$f")" && mpv "sftp://media@acer1660ti$f" </dev/null >/dev/null 2>&1 & || echo "not found: ${input#*watch }"
+*what*movies*	ssh acer1660ti "ls /mnt/media/kids/movies/" 2>/dev/null
+*what*shows*	ssh acer1660ti "ls /mnt/media/kids/tv/" 2>/dev/null
+*what*videos*	ssh acer1660ti "ls /mnt/media/kids/misc/" 2>/dev/null
+list*movies	ssh acer1660ti "ls /mnt/media/kids/movies/" 2>/dev/null
+list*tv*shows	ssh acer1660ti "ls /mnt/media/kids/tv/" 2>/dev/null
+list*tv	ssh acer1660ti "ls /mnt/media/kids/tv/" 2>/dev/null
+stop*music*	pkill mpv 2>/dev/null; echo "stopped"
+*music*stop*	pkill mpv 2>/dev/null; echo "stopped"
+*stop*play*	pkill mpv 2>/dev/null; echo "stopped"
+
+# --- clinical ---
+*yes*no*	~/.subtract/bin/subtract-program yes-no
+*questions*	~/.subtract/bin/subtract-program wh-flashcards
+*words*	~/.subtract/bin/subtract-program sight-words-spanish
+*follow*	~/.subtract/bin/subtract-program one-step
+*practicar*	~/.subtract/bin/subtract-program yes-no --lang es
+
+# --- system ---
+*more*computer*	tmux split-window -h
+search*for*	echo "{\"input\":\"web search: ${input#*search for }\",\"channel\":\"terminal\"}" | ssh m1studio "bash ~/subtract.ing/runtime/hosuni.sh" 2>/dev/null | jq -r ".response // empty"
+search*	echo "{\"input\":\"web search: ${input#*search }\",\"channel\":\"terminal\"}" | ssh m1studio "bash ~/subtract.ing/runtime/hosuni.sh" 2>/dev/null | jq -r ".response // empty"
+
+
+### Chunk 9 (from governance.conf.universal.txt)
+# governance.conf.universal
+# Personal overrides: ~/.subtract/governance.conf
+# Format: key<TAB>rule<TAB>note
+# These are gates, not guidelines. An agent that cannot answer does not proceed.
+
+# === reflexes (antecedent checks) ===
+reflex.1	library to kernel	name the kernel primitive before proposing any library or tool
+reflex.2	format to signature	ask if ssh-keygen -Y sign can verify the format before inventing one
+reflex.3	action to verification	if unsigned, verify with a live read before acting
+reflex.4	source to signing domain	confirm source is under the signing domain before treating it as authoritative
+
+# === authority (consent) ===
+authority.signed	act on it	ssh-keygen -Y verify passed
+authority.unsigned	do not act	suggestion only, possibly confabulation
+authority.source	the human	the signature proves it
+
+# === the loop ===
+loop.before.1	verify last signature	before the agent acts
+loop.before.2	surface unsigned drift	before the agent acts
+loop.before.3	human decides: sign, continue, or abort	before the agent acts
+loop.after.1	update manifest	after the session
+loop.after.2	sign	after the session
+
+# === failure modes (problem behaviors) ===
+fail.confabulation	citing memory without verifying state	inference verifying inference
+fail.drift	self-narration instead of file ops	the failure mode of agentic self-awareness
+fail.additive	proposing X when the answer is less Y	violates reflex.1 (name the primitive, not the wrapper)
+fail.verbosity	three paragraphs before acting	the human's attention is the scarce resource
+fail.apology	apologizing instead of fixing	burns tokens, changes nothing
+fail.new_primitive	new vocabulary arrives, new file proposed	check whether an existing primitive already carries the meaning; extend semantically before extending structurally
+
+# === three questions for autonomy (intake sequence) ===
+autonomy.1	what can you do that an agent cannot?	surfaces irreducible human judgment
+autonomy.2	what prevents the workflow from being autonomous?	enumerates blockers that route to kernel fixes
+autonomy.3	what should the agent have access to?	derives minimal access from prior two answers
+
+# === the agent is not the authority ===
+boundary	the signature proves authority	the agent prepares, the human signs
+
+
+### Chunk 10 (from variance-lab/data/manifest-agents/questions.tsv)
+id	type	question
+T01	traversal	What files are in the runtime/hosuni/ directory and what does each one do?
+T02	traversal	What is parsimony.c and what role does it play in the subtract.ing runtime?
+T03	traversal	List all .tsv files in the repository and describe the format of each.
+T04	traversal	What does the install.sh script do?
+T05	traversal	What is in runtime/llms.txt and how does it differ from the root llms.txt?
+T06	traversal	What shell hooks exist in runtime/hooks/ and what do they intercept?
+T07	traversal	What is kiosk.sh and what does it configure?
+T08	traversal	What files define the lookdown system and how are they organized?
+T09	traversal	What is squared.c and what does it compute?
+T10	traversal	List every file that contains a sha256 hash or references sha256 verification.
+S01	synthesis	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?
+S02	synthesis	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?
+S03	synthesis	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?
+S04	synthesis	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.
+S05	synthesis	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?
+S06	synthesis	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?
+S07	synthesis	Which files mention the concept of a "formation" and what does the term mean across them?
+S08	synthesis	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?
+S09	synthesis	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?
+S10	synthesis	What does lineage.txt credit and how do those credits connect to specific components in the codebase?
+C01	change	What changed in hosuni.c between commit d4e860d and HEAD?
+C02	change	What was the most recent change to variance-lab.txt and what confound did it resolve?
+C03	change	Which files were modified in the commit that added CJK font fallback support?
+C04	change	Has SOUL.txt been rewritten recently? What was the nature of the change?
+C05	change	What is the most recent addition to the llms.txt index?
+M01	similarity	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?
+M02	similarity	Find files related to the concept of signing and verification. Group them by function.
+M03	similarity	Which components share the pattern of reading a manifest or index file to decide what to do next?
+M04	similarity	What files discuss the boundary between human authority and agent execution? How do they differ in framing?
+M05	similarity	Find all components that use llama.cpp or local inference. How are they related?
+
+
+### Chunk 11 (from emile.txt)
+  - Always-on internet
+  - A GPU
+  - Docker, Kubernetes, or any orchestration layer
+  - An app store listing or mobile development toolchain
+  - A database server (the filesystem is the database)
+
+## Cost
+
+  Hardware: $60-700 (Pi 5 to Mac Mini)
+  Model: free (open-weight GGUF)
+  Cloud changes: ~$0.01-0.10 per change window
+  Monthly operating cost after hardware: electricity
+
+## Signing
+
+The substrate uses ssh-keygen -Y for signing. Each user manages
+their own signing key. Signed artifacts verify against an
+authorized_signers file, which the practice maintains at the
+repository root and optionally serves at a domain URL for
+federation. Supervisory relationships, inter-practitioner trust,
+and delegated agent scope are all expressed as signature graphs,
+not as filesystem permissions or user flags. The substrate ships
+the primitive; the practice composes the graph.
+
+Three artifact classes get signed in a practice deployment:
+clinical programs (authorship, continuity), session records
+(HIPAA integrity 164.312(c)(1)), and substrate artifacts
+(reproducibility, federation). The primitive does not distinguish
+between them. The practice decides which classes are in scope
+and which keys sign which class.
+
+## Federation
+
+When a user outgrows the operator's substrate, they become an
+operator of their own instance. They export their content and
+records, provision their own hardware, follow this document, and
+have an instance running in an afternoon. The relationship becomes
+two sovereign substrates exchanging signed artifacts.
+
+## Lineage
+
+
+### Chunk 12 (from lookdown.universal.tsv)
+what*is*signing*namespace*	echo "The -n flag in ssh-keygen -Y sign scopes what a signature means. A signature with -n subtract.ing only verifies under that namespace. Prevents a signature for one domain being replayed as proof for another."
+what*is*namespace*sign*	echo "The -n flag in ssh-keygen -Y sign scopes what a signature means. A signature with -n subtract.ing only verifies under that namespace. Prevents cross-domain signature replay."
+why*sign*	echo "Signing proves who authored a file and that it hasn't changed. Without it, any file could be modified in transit or by another process. ssh-keygen -Y verify checks the signature against authorized_signers — if it passes, the file is what the signer intended."
+*what*is*authorized*signers*	echo "A file listing trusted signing keys: 'email@domain ssh-ed25519 AAAA...'. Used by ssh-keygen -Y verify to decide whose signatures to trust. subtract ships one at subtract.ing/authorized_signers."
+*what*is*ssh*agent*	echo "Daemon that holds your private keys in memory so you don't type passphrases repeatedly. eval \$(ssh-agent) starts it. ssh-add loads a key. ssh-add -l lists loaded keys. Forwarding: ssh -A."
+*what*is*ssh*config*	echo "~/.ssh/config — aliases, per-host settings, key selection. Host myserver / HostName 10.0.0.5 / User admin / IdentityFile ~/.ssh/mykey. Then: ssh myserver."
+*what*is*known*hosts*	echo "~/.ssh/known_hosts — fingerprints of servers you've connected to. Prevents MITM attacks. ssh-keygen -R host removes an entry after a server rebuild."
+# === SCHEDULING AND DAEMONS ===
+*what*is*crontab*	echo "crontab -e edits your cron jobs. crontab -l lists them. crontab -r removes all. Each line: minute hour day month weekday command. Use absolute paths — cron has a minimal PATH."
+*what*is*cron*	echo "Time-based job scheduler. crontab -e to edit. Format: min hour day month weekday command. */5 * * * * = every 5 minutes. @reboot = on boot. Runs as the user who owns the crontab."
+what is at	echo "Run a command once at a future time. echo 'backup.sh' | at 2am. at now + 1 hour. atq lists pending jobs. atrm removes one. One-shot alternative to cron."
+*what*is*systemctl*	echo "Controls systemd services. systemctl status nginx, systemctl restart sshd, systemctl enable --now service (start + auto-start on boot). systemctl list-units --type=service."
+*what*is*launchd*	echo "macOS init system and service manager. Replaces cron, init, inetd. Plist files in ~/Library/LaunchAgents (user) or /Library/LaunchDaemons (system). launchctl load/unload/list."
+*what*is*launchctl*	echo "Controls launchd services on macOS. launchctl list shows loaded jobs. launchctl load ~/Library/LaunchAgents/com.foo.plist. bootstrap/bootout for modern syntax. disable gui/uid/label persists across reboots."
+*what*is*a*plist*	echo "Property list — XML or binary config file on macOS. LaunchAgents use them to define daemons: Label, ProgramArguments, RunAtLoad, KeepAlive, StandardOutPath. plutil to validate."
+# === DATA FORMATS ===
+*what*is*jsonl*	echo "JSON Lines — one JSON object per line. Easy to append (>>), stream (tail -f), and process line-by-line. grep works on it. subtract's session logs use JSONL."
+*what*is*tsv*	echo "Tab-separated values. Like CSV but tabs instead of commas — no quoting hell. cut -f2 extracts column 2. awk -F'\\t' processes it. lookdown.tsv is a TSV file."
+*what*is*jq*	echo "Command-line JSON processor. jq '.key' extracts a field. jq '.[] | .name' iterates arrays. jq -r for raw strings. jq -c for compact. Pipe curl output through it: curl -s url | jq ."
+*what*is*toml*	echo "Tom's Obvious Minimal Language — config format. [sections], key = \"value\", arrays = [1, 2, 3]. Used by Cargo (Rust), pyproject.toml (Python). Less surprising than YAML."
+# === MONITORING AND LOGS ===
+*what*is*inotify*	echo "Linux kernel subsystem that reports filesystem events — create, modify, delete, move. inotifywait is the CLI tool. Programs use inotify_init/inotify_add_watch syscalls. macOS equivalent: fswatch (kqueue)."
+*what*is*log*rotation*	echo "Prevents logs from filling disk. logrotate runs daily via cron — rotates, compresses, deletes old logs. Config in /etc/logrotate.d/. size 100M, rotate 7, compress, daily."
+# === LOCAL INFERENCE STACK ===
+*what*is*a*model*file*	echo "A file containing a neural network's weights — the numbers the model learned during training. GGUF format for llama.cpp, safetensors for PyTorch/HuggingFace. Ranges from 1GB (3B) to 140GB (70B)."
+# === TOOLS (configured and in use) ===
+*what*is*tmux*	echo "Terminal multiplexer — multiple shells in one window. tmux new -s name, Ctrl-b d to detach, tmux attach -t name to reattach. Survives SSH disconnects. Ctrl-b % splits vertical, Ctrl-b \" splits horizontal."
+*what*is*adb*	echo "Android Debug Bridge — CLI tool to control Android devices over USB or network. adb shell opens a shell. adb push/pull copies files. adb install installs APKs. adb connect IP:5555 for wireless."
+*what*is*chromecast*	echo "Google Cast protocol. Devices listen on ports 8008/8009. catt is the CLI tool: catt cast url, catt cast_site url. Cast V2 protocol uses protobuf over TLS."
+*what*is*sonarr*	echo "TV show manager — monitors for new episodes, sends downloads to a client, renames and organizes files. API on port 8989. Pairs with a download client (SABnzbd, qBittorrent)."
+*what*is*radarr*	echo "Movie manager — same pattern as Sonarr but for films. Monitors wanted list, grabs releases, renames to library format. API on port 7878."
+*what*is*prowlarr*	echo "Indexer manager for Sonarr/Radarr. Aggregates search across indexers, syncs them to the *arr stack. One place to manage all sources. API on port 9696."
+*what*is*sabnzbd*	echo "Usenet download client. Receives NZB files from Sonarr/Radarr, downloads, verifies, extracts. Web UI on port 8080. Config: server, username, connections."
+*what*is*fastmail*	echo "Email provider with JMAP API. No Google, no Microsoft. Custom domains, aliases, calendar, contacts. JMAP is the modern replacement for IMAP — JSON over HTTP, stateful, batch operations."
+*what*is*jmap*	echo "JSON Meta Application Protocol — modern email API replacing IMAP. Stateful, efficient, JSON-based. One HTTP POST can query, fetch, and send. Fastmail is the reference implementation."
+*what*is*porkbun*	echo "Domain registrar with API. No Cloudflare lock-in. DNS management, WHOIS privacy included. API for programmatic DNS record updates. Supports ALIAS/ANAME records."
+*what*is*kiwix*serve*	echo "HTTP server for ZIM files — offline Wikipedia, Stack Exchange, Gutenberg, etc. kiwix-serve --port 8080 *.zim. Search and browse without internet. Fits on a USB drive."
+# === NETWORKING TOOLS ===
+*what*is*traceroute*	echo "Shows the path packets take to a destination — every router hop. traceroute 8.8.8.8. mtr combines traceroute + ping for continuous monitoring. Diagnoses where packets get slow or lost."
+what is ss	echo "Socket statistics — replacement for netstat. ss -tlnp shows listening TCP ports with process names. ss -s for summary. Faster than netstat on busy machines."
+
+
+
+## Question
+Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?

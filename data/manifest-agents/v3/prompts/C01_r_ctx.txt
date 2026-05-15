@@ -1,0 +1,434 @@
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from hosuni.txt)
+  macOS:  cc -O2 -o hosuni hosuni.c platform_macos.m -framework Cocoa
+
+## Source
+
+  runtime/hosuni/hosuni.c          main source (canonical)
+  runtime/hosuni/hosuni.h          platform contract, types, colors
+  runtime/hosuni/platform_linux.c  DRM/KMS + evdev
+  runtime/hosuni/platform_macos.m  Cocoa + NSEvent
+  runtime/hosuni/stb_truetype.h    font rendering (vendored)
+
+
+### Chunk 2 (from variance-lab/data/manifest-agents/questions.tsv)
+id	type	question
+T01	traversal	What files are in the runtime/hosuni/ directory and what does each one do?
+T02	traversal	What is parsimony.c and what role does it play in the subtract.ing runtime?
+T03	traversal	List all .tsv files in the repository and describe the format of each.
+T04	traversal	What does the install.sh script do?
+T05	traversal	What is in runtime/llms.txt and how does it differ from the root llms.txt?
+T06	traversal	What shell hooks exist in runtime/hooks/ and what do they intercept?
+T07	traversal	What is kiosk.sh and what does it configure?
+T08	traversal	What files define the lookdown system and how are they organized?
+T09	traversal	What is squared.c and what does it compute?
+T10	traversal	List every file that contains a sha256 hash or references sha256 verification.
+S01	synthesis	Trace the delegation architecture from governance.conf.universal through to the runtime scripts. Which files implement each governance reflex?
+S02	synthesis	What is the relationship between SOUL.txt and hosuni.c? How does one inform the other?
+S03	synthesis	Which files in the repo reference ssh-keygen signing, and what role does each play in the verification chain?
+S04	synthesis	How does the lookdown system connect to hosuni.c? Trace the call path from user input to command execution.
+S05	synthesis	What claims does variance-lab.txt make about governance binding, and which source files provide the evidence?
+S06	synthesis	Compare emile.txt and subtract.7.txt — what is the relationship between the deployment pattern and the man-page specification?
+S07	synthesis	Which files mention the concept of a "formation" and what does the term mean across them?
+S08	synthesis	What is the authority model described in governance.conf.universal.txt and how is it enforced in the runtime?
+S09	synthesis	Trace how hosuni-discord.ts and hosuni.sh relate to hosuni.c. What are the different deployment surfaces?
+S10	synthesis	What does lineage.txt credit and how do those credits connect to specific components in the codebase?
+C01	change	What changed in hosuni.c between commit d4e860d and HEAD?
+C02	change	What was the most recent change to variance-lab.txt and what confound did it resolve?
+C03	change	Which files were modified in the commit that added CJK font fallback support?
+C04	change	Has SOUL.txt been rewritten recently? What was the nature of the change?
+C05	change	What is the most recent addition to the llms.txt index?
+M01	similarity	Which parts of the codebase are architecturally similar to the lookdown pattern of glob-match-then-dispatch?
+M02	similarity	Find files related to the concept of signing and verification. Group them by function.
+M03	similarity	Which components share the pattern of reading a manifest or index file to decide what to do next?
+M04	similarity	What files discuss the boundary between human authority and agent execution? How do they differ in framing?
+M05	similarity	Find all components that use llama.cpp or local inference. How are they related?
+
+
+### Chunk 3 (from variance-lab/data/manifest-agents/rubric.txt)
+# Manifest-agents evaluation rubric
+# Pre-committed before any experimental dispatch
+# Signed: ssh-keygen -Y sign -f ~/.ssh/jnous -n subtract.ing
+# Date: 2026-05-10
+
+## Corpus
+
+Primary: subtract.ing git repo (canonical, versioned, signed via llms.txt manifest)
+Secondary: one public corpus (Wikipedia subset or open-source GitHub project —
+named at dispatch time, before any scoring begins)
+
+## Question set (30 questions, stratified)
+
+Filed at: variance-lab/data/manifest-agents/questions.tsv
+Signed before dispatch. Not modified after arms begin.
+
+- 10 traversal ("what's in this directory", "what does this file do",
+  "list the files that define hosuni's platform layer")
+- 10 cross-file synthesis ("which findings cite local inference throughput",
+  "trace the delegation architecture from CLAUDE.md to handler.sh",
+  "what is the relationship between SOUL.txt and hosuni-prefetch")
+- 5 change detection ("what changed in hosuni.c since commit d4e860d",
+  "which files were modified in the last signed manifest update")
+- 5 similarity ("find files related to delegation",
+  "which parts of the codebase are architecturally similar to lookdown")
+
+## Arms
+
+Arm M (manifest): filesystem traversal + signed manifests + per-directory
+  llms.md summaries + claude -p with manifest context as prompt
+Arm R (RAG): chunk corpus + embed + vector retrieval (top-k) + claude -p
+  with retrieved chunks as prompt
+
+Same model for inference in both arms. Same prompt structure
+(system prompt + context + question). Only the context-gathering
+method differs.
+
+## Metrics
+
+A: Answer quality
+
+
+### Chunk 4 (from lookdown.universal.tsv)
+# === TEXT PROCESSING ===
+#
+show*file*contents	cat
+print*file	cat
+show*first*lines	head
+show*last*lines	tail
+follow*log	tail -f
+watch*file	tail -f
+count*lines	wc -l
+count*words	wc -w
+count*characters	wc -c
+sort*file	sort
+sort*lines	sort
+unique*lines	sort | uniq
+remove*duplicates	sort | uniq
+#
+# === PERMISSIONS ===
+#
+show*permissions	ls -l
+check*permissions	ls -l
+make*public*readable	chmod 644
+make*readable	chmod +r
+make*writable	chmod +w
+remove*write*permission	chmod -w
+make*private	chmod 600
+make*executable*by*all	chmod 755
+#
+# === GIT ===
+#
+git*status	git status
+show*git*status	git status
+what*changed	git diff
+show*changes	git diff
+git*log	git log --oneline -10
+show*commits	git log --oneline -10
+recent*commits	git log --oneline -10
+which*branch	git branch
+current*branch	git branch --show-current
+#
+# === SYSTEM INFO ===
+
+
+### Chunk 5 (from runtime/hosuni/hosuni.h)
+
+/* --- modes --- */
+
+typedef enum {
+    MODE_READ,
+    MODE_RUN,
+    MODE_TEACH,
+    MODE_COUNT
+} hosuni_mode;
+
+/* --- colors --- */
+
+#define COL_BG        0xFF000000
+#define COL_FG        0xFFFFFFFF
+#define COL_GREEN     0xFF50FA7B
+#define COL_YELLOW    0xFFFFB86C
+#define COL_DIM       0xFF666666
+#define COL_CURSOR    0xFFFF79C6
+#define COL_INPUT_BG  0xFF111111
+
+/* --- font --- */
+
+typedef struct {
+    unsigned char *bitmap;
+    int w, h;
+    float scale;
+    int ascent, descent, linegap;
+    void *info; /* stbtt_fontinfo* */
+    void *fallback_info; /* stbtt_fontinfo* for CJK fallback */
+    unsigned char *fallback_data;
+} hosuni_font;
+
+int  hosuni_font_init(hosuni_font *f, const char *ttf_path, float px);
+void hosuni_font_free(hosuni_font *f);
+void hosuni_draw_char(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   uint32_t cp, uint32_t color);
+int  hosuni_draw_text(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   const char *text, uint32_t color);
+int  hosuni_char_width(hosuni_font *f, uint32_t cp);
+int  hosuni_line_height(hosuni_font *f);
+
+
+### Chunk 6 (from runtime/hosuni.sh)
+        fi
+
+        break
+    done
+
+    jq -n '{error:"no response after tool loop"}'
+}
+
+# --- listener ---
+
+log_daemon "hosuni starting (stdin/stdout mode)"
+if [ -p "$PARSIMONY_IN" ] && [ -p "$PARSIMONY_OUT" ]; then
+    log_daemon "inference: parsimony (pipes)"
+else
+    log_daemon "inference: ${INFERENCE_HOST}:${INFERENCE_PORT} (curl)"
+fi
+log_daemon "lookdown: $LOOKDOWN_NODE $LOOKDOWN_UNIVERSAL"
+log_daemon "tools: $TOOLS_FILE"
+
+# stdin/stdout mode: read JSON request, write JSON response
+# usage: echo '{"input":"hello","channel":"test"}' | hosuni.sh
+#        or spawned by hosuni-discord.ts per message
+
+request=$(cat)
+log_daemon "raw request: $(echo "$request" | head -c 200)"
+handle_request "$request"
+
+
+### Chunk 7 (from runtime/hosuni/hosuni.h)
+int  hosuni_infer_recv(int sock, char *chunk, int chunk_max);
+
+/* --- session log --- */
+
+void hosuni_log_init(const char *program);
+void hosuni_log_trial(const char *program, int trial,
+                   const char *stimulus, const char *response,
+                   int latency_ms, int correct);
+
+#endif
+
+
+### Chunk 8 (from runtime/hosuni/hosuni.h)
+/*
+ * hosuni.h — framebuffer computing for humans
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+#ifndef HOSUNI_H
+#define HOSUNI_H
+
+#include <stdint.h>
+
+/* --- platform contract --- */
+
+typedef struct {
+    uint32_t *pixels;
+    int width;
+    int height;
+    int stride; /* bytes per row */
+} hosuni_surface;
+
+typedef enum { HOSUNI_KEY, HOSUNI_MOUSE, HOSUNI_TOUCH } hosuni_input_type;
+
+typedef struct {
+    hosuni_input_type type;
+    int code;   /* KEY_* from linux/input-event-codes.h */
+    int value;  /* 1=press 0=release 2=repeat */
+    int x, y;   /* mouse/touch coords, 0 for keys */
+} hosuni_event;
+
+int  platform_init(hosuni_surface *s);
+int  platform_event(hosuni_event *ev, int timeout_ms);
+void platform_flip(hosuni_surface *s);
+void platform_cleanup(void);
+void platform_yield(void);
+void platform_reclaim(void);
+void platform_drain_input(void);
+void platform_close_child_fds(void);
+void platform_xkb_update(int evdev_code, int value);
+int  platform_key_utf8(int evdev_code, char *out, int out_max);
+
+
+### Chunk 9 (from runtime/hosuni/hosuni.c)
+    chat_msg history[MAX_HIST_MSGS];
+    int history_count;
+} ask_ctx;
+
+/* ================================================================
+   main application
+   ================================================================ */
+
+typedef struct {
+    int sel;
+    int scroll;
+    int count;
+    char filter[64];
+    int filter_len;
+    int show_all;
+} run_ctx;
+
+typedef struct {
+    hosuni_surface surface;
+    hosuni_font font;
+    hosuni_font font_large;
+    hosuni_font font_small;
+    hosuni_mode mode;
+    vi_ctx vi;
+    ask_ctx ask;
+    run_ctx run;
+    int running;
+    int shift;
+    int ctrl;
+    char infer_host[64];
+    int infer_port;
+    int margin;
+    char soul[16384];
+    int starred;
+    focused_ctx focused;
+} hosuni_app;
+
+/* ================================================================
+   conversation history + message building
+   ================================================================ */
+
+
+### Chunk 10 (from runtime/hosuni-discord.sh)
+#!/bin/bash
+# hosuni-discord — poll Discord channels, pipe to hosuni.sh
+set -uo pipefail
+
+PIDFILE="$HOME/.hosuni/discord-poller.pid"
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    echo "already running (pid $(cat "$PIDFILE"))" >&2
+    exit 0
+fi
+echo $$ > "$PIDFILE"
+trap 'rm -f "$PIDFILE"' EXIT
+
+TOKEN=$(cat "$HOME/.keymaster/jean-discord-token.txt")
+WHITELIST="$HOME/.hosuni-discord-whitelist"
+HOSUNI="$HOME/.subtract/hosuni.sh"
+LOG="$HOME/human/sessions/hosuni-discord.log"
+STATE="$HOME/.hosuni/discord-state"
+API="https://discord.com/api/v10"
+POLL_INTERVAL=5
+CHANNELS="1489355263361286204 1483978150852559030"
+
+mkdir -p "$STATE"
+
+log() { printf "[%s] %s\n" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" >> "$LOG"; }
+
+is_whitelisted() { grep -qx "$1" "$WHITELIST" 2>/dev/null; }
+
+get_last_id() { cat "$STATE/$1" 2>/dev/null || echo "0"; }
+set_last_id() { printf '%s' "$2" > "$STATE/$1"; }
+
+send_reply() {
+    local channel="$1" content="$2"
+    while [ -n "$content" ]; do
+        local chunk
+        chunk=$(printf '%s' "$content" | head -c 2000)
+        content=$(printf '%s' "$content" | tail -c +2001)
+        curl -s -X POST "$API/channels/$channel/messages" \
+            -H "Authorization: Bot $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg c "$chunk" '{content: $c}')" >/dev/null
+
+
+### Chunk 11 (from runtime/hosuni/hosuni.h)
+                   uint32_t cp, uint32_t color);
+int  hosuni_draw_text(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   const char *text, uint32_t color);
+int  hosuni_char_width(hosuni_font *f, uint32_t cp);
+int  hosuni_line_height(hosuni_font *f);
+
+/* --- gap buffer --- */
+
+#define GAP_INIT 4096
+
+typedef struct {
+    char *buf;
+    int gap_start;
+    int gap_end;
+    int cap;
+} gap_buf;
+
+void gap_init(gap_buf *g);
+void gap_free(gap_buf *g);
+void gap_insert(gap_buf *g, char c);
+void gap_insert_str(gap_buf *g, const char *s, int len);
+void gap_delete(gap_buf *g);
+void gap_backspace(gap_buf *g);
+void gap_move(gap_buf *g, int pos);
+int  gap_length(gap_buf *g);
+char gap_char_at(gap_buf *g, int pos);
+int  gap_pos(gap_buf *g);
+void gap_get_text(gap_buf *g, char *out, int max);
+
+/* --- inference --- */
+
+int  hosuni_infer(const char *host, int port, const char *prompt,
+               char *resp, int resp_max);
+int  hosuni_infer_stream(const char *host, int port, const char *prompt,
+                      int *sock_out);
+int  hosuni_infer_recv(int sock, char *chunk, int chunk_max);
+
+/* --- session log --- */
+
+void hosuni_log_init(const char *program);
+
+
+### Chunk 12 (from hosuni.txt)
+## How it renders
+
+hosuni.c talks directly to the display hardware:
+
+  Linux:  DRM/KMS — opens /dev/dri/card*, sets mode, double-buffered
+          page flip with vsync. Reads keyboard via /dev/input/event*.
+
+  macOS:  Cocoa — NSWindow with a backing bitmap, keyboard events via
+          NSEvent. Same rendering code, different platform layer.
+
+Both platforms implement the contract defined in hosuni.h:
+platform_init, platform_event, platform_flip, platform_cleanup
+(plus platform_yield and platform_reclaim for child process handoff).
+The rendering code (text, rectangles, scrolling) is shared.
+
+Font rendering uses stb_truetype (single-header, vendored).
+
+## Inference
+
+hosuni.c builds its own HTTP requests over raw TCP sockets. No curl,
+no HTTP library. It speaks the OpenAI-compatible chat completions
+format:
+
+  - Streaming (SSE) for READ mode — tokens render as they arrive
+  - Non-streaming with tool calls — the model can call web_search,
+    web_fetch, run_command, read_file, and list_dir. hosuni.c
+    executes them and feeds results back in a multi-turn loop.
+  - Thinking tag filter strips Gemma-4 <|channel>...</channel|> blocks
+
+hosuni-discord (runtime/hosuni-discord.sh) wraps the same inference
+path for delivery over Discord.
+
+## Build
+
+  Linux:  cc -O2 -o hosuni hosuni.c platform_linux.c -ldrm
+  macOS:  cc -O2 -o hosuni hosuni.c platform_macos.m -framework Cocoa
+
+## Source
+
+  runtime/hosuni/hosuni.c          main source (canonical)
+
+

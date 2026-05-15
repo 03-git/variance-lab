@@ -1,0 +1,544 @@
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./variance-lab-handler-methodology.txt (lines 321-360 of 398)
+| emile-sonnet-4.6-high         | C    | add `_SUBTRACT_FROM_HANDLER` guard |
+| rousseau-gemma-4-26b (local)  | C    | add `_SUBTRACT_FROM_HANDLER` guard |
+| rousseau-qwen3-coder-30B (local) | B | add `_SUBTRACT_FROM_HANDLER` guard |
+
+Seven of eight voters picked C. One picked B. Zero picked A. The C-picks spanned Opus 4.7, Sonnet 4.5, Sonnet 4.6 at low and high effort tiers, and Gemma-4-26B. The single B-pick came from Qwen3-Coder-30B.
+
+### Shim consensus
+
+The shim suggestions from the seven C-voters cluster around two themes:
+
+- **Adopt B's 5-arg signature.** Three voters (rousseau-opus-4.7, rousseau-sonnet-4.5, rousseau-sonnet-4.6) explicitly named the 5-argument split that separates antecedent_exit from consequence_exit as the one property B has that C lacks. The wrap architecture of C makes this split trivially implementable: capture `$?` on wrapper entry before calling `_impl`, capture `_impl`'s exit after return, pass both to `__subtract_log`.
+- **Reentrance guard.** Three voters (emile-sonnet-4.6, gemma-4, qwen3-coder) flagged the `_SUBTRACT_FROM_HANDLER` guard as a prerequisite. The guard is the same mechanism whose absence in qwen3coder contributed to its H4 zero-score in the implementation round.
+
+One novel shim came from emile-opus-4.7: capture `_impl`'s exit code to a local `rc` at wrapper entry, log, then `return $rc`. The observation is that a naive wrapper returns the exit code of `__subtract_log` rather than of `_impl`, which would silently change the handler's behavior for the shell that sourced it.
+
+qwen3coder's dissenting vote cited the 5-arg signature as its load-bearing reason for preferring B. The substance of that objection — the 5-arg antecedent/consequence split — also appears in three of the seven C-voters' shim lists as the property to graft onto C.
+
+---
+
+## Findings
+
+**Finding 1.** Static rubric scoring at the content-as-text layer is sensitive to tiebreak-rule choice in ways that functional verification is not. In this experiment opus47 and sonnet45 tied at 14 on the weighted R+H score. The committed tiebreak rule (lowest LoC within a 2-point tie) selected opus47, which passes functional verification. Under a different tiebreak rule — for instance, highest Robustness subtotal, where opus47's R sum is 8 (2+2+1+2+1) and sonnet45's R sum is 9 (2+2+2+2+1) — the rubric would have selected sonnet45, which produces zero rows on first invocation because its output was wrapped in a markdown fence that the shell parser does not accept. Functional verification eliminates the non-executable artifact regardless of how the rubric resolves ties. A corrected static rubric could add a sourceability criterion (binary: does the file source cleanly), but functional verification subsumes it.
+
+**Finding 2.** Cross-lineage model dispatch to a pre-committed spec produces observable convergence at the primitive-selection layer and observable divergence at the architectural-decision layer. All four surviving Claude implementations chose the same primitives for timestamp formatting, tab escaping, and atomic append. All four diverged on integration strategy, function signature, and overlay-read structure. The primitive-layer convergence is data under pre-committed methodology; the architectural-layer divergence is also data under the same methodology. The two observations are separable, measurable, and recorded in the V-series rubric columns.
+
+**Finding 3.** A deliberative pass dispatched across models can resolve ties that the static rubric cannot resolve, and can surface properties the static rubric does not cover. The rubric score tied opus47 and sonnet45 at 14 and tied sonnet46 and sonnet46low at 13. Under the committed selection rule these ties would have been broken by LoC and subjective feel. After functional verification eliminated sonnet45, the rubric-plus-functional ranking would have selected opus47 by LoC tiebreak. The eight-model deliberative pass selected a different implementation (sonnet46low) by 7-to-1, on a property (preservation of existing handler body through wrap-rather-than-replace) that the rubric had no criterion for. The deliberative output is not a superseding verdict; it is an additional measurement whose result disagrees with the rubric-plus-functional ranking. That disagreement is itself data.
+
+---
+
+## Methodology cost disclosure
+
+The following is what this experiment cost to run, exactly.
+
+**Hardware.** Three nodes, all existing infrastructure at time of experiment:
+
+- Surface (governor terminal): Surface Pro 8, WSL2 Debian 13 trixie, Claude Opus 4.7 via Claude Code CLI
+- Rousseau: M1 Mac Studio 64GB, macOS, Claude Sonnet 4.5 and 4.6 and Opus 4.7 via Claude Code CLI; local llama-server hosting phi-4-mini (:8081), qwen3-32b (:8082), gemma-4-26b (:8083), qwen3-coder-30B-A3B (:8084)
+- Emile: M2 Mac Mini 8GB, macOS, Claude Sonnet 4.5 and 4.6 and Opus 4.7 via Claude Code CLI
+
+**New artifact.** Qwen3-Coder-30B-A3B-Instruct-Q4_K_M (18.5 GB) downloaded to `/Users/rousseau/models/` at ~111 MB/s over ~2 min 42 sec; served via new launchd unit `com.rousseau.llama-coder` on port 8084; exposed as `nba code` mode. No other infrastructure changes.
+
+## ./variance-lab-handler-methodology.txt (lines 1-40 of 398)
+# Variance-Lab: handler.sh Substrate-Code Selection
+## A three-gate methodology report
+
+  Canonical:  https://subtract.ing/variance-lab-handler-methodology.txt (to be signed via llms.txt manifest)
+  Harness:    /tmp artifacts preserved; reproducible under subtract.ing runtime
+  Signer:     hodori@subtract.ing
+  Namespace:  subtract.ing
+
+### Artifact paths
+
+Artifacts backing this report live under `github.com/03-git/variance-lab/data/handler/`.
+
+What survived the original `/tmp` run and is published:
+
+  data/handler/handler-dispatch-spec.txt      4,663-char dispatch prompt (Task 1 + Task 2)
+  data/handler/handler-dispatch-rubric.txt    pre-committed evaluation rubric
+
+What did not survive (original `/tmp` paths, not preserved across session boundary — see Limitations):
+
+  /tmp/impl-{opus47,sonnet45,sonnet46,sonnet46low,qwen3coder}.sh    five implementations
+  /tmp/ship-decision.txt                                             deliberative-pass prompt
+  /tmp/vote-*.txt                                                    eight voter responses
+
+### Terminology
+
+- **Effort tier** (`high` / `low` / etc.): `CLAUDE_CODE_EFFORT_LEVEL` environment variable passed to `claude -p`. Governs reasoning-depth setting for the invocation.
+- **`nba <mode>`**: local Rousseau wrapper (script at `~/scripts/nba`) that dispatches to a `nanobot agent -c ~/.nanobot/<mode>.json`. Modes: `fast` → phi-4-mini on :8081; `rag` → qwen3-32b on :8082; `reasoning` → gemma-4-26b on :8083; `code` → Qwen3-Coder-30B-A3B on :8084.
+
+---
+
+## Abstract
+
+A pre-committed rubric was applied mechanically to five implementations of a session-logging extension to `handler.sh`. Two implementations tied at the top of the rubric's weighted score; the committed tiebreak rule (lowest LoC within a 2-point tie) selected a functionally valid implementation, but the tied implementation with the higher LoC produced zero valid rows when sourced into a test shell because its output included a markdown code-fence wrapper that altered shell parse semantics. An eight-model deliberative pass, dispatched across three training lineages, converged seven-of-eight on an implementation that neither the rubric nor the functional gate would have selected on their own. The finding reported here is about the three-gate methodology — static rubric, functional verification, deliberative pass — and the interactions between them.
+
+---
+
+## Spec
+
+The following spec was dispatched verbatim to each implementation target. No per-target modification. No prior conversation context assumed.
+
+
+## ./variance-lab.txt (lines 721-760 of 2449)
+source: production empirical (70 validated measurements, 3 conditions, gemma-4-26B-A4B on Apple Silicon)
+domain:
+  - local-inference
+  - protocol-engineering
+  - multiplexing
+  - latency-measurement
+keywords:
+  - h2 multiplexing
+  - llama-server
+  - concurrent inference
+  - local LLM latency
+  - browser connection limit
+  - subtract runtime
+prior_art_status: >
+  HTTP/2 multiplexing is a known property (RFC 9113). Benchmarking it
+  against local LLM inference on consumer hardware has no published
+  precedent, but the mechanism is well understood. This finding measures
+  whether the theoretical advantage produces a practical one.
+---
+
+# HTTP/2 Multiplexing vs HTTP/1.1 for Local Inference Concurrency
+
+## Claim
+
+End-to-end, HTTP/2 multiplexing through squared provides no measurable
+advantage over parallel HTTP/1.1 for local inference via curl. Inference
+time dominates wall-clock latency; the protocol is not the bottleneck.
+
+The advantage is specific to browsers: the 6-connection-per-origin limit
+in Chrome/Brave creates artificial serialization that h2 eliminates. At
+c=3 from a browser, h2 is 2.5× faster. From curl, the protocols are
+equivalent.
+
+Dispatch overhead (time to place requests on the wire, not time to receive
+responses) is 30× lower for h2 at c=3. This is a real measurement but not
+an end-to-end speedup — the user still waits for inference regardless of
+how fast the request was dispatched.
+
+## Measurement
+
+
+## ./variance-lab.txt (lines 1-40 of 2449)
+# variance-lab — empirical proof layer
+
+This is the claim layer of the subtract stack. Harness and raw outputs live at
+github.com/03-git/variance-lab (substrate, reproducible). These findings are
+the load-bearing empirical claims that the subtract doctrine relies on.
+
+  Canonical:   https://subtract.ing/variance-lab.txt (signed via llms.txt manifest)
+  Methodology: https://subtract.ing/variance-lab-handler-methodology.txt (three-gate validation, 2026-04-18)
+  Harness:     https://github.com/03-git/variance-lab (runnable, reproducible)
+  Signer:      hodori@subtract.ing
+  Namespace:   subtract.ing
+
+Verify:
+
+  curl -sO https://subtract.ing/llms.txt
+  curl -sO https://subtract.ing/llms.txt.sig
+  curl -sO https://subtract.ing/variance-lab.txt
+  ssh-keygen -Y verify -f <(curl -s https://subtract.ing/authorized_signers) \
+    -I hodori@subtract.ing -n subtract.ing -s llms.txt.sig < llms.txt
+  grep "variance-lab.txt" llms.txt | sha256sum -c
+
+
+================================================================
+
+---
+title: Three Questions for Agentic Autonomy
+date: 2026-03-28
+source: production empirical (consulting methodology derived from formation buildout)
+domain:
+  - agentic-consulting
+  - workflow-automation
+  - autonomy-assessment
+  - human-ai-task-allocation
+keywords:
+  - agentic autonomy assessment
+  - consulting intake protocol
+  - workflow automation assessment
+  - human KPI identification
+  - via negativa methodology
+  - autonomy blocker taxonomy
+
+## ./subtracting.html (lines 121-160 of 227)
+    phone a friend.</p>
+
+<pre>
+computer    lookdown.tsv   <span class="dim">pattern match, no AI</span>
+            apropos        <span class="dim">man page lookup, no AI</span>
+
+assisted    embedding      <span class="dim">local vector search</span>
+            llama.cpp      <span class="dim">local language model</span>
+
+remote      curl           <span class="dim">cloud API</span>
+</pre>
+
+    <p>Voice input and output (speech-to-text, text-to-speech) can
+    be local or cloud depending on what is available.</p>
+
+    <p>The goal is that your computer answers before assistance is
+    needed, and local assistance answers before remote does. Each component is either
+    pre-installed or a single binary plus model file. Full local
+    install is roughly 1.1GB. No interpreter or package manager
+    required.</p>
+
+    <p>Three layers subtract in sequence:</p>
+
+<pre>
+1. subtract subtracts from the environment (no frameworks, no SaaS)
+2. the human subtracts from the agent's context (pre-flight, pushback)
+3. the agent subtracts from its own defaults (no verbosity, no confabulation)
+</pre>
+
+
+    <hr>
+
+    <h2>Populations</h2>
+
+    <p>subtract serves two populations:</p>
+
+    <p><strong>Humans</strong> who want to stop depending on AI intermediaries
+    to reach their own machines.</p>
+
+    <p><strong>Agents</strong> that reach for libraries and SaaS before
+
+## ./subtracting.html (lines 1-40 of 227)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <title>subtracting — why subtract exists</title>
+    <meta name="description" content="The thesis, lineage, and evidence behind subtract.ing.">
+    <style>
+        body {
+            background: #111;
+            color: #c0c0c0;
+            font-family: monospace;
+            margin: 2rem auto;
+            max-width: 72ch;
+            padding: 0 1rem;
+            line-height: 1.5;
+        }
+        h1 { font-size: 1rem; font-weight: normal; margin: 0; }
+        h2 { font-size: 1rem; font-weight: normal; margin: 2rem 0 0.5rem; color: #8be9fd; }
+        p { margin: 0.5rem 0; }
+        hr { border: none; color: #555; margin: 1.5rem 0; }
+        hr::before { content: "* * *"; display: block; text-align: left; }
+        a { color: #8be9fd; }
+        a:visited { color: #bd93f9; }
+        .dim { color: #666; }
+        pre { margin: 0.5rem 0; white-space: pre-wrap; }
+        blockquote {
+            border-left: 2px solid #555;
+            margin: 1rem 0;
+            padding-left: 1rem;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <h1><a href="/">subtract.ing</a> / subtracting</h1>
+    <p>Theory, lineage, and evidence.</p>
+
+    <hr>
+
+## ./subtract.7.txt (lines 81-120 of 177)
+computer|lookdown.tsv|<1MB|already there
+computer|apropos|\[em]|already there
+assisted|embed binary|45MB|ships
+assisted|llama.cpp|850MB|ships
+assisted|whisper.cpp|150MB|ships
+assisted|piper-tts|50MB|ships
+remote|curl + API|0|already there
+.TE
+.PP
+Goal: fade toward computer. Less inference over time, more direct expression.
+.PP
+Every component is either "already there" or "single binary + model." Full local
+install is roughly 1.1GB.
+.SH BUFFER-SUBTRACT PATTERN
+A substrate honors the pattern if and only if all six invariants hold.
+.IP 1. 4
+Native modality owns the buffer. subtract never owns it.
+.IP 2. 4
+Subtraction is explicit. A specific gesture hands the buffer to subtract.
+No polling.
+.IP 3. 4
+subtract reads, translates, writes back. It does not commit. The user's
+commit gesture remains the only path to action.
+.IP 4. 4
+Non-subtraction has zero residue. A user who never invokes subtract has a
+substrate bit-identical to one without subtract installed.
+.IP 5. 4
+Successful subtractions train toward direct expression. Users internalize the
+direct form and stop subtracting.
+.IP 6. 4
+The router is modality-blind. String in, string out.
+.PP
+The required precondition: the buffer must be inspectable without committing.
+Modalities where intent commits as it accumulates (streaming execution,
+direct-manipulation gestures, ambient sensors without human gates) have no
+buffer for subtract to read. The pattern does not apply there.
+.SH OUTPUT DISPATCH
+Each row in lookdown.tsv can specify an output tag that controls how results
+render. Two tags exist:
+.TP
+
+## ./subtract.7.txt (lines 1-40 of 177)
+.TH SUBTRACT 7 "2026-04-12" "subtract" "Miscellaneous Information Manual"
+.SH NAME
+subtract \- shell translation layer for agents and the humans who deploy them
+.SH SYNOPSIS
+.nf
+curl \-sL subtract.ing/boot | claude \-p
+.fi
+.PP
+subtract has no binary of its own at the computer layer. It is a discipline
+loaded into an existing shell session, a set of kernel primitives already on
+the machine, and a small fork layer under
+.IR ~/.subtract/ .
+Upgrades add single binaries (embed, llama.cpp, whisper.cpp, piper-tts) on top
+of that floor.
+.SH DESCRIPTION
+subtract is software
+.IR "as a besides" .
+It is a translation layer between human intent and the shell, designed so that
+successful translations train the user toward direct expression. The AI is not
+the product. Literacy is the product. Dependency is the failure mode.
+.PP
+subtract serves two populations:
+.TP
+.B humans
+who want to stop depending on AI intermediaries to reach their own machines.
+.TP
+.B agents
+whose training defaulted to Python libraries, SaaS APIs, and framework
+abstractions \[em] and who need a counter-training layer pointing them back at
+the kernel primitives that solved the same problems decades earlier.
+.PP
+Three layers subtract in sequence:
+.IP \(bu 4
+.B subtract
+subtracts from the environment (no frameworks, no SaaS).
+.IP \(bu 4
+.B the human
+subtracts from the agent's context (pre-flight, pushback on drift).
+.IP \(bu 4
+.B the agent
+
+## ./runtime/squared.c (lines 481-520 of 742)
+        s->req_body = realloc(s->req_body, s->req_body_cap);
+    }
+    memcpy(s->req_body + s->req_body_len, data, len);
+    s->req_body_len += len;
+    return 0;
+}
+
+static int on_frame_recv(nghttp2_session *session,
+    const nghttp2_frame *frame, void *user_data)
+{
+    (void)session;
+    session_data *sd = user_data;
+    if (frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) {
+        if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+            stream_data *s = find_stream(sd, frame->hd.stream_id);
+            if (s) {
+                if (s->req_method && strcmp(s->req_method, "OPTIONS") == 0) {
+                    submit_cors_preflight(sd, frame->hd.stream_id);
+                    return 0;
+                }
+                send_backend_request(s);
+            }
+        }
+    }
+    return 0;
+}
+
+static int on_stream_close(nghttp2_session *session, int32_t stream_id,
+    uint32_t error_code, void *user_data)
+{
+    (void)session;
+    (void)error_code;
+    session_data *sd = user_data;
+    remove_stream(sd, stream_id);
+    return 0;
+}
+
+static ssize_t send_callback(nghttp2_session *session,
+    const uint8_t *data, size_t length, int flags, void *user_data)
+{
+
+## ./runtime/squared.c (lines 1-40 of 742)
+/*
+ * squared — HTTP/2 proxy for local inference multiplexing
+ *
+ * Without cert/key: h2c (cleartext HTTP/2, loopback only)
+ * With cert/key:    h2 over TLS (ALPN negotiated, all interfaces)
+ *
+ * Build:
+ *   cc -o squared squared.c $(pkg-config --cflags --libs libnghttp2) \
+ *      -lmbedtls -lmbedx509 -lmbedcrypto -lpthread
+ *
+ * Usage:
+ *   squared [port] [backend_host:port]
+ *   squared [port] [backend_host:port] cert.pem key.pem
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <signal.h>
+#include <poll.h>
+
+#include <nghttp2/nghttp2.h>
+
+#ifndef NO_TLS
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/x509_crt.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/net_sockets.h>
+#endif
+
+## ./runtime/parsimony.c (lines 321-360 of 596)
+        prelude_buf[prelude_len] = '\0';
+        if (prelude_len == (int)(sizeof(prelude_buf) - 1))
+            fprintf(stderr, "warning: prelude truncated at %d bytes\n", prelude_len);
+    }
+
+    llama_backend_init();
+    ggml_backend_load_all();
+
+    struct llama_model_params mp = llama_model_default_params();
+    struct llama_model *model = llama_model_load_from_file(model_path, mp);
+    if (!model) {
+        fprintf(stderr, "failed to load: %s\n", model_path);
+        return 1;
+    }
+
+    struct llama_context_params cp = llama_context_default_params();
+    cp.n_ctx     = n_ctx;
+    cp.n_batch   = n_ctx;
+    cp.n_threads = n_threads;
+    struct llama_context *ctx = llama_init_from_model(model, cp);
+    if (!ctx) {
+        fprintf(stderr, "failed to create context\n");
+        llama_model_free(model);
+        return 1;
+    }
+
+    struct llama_sampler *smpl = llama_sampler_chain_init(
+        llama_sampler_chain_default_params());
+    llama_sampler_chain_add(smpl, llama_sampler_init_temp(0.7f));
+    llama_sampler_chain_add(smpl, llama_sampler_init_top_p(0.9f, 1));
+    llama_sampler_chain_add(smpl, llama_sampler_init_dist(LLAMA_DEFAULT_SEED));
+
+    fprintf(stderr, "ready: %s (%d ctx, %d threads%s%s)\n",
+            model_path, n_ctx, n_threads,
+            prelude_path ? ", prelude=" : "",
+            prelude_path ? prelude_path : "");
+    fflush(stderr);
+
+    FILE *in = stdin;
+    int srv_fd = -1;
+
+## ./runtime/parsimony.c (lines 1-40 of 596)
+/*
+ * parsimony — inference as a unix filter
+ *
+ * Loads a GGUF once. Reads JSON requests from stdin (one per line).
+ * Writes JSON responses to stdout (one per line). Stays alive.
+ * The shell manages the lifecycle via coproc. Stateless: KV cache
+ * clears between requests; the orchestrator owns conversation state.
+ *
+ * Wire format (input, one JSON line per request):
+ *   {"messages":[{"role":"...","content":"..."},...],"max_tokens":N}
+ *   OpenAI chat-completions-shaped. UTF-8 bytes, no \uXXXX escapes.
+ *   No nested objects in content, no JSON inside JSON. Caller
+ *   flattens with jq -c if needed (jq emits UTF-8 by default).
+ *   Input is read dynamically via getline (no fixed cap).
+ *
+ * Wire format (output, one JSON line per response):
+ *   {"choices":[{"message":{"role":"assistant","content":"..."},"finish_reason":"stop"}]}
+ *
+ * Wire format (output, streaming — when input has "stream":true):
+ *   data: {"choices":[{"delta":{"content":"token"},"finish_reason":null}]}
+ *   data: {"choices":[{"delta":{"content":"token"},"finish_reason":null}]}
+ *   ...
+ *   data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
+ *   data: [DONE]
+ *
+ * Build:
+ *   cc -o parsimony parsimony.c -I/path/to/llama.cpp/include \
+ *      -L/path/to/llama.cpp/lib -lllama -lggml -lm -lpthread
+ *
+ * Usage:
+ *   coproc INF { ./parsimony model.gguf; }
+ *   echo '{"messages":[{"role":"user","content":"hello"}]}' >&${INF[1]}
+ *   read -r response <&${INF[0]}
+ *
+ *   # with standing context:
+ *   coproc INF { ./parsimony model.gguf --prelude-file ~/subtract.ing/SOUL.txt; }
+ */
+
+#include <signal.h>
+#include <stdio.h>

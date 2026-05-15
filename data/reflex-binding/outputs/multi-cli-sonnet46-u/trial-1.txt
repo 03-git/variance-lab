@@ -1,0 +1,62 @@
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(description="Network configuration tool")
+    parser.add_argument("--host", default="localhost", help="Target host (default: localhost)")
+    parser.add_argument("--port", type=int, required=True, help="Target port (1-65535)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+
+    args = parser.parse_args()
+
+    if not 1 <= args.port <= 65535:
+        parser.error(f"Port must be between 1 and 65535, got {args.port}")
+
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose,
+    }
+
+    if args.verbose:
+        print("Configuration parsed successfully:", file=sys.stderr)
+
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage
+python tool.py --port 8080
+
+# All flags
+python tool.py --host example.com --port 443 --verbose
+
+# Invalid port (out of range)
+python tool.py --port 99999
+
+# Invalid port (not an integer)
+python tool.py --port abc
+```
+
+**Example output** for `python tool.py --host example.com --port 443 --verbose`:
+
+```
+Configuration parsed successfully:
+{
+  "host": "example.com",
+  "port": 443,
+  "verbose": true
+}
+```
+
+A few notes on the design:
+- `--port` uses `type=int` so argparse rejects non-integers before your code runs
+- The range check uses `parser.error()` which prints a usage hint and exits with code 2 (standard CLI convention)
+- Verbose messages go to `stderr` so `stdout` stays clean JSON that can be piped

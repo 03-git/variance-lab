@@ -1,0 +1,43 @@
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info('peername')
+    try:
+        while line := await reader.readline():
+            writer.write(line)
+            await writer.drain()
+    except ConnectionResetError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+async def main() -> None:
+    server = await asyncio.start_server(handle_client, '127.0.0.1', 8888)
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**Run it:**
+
+```bash
+python echo_server.py
+```
+
+**Test with netcat (each in its own terminal):**
+
+```bash
+nc 127.0.0.1 8888
+```
+
+Type a line, hit enter — you'll see it echoed back. Open multiple `nc` sessions simultaneously; `asyncio.start_server` handles them concurrently on a single thread via the event loop.
+
+**How it works:**
+- `asyncio.start_server` registers an accept loop; each accepted connection calls `handle_client` as a new coroutine task.
+- `reader.readline()` suspends the coroutine at `await` while other clients run — no threads needed.
+- `writer.drain()` yields control back to the loop after a write, preventing buffer buildup under load.
+- The walrus operator (`while line := ...`) exits cleanly on EOF (client disconnect).

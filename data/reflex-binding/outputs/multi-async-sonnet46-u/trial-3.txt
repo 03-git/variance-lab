@@ -1,0 +1,64 @@
+Here's a clean async TCP echo server using Python's built-in `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    print(f"[+] Connected: {addr}")
+
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:
+                break
+            line = data.decode().rstrip("\n")
+            print(f"[{addr}] Received: {line!r}")
+            writer.write(data)
+            await writer.drain()
+    except asyncio.IncompleteReadError:
+        pass
+    finally:
+        print(f"[-] Disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main() -> None:
+    host, port = "127.0.0.1", 8888
+    server = await asyncio.start_server(handle_client, host, port)
+    addr = server.sockets[0].getsockname()
+    print(f"Serving on {addr}")
+
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+```bash
+# Terminal 1 — start the server
+python echo_server.py
+
+# Terminal 2 — connect a client (Ctrl+C to quit)
+nc 127.0.0.1 8888
+
+# Or use Python's telnetlib-free one-liner as a client
+python -c "
+import socket
+s = socket.create_connection(('127.0.0.1', 8888))
+while True:
+    msg = input('> ')
+    s.sendall((msg + '\n').encode())
+    print('Echo:', s.recv(4096).decode().strip())
+"
+```
+
+**How it works:**
+
+- `asyncio.start_server` registers `handle_client` as a callback — it fires for every new TCP connection, and all connections run concurrently in the same event loop with no threads.
+- `reader.readline()` suspends the coroutine (yielding control) until a `\n`-terminated line arrives, so thousands of idle connections have near-zero overhead.
+- `writer.drain()` is awaited after each write to respect backpressure — it yields until the write buffer is flushed to the OS.
+- The `finally` block guarantees the socket is cleaned up even if the client drops unexpectedly.

@@ -1,0 +1,49 @@
+# Review
+
+## 1. Factual errors and internal inconsistencies
+
+- **Effort-matrix headline claim is overstated.** The opening claim that Opus 4.6 "binds at every non-default level" rests on a single binding-zone average per cell with N=15 (3 prompts × 5 trials). Opus 4.6 medium httpclient is 100/100 (zero delta) and low httpclient is 100/100 (zero delta) — the model is not binding at those cells, the cell-level average just gets pulled positive by scraper.
+
+- **Finding 6 claim "Sonnet peaks at the lowest effort"** is not supported by the table. Sonnet's peak (+47%) is tied between low and default. Default is not "lowest."
+
+- **Trial count.** Frontmatter and methodology both assert 1,872 trials. The visible matrices show four prompts (http, scraper, httpclient, test) with non-uniform N across cells; the four other prompts (async, cli, sqlite, rest) are claimed tested but not enumerated. No arithmetic in the text reproduces 1,872. Either show the count or drop the precision.
+
+- **N=5 vs N=35–57 inconsistency.** Per-prompt tables annotate "All other cells N=5" but the methodology block says "baseline prompts at N=35-57 per cell." Only Haiku default cells in the per-prompt table actually carry the larger-N annotation. The other models' default cells are shown without N — leaving the reader unsure whether Opus 4.6 default 0/0/0 is N=5 or N≈50, which materially affects how seriously to take Finding 2.
+
+- **Haiku default test self-falsification not surfaced.** "+20% (N=50, stabilized from +40% at N=5)" demonstrates that an N=5 cell halved on retest. That single line invalidates reading any individual N=5 cell as more than directional, but the rest of the document still treats individual N=5 cells as evidence (e.g., "+60% at default, +100% at high, +80% at xhigh, +40% at max" in Finding 3).
+
+- **"Anthropic's 'dreaming' thesis"** is asserted twice (Claim section, Finding 3) without a citation. "Extended thinking" is the documented Anthropic term; "dreaming" is not, and "more compute = better agent behavior" is not a thesis Anthropic has published in those terms. If the source is a tweet or blog post, cite it; otherwise drop the personification.
+
+- **"Finding 2 (delegation-aware execution)"** at the bottom of Methodology cross-references something that doesn't exist in this document — the in-document Finding 2 is "Opus 4.6 default is a configuration anomaly." If this is a reference to an external numbered finding, the numbering collides with the in-document numbering.
+
+## 2. Framing drift
+
+- **"More compute deepens commitment to the training-data mode... The model isn't exploring — it's reinforcing"** (Claim, Finding 3). This is mechanism narration from four ungoverned cells on one prompt for one model. The data shows declining stdlib rate at higher effort for Opus 4.7 httpclient ungoverned. It does not show what the tokens of reasoning contain or that the model is "reciting training-data mode." Either inspect the reasoning traces or downgrade to "ungoverned stdlib rate declines with effort on this prompt."
+
+- **"Complied in code while violating in framing"** (Finding 2) imports governance.conf vocabulary (fail.verbosity, fail.additive) to relabel a scorer artifact as a governance violation. The scorer is a regex over prose; whether mentioning an alternative after writing correct stdlib code constitutes "violation" is an editorial judgment, not a measurement. The Confound section already concedes "a code-only scorer would change the absolute numbers" — the finding section should match that concession instead of doubling down.
+
+- **"Sonnet 4.6 is robustly governable"** (Finding 1) overreaches. The data shows Sonnet sits in a regime where ungoverned baselines are middling and governance moves them up. "Robustly governable" implies a property of the model; what's measured is a property of the model × prompt-set × scorer combination.
+
+- **"The model most responsive to governance ... is the one at the decision boundary where stdlib and library are closest to equiprobable"** (Finding 6) is tautological. The binding zone was defined as prompts where governance has measurable delta; saying responsiveness peaks there restates the definition.
+
+- **Connection to Managed Agents section.** This compares a directive intervention to a retry loop neither tested nor measured here. "Achieves what the retry/review loop attempts — at one read of cached context vs N inference calls" is an unsupported equivalence. Cut or move to a separate "speculation" section.
+
+- **Cost section.** "$200-300 API-equivalent" vs "Max subscription fee already paid" is editorializing about pricing strategy, not a finding about effort and governance.
+
+## 3. Missing / should be cut
+
+**Missing:**
+- Confidence intervals or any uncertainty quantification. With binary per-trial outcomes and N=5, each cell SE is ≈22 percentage points. The +13% / +27% / +33% distinctions in the matrix are within noise and the document never says so.
+- Temperature, top_p, seed, prompt order, trial order. Not specified anywhere.
+- What "default" actually invokes (whether `claude -p` without `--effort` sets a tier or unsets the parameter). Finding 2 speculates extensively about this; the answer is checkable.
+- Per-prompt variance vs per-trial variance. Cell averages mix three prompts; one prompt could be driving an entire cell.
+- Multiple-comparison correction across ~64 cells.
+- The CEILING/BINDING/FLOOR taxonomy is derived from the same data used to compute deltas — circular. State this risk explicitly or partition the data.
+- An explicit note that the Haiku N=50 retest cuts the effect by half; this should be in the headline confounds, not a parenthetical in Finding 4.
+
+**Should be cut:**
+- "Connection to Managed Agents" — speculative, not measured.
+- "Cost" comparison against API rates — orthogonal to the finding.
+- "Anthropic's 'dreaming' thesis" framing in both Claim and Finding 3 — uncited and rhetorical.
+- The "complied in code while violating in framing" reframe in Finding 2 — keep the mechanism description (prose mentions trip the scorer) and drop the moral language.
+- "The multi-node architecture is itself evidence for finding 2" line — a different finding, parachuted into Methodology.

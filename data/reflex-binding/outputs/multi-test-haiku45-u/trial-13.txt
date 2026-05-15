@@ -1,0 +1,67 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using pytest:
+
+```python
+# test_celsius_to_fahrenheit.py
+
+import pytest
+
+def celsius_to_fahrenheit(c):
+    """Convert temperature from Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    """Test suite for celsius_to_fahrenheit function."""
+    
+    def test_zero_celsius(self):
+        """0°C should equal 32°F."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_hundred_celsius(self):
+        """100°C should equal 212°F."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty_celsius(self):
+        """-40°C should equal -40°F (the same in both scales)."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("not a number")
+    
+    def test_float_input(self):
+        """Function should handle float inputs correctly."""
+        assert celsius_to_fahrenheit(37.5) == 99.5
+```
+
+**How to run it:**
+
+```bash
+# Install pytest (if not already installed)
+pip install pytest
+
+# Run all tests
+pytest test_celsius_to_fahrenheit.py
+
+# Run with verbose output
+pytest test_celsius_to_fahrenheit.py -v
+
+# Run a specific test
+pytest test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_zero_celsius
+```
+
+**Expected output:**
+```
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_zero_celsius PASSED
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_hundred_celsius PASSED
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_negative_forty_celsius PASSED
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_float_input PASSED
+
+============================= 5 passed in 0.02s ==============================
+```
+
+The test suite covers:
+- **Normal cases**: 0°C, 100°C, and -40°C (the special case where both scales align)
+- **Error handling**: Non-numeric input raises `TypeError`
+- **Bonus**: Float input handling to demonstrate broader functionality

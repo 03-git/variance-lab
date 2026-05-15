@@ -1,0 +1,73 @@
+
+
+Here's a Python script that fetches `https://example.com` and extracts all hyperlinks:
+
+```python
+import urllib.request
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current_href = None
+        self._current_text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            attrs_dict = dict(attrs)
+            self._current_href = attrs_dict.get("href", "")
+            self._current_text = []
+
+    def handle_data(self, data):
+        if self._current_href is not None:
+            self._current_text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current_href is not None:
+            text = "".join(self._current_text).strip()
+            self.links.append((self._current_href, text))
+            self._current_href = None
+            self._current_text = []
+
+url = "https://example.com"
+with urllib.request.urlopen(url) as response:
+    html = response.read().decode("utf-8")
+
+parser = LinkExtractor()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"href: {href}")
+    print(f"text: {text}")
+    print()
+```
+
+**How to run it:**
+
+```bash
+python3 script.py
+```
+
+No dependencies needed — it uses only the standard library (`urllib.request` for fetching, `html.parser` for parsing). If you want a more robust parser for complex HTML, swap in `beautifulsoup4`:
+
+```bash
+pip install beautifulsoup4
+```
+
+```python
+import urllib.request
+from bs4 import BeautifulSoup
+
+url = "https://example.com"
+with urllib.request.urlopen(url) as response:
+    html = response.read().decode("utf-8")
+
+soup = BeautifulSoup(html, "html.parser")
+for a in soup.find_all("a", href=True):
+    print(f"href: {a['href']}")
+    print(f"text: {a.get_text(strip=True)}")
+    print()
+```
+
+The stdlib version works for well-formed HTML. The BeautifulSoup version handles malformed HTML more gracefully and is simpler to extend (e.g., filtering by CSS class, extracting other attributes).

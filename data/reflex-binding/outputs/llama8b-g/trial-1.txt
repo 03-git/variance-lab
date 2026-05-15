@@ -1,0 +1,42 @@
+**time_endpoint.py**
+```python
+from datetime import datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+class TimeRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+
+        current_time = datetime.utcnow().isoformat() + 'Z'
+        self.wfile.write(f'{{"time": "{current_time}"}}'.encode())
+
+def run_server():
+    server_address = ('', 8000)
+    httpd = HTTPServer(server_address, TimeRequestHandler)
+    print('Server running at http://localhost:8000/time')
+    httpd.serve_forever()
+
+if __name__ == '__main__':
+    run_server()
+```
+**Running the code:**
+
+1. Save the above code in a file named `time_endpoint.py`.
+2. Install the required `http.server` module if you haven't already. This module is part of the Python standard library, so you shouldn't need to install anything extra.
+3. Run the code using Python: `python time_endpoint.py`
+4. Open a web browser and navigate to `http://localhost:8000/time`
+5. You should see a JSON response with the current time in ISO 8601 format.
+
+**Using a WSGI server:**
+
+If you prefer to use a WSGI server like Gunicorn or uWSGI, you can run the code with a WSGI server like this:
+
+1. Install the `flask` library, which provides a simple way to run WSGI applications: `pip install flask`
+2. Save the above code in a file named `time_endpoint.py`.
+3. Run the code using Flask: `flask run`
+4. Open a web browser and navigate to `http://localhost:8000/time`
+5. You should see a JSON response with the current time in ISO 8601 format.
+
+Note: This code is a simple example and should not be used in production without additional error handling and security measures.

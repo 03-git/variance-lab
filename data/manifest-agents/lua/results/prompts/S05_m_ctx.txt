@@ -1,0 +1,529 @@
+## Manifest (routing table for Lua 5.4 source)
+# path	[tag]	description
+Makefile	[build]	Developer makefile; defines CWARNSCPP/CWARNGCC flag sets and platform targets (linux, macosx, mingw)
+lapi.c	[api]	Public C API implementation; lua_push*, lua_get*, lua_call*, lua_pcall, stack manipulation
+lapi.h	[api]	Internal API helpers; api_incr_top stack-overflow check macro, api_check assertion wrapper
+lauxlib.c	[aux]	Auxiliary library; luaL_loadfile, luaL_Buffer, luaL_ref, luaL_traceback, registry helpers
+lauxlib.h	[aux]	Auxiliary library header; luaL_Buffer, luaL_Reg, luaL_newstate, luaL_error declarations
+lbaselib.c	[stdlib]	Base library; luaB_print, luaB_pcall, luaB_xpcall, luaB_load, luaB_next, luaB_type
+lcode.c	[compiler]	Code generator; emits VM instructions, manages patch lists (NO_JUMP), constant folding, jump fixup
+lcode.h	[compiler]	Code generator header; BinOpr/UnOpr enums, expdesc result kinds, luaK_* function declarations
+lcorolib.c	[coroutine]	Coroutine library; luaB_cocreate, luaB_coresume, luaB_cowrap, luaB_costatus
+lctype.c	[core]	Custom ctype table; luai_ctype_[] byte array for fast lislalpha/lisdigit/etc without locale dependency
+lctype.h	[core]	Ctype macros; lislalpha, lisdigit, lisspace, lisprint defined over luai_ctype_[] table
+ldblib.c	[debug]	Debug library; lua_sethook, lua_getinfo, lua_getlocal wrappers; hook table at registry[HOOKKEY]
+ldebug.c	[debug]	Debug interface; luaG_runerror, luaG_typeerror, luaG_getfuncline, line/local/upvalue introspection
+ldebug.h	[debug]	Debug header; pcRel pc-to-offset macro, ci_func, resethookcount, ABSLINEINFO sentinel declarations
+ldo.c	[vm]	Stack and call engine; luaD_call, luaD_pcall, luaD_throw, luaD_rawrunprotected, stack reallocation
+ldo.h	[vm]	Call/stack header; luaD_checkstackaux growth macro, condmovestack HARDSTACKTESTS hook, throw/catch decls
+ldump.c	[compiler]	Bytecode serializer; DumpHeader, DumpFunction, DumpCode writing Proto to lua_Writer stream
+lfunc.c	[core]	Closure and prototype management; luaF_newCclosure, luaF_newLclosure, luaF_newUpval, open-upvalue list
+lfunc.h	[core]	Closure/upvalue header; sizeCclosure/sizeLclosure size macros, MAXUPVAL=255, isintwups check
+lgc.c	[gc]	Tri-color incremental garbage collector; mark/sweep/finalize phases, luaC_step, luaC_fullgc, barriers
+lgc.h	[gc]	GC header; white/gray/black color macros, luaC_barrier, luaC_barrierback, GC state constants
+linit.c	[core]	Standard library loader; stdlibs[] table mapping LUA_*LIBNAME to luaopen_* functions, luaL_openlibs
+liolib.c	[io]	I/O library; LuaFile userdata wrapping FILE*, io.open/close/read/write/lines/seek, popen support
+ljumptab.h	[vm]	GCC computed-goto dispatch table; disptab[] mapping NUM_OPCODES to &&L_OP_* labels for lvm.c
+llex.c	[parser]	Lexical analyzer; luaX_next token scanner, long strings, numeral parsing, reserved word table
+llex.h	[parser]	Lexer header; Token/SemInfo structs, FIRST_RESERVED boundary, LexState, luaX_* declarations
+llimits.h	[core]	Portability and type limits; l_mem/lu_mem, cast_* macros, MAXSTACK, luai_numunm, l_likely/unlikely
+lmathlib.c	[math]	Math library; math_abs through math_tointeger, random/randomseed with xoshiro256** PRNG
+lmem.c	[memory]	Memory manager; luaM_realloc_, luaM_growaux_, emergency GC on alloc failure, debt accounting
+lmem.h	[memory]	Memory header; luaM_new/newvector/growvector macros, overflow-safe luaM_limitN size check
+loadlib.c	[stdlib]	Dynamic loader; package.loadlib via dlopen/LoadLibrary, searchers for Lua/C modules, package.path
+lobject.c	[core]	Generic object operations; luaO_str2num, luaO_pushvfstring, luaO_tostring, integer/float coercion
+lobject.h	[core]	Core value/object type definitions; TValue tagged-union, GCObject CommonHeader, TString/Table/Proto layouts
+lopcodes.c	[vm]	Opcode mode table; luaP_opmodes[] encoding MM/OT/IT/T/A/format bits per opcode via opmode macro
+lopcodes.h	[vm]	VM instruction set; 32-bit iABC/iABx/isBx/iAx/isJ formats, OP_* enum, GET_OPCODE/GETARG_* macros
+lopnames.h	[vm]	Opcode name strings; opnames[] char* array parallel to OP_* enum for disassembly/error messages
+loslib.c	[stdlib]	OS library; os.time/date/clock/difftime/exit/getenv/remove/rename/tmpname, strftime format validation
+lparser.c	[parser]	Recursive-descent parser; luaY_parser entry, statement/expression/block rules, expdesc construction
+lparser.h	[parser]	Parser header; expdesc expkind enum (VVOID..VINDEXSTR), FuncState, BlockCnt, Dyndata declarations
+lprefix.h	[core]	Must-include-first header; sets _XOPEN_SOURCE=600, _LARGEFILE_SOURCE, _FILE_OFFSET_BITS=64 for POSIX
+lstate.c	[core]	Global and thread state init; lua_newstate, luaE_newthread, luaE_freethread, allgc list setup
+lstate.h	[core]	State structures; lua_State with stack/ci/twups/hookcount, global_State with GC roots and string table
+lstring.c	[string]	Interned string table; luaS_newlstr hash+dedup, short vs long string split at LUAI_MAXSHORTLEN=40
+lstring.h	[string]	String header; MEMERRMSG preallocated OOM string, LUAI_MAXSHORTLEN, luaS_new/eqlngstr declarations
+lstrlib.c	[string]	String library; string.format, pattern match/find/gmatch/gsub, string.pack/unpack/packsize
+ltable.c	[table]	Hash table; dual array+hash layout, Brent's variation chaining, luaH_set/get/resize/next
+ltable.h	[table]	Table header; gnode/gval/gnext access macros, invalidateTMcache, BITDUMMY flag, luaH_* declarations
+ltablib.c	[table]	Table library; table.insert/remove/sort (adaptive merge+quick), table.move, table.concat
+ltests.c	[debug]	Internal test module; memory limit injection, GC stress, opcode checkers, C test functions exposed to Lua
+ltests.h	[debug]	Test header; enables LUA_DEBUG/LUAI_ASSERT, redefines allocator for memory fault injection
+ltm.c	[core]	Tag method (metamethod) dispatch; luaT_typenames_, luaT_gettm, luaT_callTM, __index/__newindex chains
+ltm.h	[core]	Metamethod enum; TM_INDEX..TM_CLOSE ordered enum, TM_N count, fast-access cutoff at TM_EQ
+lua.c	[core]	Standalone interpreter; REPL loop, LUA_INIT handling, signal handler, dofile/dostring startup
+lua.h	[api]	Public API header; lua_State, TValue-free types, lua_push*/lua_to*/lua_call*/lua_pcall declarations
+luaconf.h	[build]	Master configuration; LUA_INT_TYPE, LUA_FLOAT_TYPE, LUAI_MAXSTACK, path defaults, platform detection
+lualib.h	[stdlib]	Standard library registry; LUA_*LIBNAME constants, LUA_*LIBK bitmask flags, luaopen_* declarations
+lundump.c	[compiler]	Bytecode loader; LoadHeader magic/version check, LoadFunction rebuilds Proto from luac binary format
+lundump.h	[compiler]	Undump header; LUAC_DATA/INT/INST/NUM verification constants, LUAC_VERSION nibble encoding
+lutf8lib.c	[string]	UTF-8 library; utf8.codes/codepoint/char/len/offset, MAXUNICODE=0x10FFFF decoder/encoder
+lvm.c	[vm]	Main interpreter loop; luaV_execute dispatch over all opcodes, arithmetic/comparison/metamethod calls
+lvm.h	[vm]	VM header; cvt2str/cvt2num coercion macros, luaV_execute/luaV_objcomp/luaV_idiv declarations
+lzio.c	[core]	Buffered input stream; luaZ_fill refill callback, luaZ_read block reader over ZIO
+lzio.h	[core]	ZIO stream header; zgetc single-char macro, Mbuffer dynamic buffer, luaZ_initbuffer/resetbuffer
+onelua.c	[build]	Unity build entry; #includes all core + lib sources for single-TU compilation via gcc -o lua onelua.c -lm
+
+
+## ltable.c (lines 721-760 of 1355)
+    luaG_runerror(L, "table overflow");
+  /* create new hash part with appropriate size into 'newt' */
+  newt.flags = 0;
+  setnodevector(L, &newt, nhsize);
+  if (newasize < oldasize) {  /* will array shrink? */
+    /* re-insert into the new hash the elements from vanishing slice */
+    exchangehashpart(t, &newt);  /* pretend table has new hash */
+    reinsertOldSlice(t, oldasize, newasize);
+    exchangehashpart(t, &newt);  /* restore old hash (in case of errors) */
+  }
+  /* allocate new array */
+  newarray = resizearray(L, t, oldasize, newasize);
+  if (l_unlikely(newarray == NULL && newasize > 0)) {  /* allocation failed? */
+    freehash(L, &newt);  /* release new hash part */
+    luaM_error(L);  /* raise error (with array unchanged) */
+  }
+  /* allocation ok; initialize new part of the array */
+  exchangehashpart(t, &newt);  /* 't' has the new hash ('newt' has the old) */
+  t->array = newarray;  /* set new array part */
+  t->asize = newasize;
+  if (newarray != NULL)
+    *lenhint(t) = newasize / 2u;  /* set an initial hint */
+  clearNewSlice(t, oldasize, newasize);
+  /* re-insert elements from old hash part into new parts */
+  reinserthash(L, &newt, t);  /* 'newt' now has the old hash */
+  freehash(L, &newt);  /* free old hash part */
+}
+
+
+void luaH_resizearray (lua_State *L, Table *t, unsigned int nasize) {
+  unsigned nsize = allocsizenode(t);
+  luaH_resize(L, t, nasize, nsize);
+}
+
+
+/*
+** Rehash a table. First, count its keys. If there are array indices
+** outside the array part, compute the new best size for that part.
+** Then, resize the table.
+*/
+
+## ltable.c (lines 1-40 of 1355)
+/*
+** $Id: ltable.c $
+** Lua tables (hash)
+** See Copyright Notice in lua.h
+*/
+
+#define ltable_c
+#define LUA_CORE
+
+#include "lprefix.h"
+
+
+/*
+** Implementation of tables (aka arrays, objects, or hash tables).
+** Tables keep its elements in two parts: an array part and a hash part.
+** Non-negative integer keys are all candidates to be kept in the array
+** part. The actual size of the array is the largest 'n' such that
+** more than half the slots between 1 and n are in use.
+** Hash uses a mix of chained scatter table with Brent's variation.
+** A main invariant of these tables is that, if an element is not
+** in its main position (i.e. the 'original' position that its hash gives
+** to it), then the colliding element is in its own main position.
+** Hence even when the load factor reaches 100%, performance remains good.
+*/
+
+#include <math.h>
+#include <limits.h>
+#include <string.h>
+
+#include "lua.h"
+
+#include "ldebug.h"
+#include "ldo.h"
+#include "lgc.h"
+#include "lmem.h"
+#include "lobject.h"
+#include "lstate.h"
+#include "lstring.h"
+#include "ltable.h"
+#include "lvm.h"
+
+## lstring.c (lines 81-120 of 353)
+      unsigned int h = lmod(p->hash, nsize);  /* new position */
+      p->u.hnext = vect[h];  /* chain it into array */
+      vect[h] = p;
+      p = hnext;
+    }
+  }
+}
+
+
+/*
+** Resize the string table. If allocation fails, keep the current size.
+** (This can degrade performance, but any non-zero size should work
+** correctly.)
+*/
+void luaS_resize (lua_State *L, int nsize) {
+  stringtable *tb = &G(L)->strt;
+  int osize = tb->size;
+  TString **newvect;
+  if (nsize < osize)  /* shrinking table? */
+    tablerehash(tb->hash, osize, nsize);  /* depopulate shrinking part */
+  newvect = luaM_reallocvector(L, tb->hash, osize, nsize, TString*);
+  if (l_unlikely(newvect == NULL)) {  /* reallocation failed? */
+    if (nsize < osize)  /* was it shrinking table? */
+      tablerehash(tb->hash, nsize, osize);  /* restore to original size */
+    /* leave table as it was */
+  }
+  else {  /* allocation succeeded */
+    tb->hash = newvect;
+    tb->size = nsize;
+    if (nsize > osize)
+      tablerehash(newvect, osize, nsize);  /* rehash for new size */
+  }
+}
+
+
+/*
+** Clear API string cache. (Entries cannot be empty, so fill them with
+** a non-collectable string.)
+*/
+void luaS_clearcache (global_State *g) {
+
+## lstring.c (lines 1-40 of 353)
+/*
+** $Id: lstring.c $
+** String table (keeps all strings handled by Lua)
+** See Copyright Notice in lua.h
+*/
+
+#define lstring_c
+#define LUA_CORE
+
+#include "lprefix.h"
+
+
+#include <string.h>
+
+#include "lua.h"
+
+#include "ldebug.h"
+#include "ldo.h"
+#include "lmem.h"
+#include "lobject.h"
+#include "lstate.h"
+#include "lstring.h"
+
+
+/*
+** Maximum size for string table.
+*/
+#define MAXSTRTB	cast_int(luaM_limitN(INT_MAX, TString*))
+
+/*
+** Initial size for the string table (must be power of 2).
+** The Lua core alone registers ~50 strings (reserved words +
+** metaevent keys + a few others). Libraries would typically add
+** a few dozens more.
+*/
+#if !defined(MINSTRTABSIZE)
+#define MINSTRTABSIZE   128
+#endif
+
+
+
+## lctype.c (lines 1-40 of 64)
+/*
+** $Id: lctype.c $
+** 'ctype' functions for Lua
+** See Copyright Notice in lua.h
+*/
+
+#define lctype_c
+#define LUA_CORE
+
+#include "lprefix.h"
+
+
+#include "lctype.h"
+
+#if !LUA_USE_CTYPE	/* { */
+
+#include <limits.h>
+
+
+#if defined (LUA_UCID)		/* accept UniCode IDentifiers? */
+/* consider all non-ASCII codepoints to be alphabetic */
+#define NONA		0x01
+#else
+#define NONA		0x00	/* default */
+#endif
+
+
+LUAI_DDEF const lu_byte luai_ctype_[UCHAR_MAX + 2] = {
+  0x00,  /* EOZ */
+  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,	/* 0. */
+  0x00,  0x08,  0x08,  0x08,  0x08,  0x08,  0x00,  0x00,
+  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,	/* 1. */
+  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,
+  0x0c,  0x04,  0x04,  0x04,  0x04,  0x04,  0x04,  0x04,	/* 2. */
+  0x04,  0x04,  0x04,  0x04,  0x04,  0x04,  0x04,  0x04,
+  0x16,  0x16,  0x16,  0x16,  0x16,  0x16,  0x16,  0x16,	/* 3. */
+  0x16,  0x16,  0x04,  0x04,  0x04,  0x04,  0x04,  0x04,
+  0x04,  0x15,  0x15,  0x15,  0x15,  0x15,  0x15,  0x05,	/* 4. */
+  0x05,  0x05,  0x05,  0x05,  0x05,  0x05,  0x05,  0x05,
+  0x05,  0x05,  0x05,  0x05,  0x05,  0x05,  0x05,  0x05,	/* 5. */
+
+## lua.c (lines 161-200 of 794)
+static int docall (lua_State *L, int narg, int nres) {
+  int status;
+  int base = lua_gettop(L) - narg;  /* function index */
+  lua_pushcfunction(L, msghandler);  /* push message handler */
+  lua_insert(L, base);  /* put it under function and args */
+  globalL = L;  /* to be available to 'laction' */
+  setsignal(SIGINT, laction);  /* set C-signal handler */
+  status = lua_pcall(L, narg, nres, base);
+  setsignal(SIGINT, SIG_DFL); /* reset C-signal handler */
+  lua_remove(L, base);  /* remove message handler from the stack */
+  return status;
+}
+
+
+static void print_version (void) {
+  lua_writestring(LUA_COPYRIGHT, strlen(LUA_COPYRIGHT));
+  lua_writeline();
+}
+
+
+/*
+** Create the 'arg' table, which stores all arguments from the
+** command line ('argv'). It should be aligned so that, at index 0,
+** it has 'argv[script]', which is the script name. The arguments
+** to the script (everything after 'script') go to positive indices;
+** other arguments (before the script name) go to negative indices.
+** If there is no script name, assume interpreter's name as base.
+** (If there is no interpreter's name either, 'script' is -1, so
+** table sizes are zero.)
+*/
+static void createargtable (lua_State *L, char **argv, int argc, int script) {
+  int i, narg;
+  narg = argc - (script + 1);  /* number of positive indices */
+  lua_createtable(L, narg, script + 1);
+  for (i = 0; i < argc; i++) {
+    lua_pushstring(L, argv[i]);
+    lua_rawseti(L, -2, i - script);
+  }
+  lua_setglobal(L, "arg");
+}
+
+## lua.c (lines 1-40 of 794)
+/*
+** $Id: lua.c $
+** Lua stand-alone interpreter
+** See Copyright Notice in lua.h
+*/
+
+#define lua_c
+
+#include "lprefix.h"
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <signal.h>
+
+#include "lua.h"
+
+#include "lauxlib.h"
+#include "lualib.h"
+#include "llimits.h"
+
+
+#if !defined(LUA_PROGNAME)
+#define LUA_PROGNAME		"lua"
+#endif
+
+#if !defined(LUA_INIT_VAR)
+#define LUA_INIT_VAR		"LUA_INIT"
+#endif
+
+/* Name of the environment variable with the name of the readline library */
+#if !defined(LUA_RLLIB_VAR)
+#define LUA_RLLIB_VAR		"LUA_READLINELIB"
+#endif
+
+
+#define LUA_INITVARVERSION	LUA_INIT_VAR LUA_VERSUFFIX
+
+
+## ltable.h (lines 121-160 of 184)
+** see luaH_getn. It is stored there to avoid wasting space in
+** the structure Table for tables with no array part.
+*/
+#define lenhint(t)	cast(unsigned*, (t)->array)
+
+
+/*
+** Move TValues to/from arrays, using C indices
+*/
+#define arr2obj(h,k,val)  \
+  ((val)->tt_ = *getArrTag(h,(k)), (val)->value_ = *getArrVal(h,(k)))
+
+#define obj2arr(h,k,val)  \
+  (*getArrTag(h,(k)) = (val)->tt_, *getArrVal(h,(k)) = (val)->value_)
+
+
+/*
+** Often, we need to check the tag of a value before moving it. The
+** following macros also move TValues to/from arrays, but receive the
+** precomputed tag value or address as an extra argument.
+*/
+#define farr2val(h,k,tag,res)  \
+  ((res)->tt_ = tag, (res)->value_ = *getArrVal(h,(k)))
+
+#define fval2arr(h,k,tag,val)  \
+  (*tag = (val)->tt_, *getArrVal(h,(k)) = (val)->value_)
+
+
+LUAI_FUNC lu_byte luaH_get (Table *t, const TValue *key, TValue *res);
+LUAI_FUNC lu_byte luaH_getshortstr (Table *t, TString *key, TValue *res);
+LUAI_FUNC lu_byte luaH_getstr (Table *t, TString *key, TValue *res);
+LUAI_FUNC lu_byte luaH_getint (Table *t, lua_Integer key, TValue *res);
+
+/* Special get for metamethods */
+LUAI_FUNC const TValue *luaH_Hgetshortstr (Table *t, TString *key);
+
+LUAI_FUNC int luaH_psetint (Table *t, lua_Integer key, TValue *val);
+LUAI_FUNC int luaH_psetshortstr (Table *t, TString *key, TValue *val);
+LUAI_FUNC int luaH_psetstr (Table *t, TString *key, TValue *val);
+LUAI_FUNC int luaH_pset (Table *t, const TValue *key, TValue *val);
+
+## ltable.h (lines 1-40 of 184)
+/*
+** $Id: ltable.h $
+** Lua tables (hash)
+** See Copyright Notice in lua.h
+*/
+
+#ifndef ltable_h
+#define ltable_h
+
+#include "lobject.h"
+
+
+#define gnode(t,i)	(&(t)->node[i])
+#define gval(n)		(&(n)->i_val)
+#define gnext(n)	((n)->u.next)
+
+
+/*
+** Clear all bits of fast-access metamethods, which means that the table
+** may have any of these metamethods. (First access that fails after the
+** clearing will set the bit again.)
+*/
+#define invalidateTMcache(t)	((t)->flags &= cast_byte(~maskflags))
+
+
+/*
+** Bit BITDUMMY set in 'flags' means the table is using the dummy node
+** for its hash part.
+*/
+
+#define BITDUMMY		(1 << 6)
+#define NOTBITDUMMY		cast_byte(~BITDUMMY)
+#define isdummy(t)		((t)->flags & BITDUMMY)
+
+#define setnodummy(t)		((t)->flags &= NOTBITDUMMY)
+#define setdummy(t)		((t)->flags |= BITDUMMY)
+
+
+
+/* allocated size for hash nodes */
+
+## lstate.h (lines 401-440 of 451)
+  struct lua_State th;  /* thread */
+  struct UpVal upv;
+};
+
+
+/*
+** ISO C99, 6.7.2.1 p.14:
+** "A pointer to a union object, suitably converted, points to each of
+** its members [...], and vice versa."
+*/
+#define cast_u(o)	cast(union GCUnion *, (o))
+
+/* macros to convert a GCObject into a specific value */
+#define gco2ts(o)  \
+	check_exp(novariant((o)->tt) == LUA_TSTRING, &((cast_u(o))->ts))
+#define gco2u(o)  check_exp((o)->tt == LUA_VUSERDATA, &((cast_u(o))->u))
+#define gco2lcl(o)  check_exp((o)->tt == LUA_VLCL, &((cast_u(o))->cl.l))
+#define gco2ccl(o)  check_exp((o)->tt == LUA_VCCL, &((cast_u(o))->cl.c))
+#define gco2cl(o)  \
+	check_exp(novariant((o)->tt) == LUA_TFUNCTION, &((cast_u(o))->cl))
+#define gco2t(o)  check_exp((o)->tt == LUA_VTABLE, &((cast_u(o))->h))
+#define gco2p(o)  check_exp((o)->tt == LUA_VPROTO, &((cast_u(o))->p))
+#define gco2th(o)  check_exp((o)->tt == LUA_VTHREAD, &((cast_u(o))->th))
+#define gco2upv(o)	check_exp((o)->tt == LUA_VUPVAL, &((cast_u(o))->upv))
+
+
+/*
+** macro to convert a Lua object into a GCObject
+*/
+#define obj2gco(v)  \
+	check_exp(novariant((v)->tt) >= LUA_TSTRING, &(cast_u(v)->gc))
+
+
+/* actual number of total memory allocated */
+#define gettotalbytes(g)	((g)->GCtotalbytes - (g)->GCdebt)
+
+
+LUAI_FUNC void luaE_setdebt (global_State *g, l_mem debt);
+LUAI_FUNC void luaE_freethread (lua_State *L, lua_State *L1);
+LUAI_FUNC lu_mem luaE_threadsize (lua_State *L);
+
+## lstate.h (lines 1-40 of 451)
+/*
+** $Id: lstate.h $
+** Global State
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lstate_h
+#define lstate_h
+
+#include "lua.h"
+
+
+/* Some header files included here need this definition */
+typedef struct CallInfo CallInfo;
+
+
+#include "lobject.h"
+#include "ltm.h"
+#include "lzio.h"
+
+
+/*
+** Some notes about garbage-collected objects: All objects in Lua must
+** be kept somehow accessible until being freed, so all objects always
+** belong to one (and only one) of these lists, using field 'next' of
+** the 'CommonHeader' for the link:
+**
+** 'allgc': all objects not marked for finalization;
+** 'finobj': all objects marked for finalization;
+** 'tobefnz': all objects ready to be finalized;
+** 'fixedgc': all objects that are not to be collected (currently
+** only small strings, such as reserved words).
+**
+** For the generational collector, some of these lists have marks for
+** generations. Each mark points to the first element in the list for
+** that particular generation; that generation goes until the next mark.
+**
+** 'allgc' -> 'survival': new objects;
+** 'survival' -> 'old': objects that survived one collection;
+** 'old1' -> 'reallyold': objects that became old in last collection;

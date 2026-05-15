@@ -1,0 +1,67 @@
+**Endpoint Code**
+
+Below is an example of how you can create an HTTP endpoint in Python using the Flask framework to return the current time as JSON.
+
+```python
+# Import required libraries
+from flask import Flask, jsonify
+from datetime import datetime
+
+# Create a Flask application
+app = Flask(__name__)
+
+# Define a route for the /time endpoint
+@app.route('/time', methods=['GET'])
+def get_time():
+    """
+    Returns the current time as an ISO 8601 timestamp.
+    """
+    current_time = datetime.now().isoformat()
+    return jsonify({'time': current_time})
+
+# Run the application if this script is executed directly
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+**Running the Code**
+
+To run the code:
+
+1. **Install Flask**: If you haven't already, install Flask using pip:
+
+    ```bash
+pip install flask
+```
+
+2. **Run the Script**: Run the script using Python:
+
+    ```bash
+python app.py
+```
+
+   Replace `app.py` with the name of the Python file containing the code above.
+
+3. **Access the Endpoint**: Once the application is running, you can access the `/time` endpoint by visiting `http://localhost:5000/time` in your web browser or using a tool like `curl` from the command line:
+
+    ```bash
+curl http://localhost:5000/time
+```
+
+    You should see a response in JSON format with the current time as an ISO 8601 timestamp:
+
+    ```json
+{
+  "time": "2023-03-16T14:30:00.000000"
+}
+```
+
+**Example Use Cases**
+
+This endpoint can be used in a variety of scenarios, such as:
+
+* Creating a simple clock or timer in a web application
+* Providing a timestamp for logging or auditing purposes
+* Serving as a reference point for other application components that require the current time
+
+Note: Make sure to replace `http://localhost:5000` with the actual URL where your application is running.

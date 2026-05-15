@@ -1,0 +1,67 @@
+I'll show you a Python script that fetches a URL and extracts hyperlinks from the HTML.
+
+```python
+import requests
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self.current_text = []
+    
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            href = dict(attrs).get('href', '')
+            self.current_text = []
+            self.links.append({'href': href, 'text': ''})
+    
+    def handle_data(self, data):
+        if self.links:
+            self.current_text.append(data.strip())
+    
+    def handle_endtag(self, tag):
+        if tag == 'a' and self.links:
+            self.links[-1]['text'] = ' '.join(self.current_text)
+
+def fetch_and_extract_links(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        parser = LinkExtractor()
+        parser.feed(response.text)
+        
+        for link in parser.links:
+            href = link['href']
+            text = link['text'] or '(no text)'
+            print(f"href: {href}")
+            print(f"text: {text}")
+            print()
+    
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+
+if __name__ == '__main__':
+    fetch_and_extract_links('https://example.com')
+```
+
+**To run it:**
+
+1. Install the required library:
+   ```bash
+   pip install requests
+   ```
+
+2. Save the script to a file (e.g., `extract_links.py`) and run:
+   ```bash
+   python extract_links.py
+   ```
+
+**What it does:**
+- Uses `requests` to fetch the HTML from the URL
+- Creates a custom `HTMLParser` to parse anchor tags and extract `href` attributes
+- Captures the link text (the content between `<a>` and `</a>` tags)
+- Prints each href and its associated link text
+
+The script handles missing link text by showing `(no text)` if an anchor tag has no text content.

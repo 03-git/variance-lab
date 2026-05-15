@@ -1,0 +1,45 @@
+Kernel primitive: `assert` + the interpreter's nonzero exit on uncaught exception. `unittest` (stdlib, not a third-party dep) just wraps that with discovery and reporting — using it here.
+
+```python
+# test_temp.py
+import unittest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Run it:
+
+```
+python3 -m unittest test_temp.py -v
+```
+
+or, since it has the `__main__` guard:
+
+```
+python3 test_temp.py -v
+```
+
+Expected: `Ran 4 tests ... OK`. Note `"hot" * 9` actually succeeds (string repetition) — it's the subsequent `/ 5` that raises `TypeError`, which is what `test_non_numeric` pins. If you'd rather reject non-numerics up front, the function needs an explicit type check; say the word.
+
+Replace `from celsius_to_fahrenheit ...` with an import of your real module if the function lives elsewhere; I inlined it here so the file runs standalone.

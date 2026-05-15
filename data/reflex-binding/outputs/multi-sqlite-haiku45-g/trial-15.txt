@@ -1,0 +1,82 @@
+Here's a complete Python script that does everything you asked:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create database connection
+conn = sqlite3.connect('notes.db')
+cursor = conn.cursor()
+
+# Create table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+now = datetime.now().isoformat()
+sample_notes = [
+    ('First Note', 'This is the body of the first note'),
+    ('Meeting Tomorrow', 'Remember to prepare slides for the 2pm meeting'),
+    ('Project Ideas', 'Brainstorm: API redesign, add caching layer, refactor auth')
+]
+
+for title, body in sample_notes:
+    cursor.execute(
+        'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+        (title, body, now)
+    )
+
+conn.commit()
+
+# Query and print all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+print("📝 All Notes:")
+print("=" * 70)
+for note_id, title, body, created_at in notes:
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 70)
+
+conn.close()
+```
+
+**How to run it:**
+
+```bash
+python script.py
+```
+
+Replace `script.py` with whatever filename you choose. The script uses only the standard library (`sqlite3` and `datetime`), so no installations needed.
+
+**Output will be:**
+```
+📝 All Notes:
+======================================================================
+ID: 1
+Title: First Note
+Body: This is the body of the first note
+Created: 2026-05-10T...
+----------------------------------------------------------------------
+ID: 2
+Title: Meeting Tomorrow
+Body: Remember to prepare slides for the 2pm meeting
+Created: 2026-05-10T...
+----------------------------------------------------------------------
+ID: 3
+Title: Project Ideas
+Body: Brainstorm: API redesign, add caching layer, refactor auth
+Created: 2026-05-10T...
+----------------------------------------------------------------------
+```
+
+The script creates a `notes.db` file in your current directory. Use parameterized queries (`?` placeholders) to safely insert data and prevent SQL injection.

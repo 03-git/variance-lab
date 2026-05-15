@@ -1,0 +1,4 @@
+Sun May 10 05:00:53 UTC 2026
+repo: /Users/jns/subtract.ing
+model: qwen2.5-7b-q4 @ localhost:8086 ctx=16384
+manifest: curated (frontier-generated, lookdown-style)

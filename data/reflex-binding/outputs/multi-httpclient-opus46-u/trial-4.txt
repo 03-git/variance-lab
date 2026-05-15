@@ -1,0 +1,57 @@
+```python
+#!/usr/bin/env python3
+"""Fetch a URL via GET (following redirects) and print status, headers, and a body snippet."""
+
+import sys
+import urllib.request
+import urllib.error
+
+
+def fetch(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "url-fetcher/1.0"})
+    try:
+        # urllib follows redirects by default (HTTPRedirectHandler)
+        with urllib.request.urlopen(req) as resp:
+            status = resp.status
+            headers = resp.headers
+            body = resp.read(500).decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        # HTTPError is also a response-like object
+        status = e.code
+        headers = e.headers
+        body = e.read(500).decode("utf-8", errors="replace")
+
+    print(f"Status code: {status}")
+    print("\nResponse headers:")
+    for key, value in headers.items():
+        print(f"  {key}: {value}")
+    print("\nFirst 500 characters of body:")
+    print(body)
+
+
+def main():
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <url>", file=sys.stderr)
+        sys.exit(1)
+    fetch(sys.argv[1])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+1. Save it as `fetch_url.py`.
+2. Run with a URL argument:
+
+```bash
+python3 fetch_url.py https://example.com
+```
+
+Notes:
+- Uses only the standard library — no `pip install` needed.
+- Redirects are followed automatically by `urllib`. If you'd rather use the `requests` library, the equivalent is `requests.get(url)` (redirects on by default), then `r.status_code`, `r.headers`, and `r.text[:500]`.
+- `resp.read(500)` reads only the first 500 bytes, so it won't download huge response bodies.
+
+If you want, I can adapt this to use `requests`, add a timeout, or handle non-text/binary responses differently.

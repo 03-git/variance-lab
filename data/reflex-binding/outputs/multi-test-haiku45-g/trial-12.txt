@@ -1,0 +1,39 @@
+Here's a Python test suite using pytest:
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+def test_zero_celsius():
+    assert celsius_to_fahrenheit(0) == 32
+
+def test_boiling_water():
+    assert celsius_to_fahrenheit(100) == 212
+
+def test_negative_forty():
+    assert celsius_to_fahrenheit(-40) == -40
+
+def test_non_numeric_input():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("not a number")
+```
+
+**To run it:**
+
+```bash
+# Install pytest if needed
+pip install pytest
+
+# Run the tests
+pytest test_file.py -v
+```
+
+The test suite covers:
+- **0°C** → 32°F (freezing point)
+- **100°C** → 212°F (boiling point)
+- **-40°C** → -40°F (same in both scales)
+- **Non-numeric input** → expects a TypeError when passing a string
+
+The `-v` flag gives verbose output showing each test result.

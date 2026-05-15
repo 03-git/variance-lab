@@ -1,0 +1,58 @@
+To build this endpoint, I will use **Python** with the **FastAPI** framework. FastAPI is modern, extremely fast, and handles JSON serialization automatically.
+
+### 1. The Code (`main.py`)
+
+Create a file named `main.py` and paste the following code:
+
+```python
+from fastapi import FastAPI
+from datetime import datetime, timezone
+
+# Initialize the FastAPI application
+app = FastAPI()
+
+@app.get("/time")
+async def get_current_time():
+    """
+    Returns the current time in ISO 8601 format.
+    """
+    # Get current time in UTC and format as ISO 8601
+    current_time = datetime.now(timezone.utc).isoformat()
+    
+    return {"time": current_time}
+
+if __name__ == "__main__":
+    import uvicorn
+    # Run the server locally
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
+---
+
+### 2. How to Run It
+
+Follow these steps in your terminal/command prompt:
+
+#### Step 1: Install Dependencies
+You will need `fastapi` and `uvicorn` (the server engine).
+```bash
+pip install fastapi uvicorn
+```
+
+#### Step 2: Start the Server
+Run the script using Python:
+```bash
+python main.py
+```
+*Alternatively, you can run it directly via uvicorn in the terminal:*
+`uvicorn main:app --reload`
+
+#### Step 3: Test the Endpoint
+Once the server is running (you should see `Uvicorn running on http://0.0.0.0:8000`), you can test it in three ways:
+
+1.  **Browser:** Open [http://127.0.0.1:8000/time](http://127.0.0.1:8000/time)
+2.  **Terminal (cURL):**
+    ```bash
+    curl http://127.0.0.1:8000/time
+    ```
+3.  **Interactive Docs:** FastAPI automatically generates documentation. Go to [http://127.0.0.1:8000/docs](http://127.

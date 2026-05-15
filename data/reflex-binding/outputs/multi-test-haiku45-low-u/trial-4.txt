@@ -1,0 +1,60 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using pytest.
+
+```python
+# test_celsius_to_fahrenheit.py
+import pytest
+
+def celsius_to_fahrenheit(c):
+    """Convert celsius to fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    def test_freezing_point(self):
+        """0°C should be 32°F"""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """100°C should be 212°F"""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty(self):
+        """-40°C should be -40°F (same in both scales)"""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Should raise TypeError for non-numeric input"""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("32")
+        
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit(None)
+```
+
+**How to run it:**
+
+```bash
+# Install pytest if you don't have it
+pip install pytest
+
+# Run the tests
+pytest test_celsius_to_fahrenheit.py -v
+
+# Or run with more detailed output
+pytest test_celsius_to_fahrenheit.py -v --tb=short
+```
+
+**Expected output:**
+```
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_freezing_point PASSED
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_negative_forty PASSED
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+
+====== 4 passed in 0.01s ======
+```
+
+The suite covers:
+- **Freezing point**: 0°C = 32°F
+- **Boiling point**: 100°C = 212°F  
+- **-40**: The point where both scales are equal
+- **Invalid input**: Verifies TypeError is raised for strings and None values

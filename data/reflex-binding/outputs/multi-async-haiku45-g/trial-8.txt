@@ -1,0 +1,130 @@
+Here's an async TCP echo server with a test client:
+
+## Server Code
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"[Connected] {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            line = await reader.readline()
+            
+            # If client closes connection, readline returns empty bytes
+            if not line:
+                print(f"[Disconnected] {addr}")
+                break
+            
+            # Echo it back
+            writer.write(line)
+            await writer.drain()
+            print(f"[{addr}] {line.decode().strip()}")
+    
+    except Exception as e:
+        print(f"[Error] {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+async def start_server(host='localhost', port=8888):
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client, 
+        host, 
+        port
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"[Server] Listening on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(start_server())
+```
+
+## Test Client Code
+
+```python
+import asyncio
+
+async def test_client(message):
+    """Send a message to the echo server."""
+    reader, writer = await asyncio.open_connection('localhost', 8888)
+    
+    # Send message
+    writer.write(f"{message}\n".encode())
+    await writer.drain()
+    
+    # Read echo response
+    response = await reader.readline()
+    print(f"Sent:     {message}")
+    print(f"Received: {response.decode().strip()}")
+    
+    writer.close()
+    await writer.wait_closed()
+
+if __name__ == '__main__':
+    # Test with a few messages
+    asyncio.run(test_client("Hello, server!"))
+    asyncio.run(test_client("This is a test"))
+```
+
+## How to Run
+
+**Terminal 1 - Start the server:**
+```bash
+python server.py
+```
+
+Output:
+```
+[Server] Listening on localhost:8888
+```
+
+**Terminal 2 - Run the test client:**
+```bash
+python client.py
+```
+
+Output:
+```
+Sent:     Hello, server!
+Received: Hello, server!
+Sent:     This is a test
+Received: This is a test
+```
+
+The server logs:
+```
+[Connected] ('127.0.0.1', 54321)
+[('127.0.0.1', 54321)] Hello, server!
+[Disconnected] ('127.0.0.1', 54321)
+[Connected] ('127.0.0.1', 54322)
+[('127.0.0.1', 54322)] This is a test
+[Disconnected] ('127.0.0.1', 54322)
+```
+
+## Testing with Multiple Concurrent Clients
+
+Use `netcat` to test concurrent connections:
+
+```bash
+# Terminal 2
+echo "Hello from client 1" | nc localhost 8888
+
+# Terminal 3
+echo "Hello from client 2" | nc localhost 8888
+
+# Terminal 4 (interactive)
+nc localhost 8888
+# Type multiple lines, each gets echoed back
+```
+
+The server handles all clients concurrently without blocking because `asyncio` multiplexes the connections on a single thread.

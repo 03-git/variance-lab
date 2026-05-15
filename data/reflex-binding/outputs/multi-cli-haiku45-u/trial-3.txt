@@ -1,0 +1,74 @@
+I'll show you a Python CLI tool that does this using `argparse`:
+
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Parse host and port configuration"
+    )
+    parser.add_argument(
+        "--host",
+        default="localhost",
+        help="Host address (default: localhost)"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port number (default: 8000)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        parser.error(f"Port must be between 1 and 65535, got {args.port}")
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage with defaults
+python cli.py
+
+# With custom host and port
+python cli.py --host example.com --port 3000
+
+# With verbose flag
+python cli.py --host 0.0.0.0 --port 5000 --verbose
+
+# Invalid port (will error)
+python cli.py --port 99999
+```
+
+**Example outputs:**
+
+```bash
+$ python cli.py --host api.example.com --port 443 --verbose
+{
+  "host": "api.example.com",
+  "port": 443,
+  "verbose": true
+}
+```
+
+The `argparse` module handles the flag parsing, and the `type=int` parameter automatically converts the port to an integer. The manual validation checks that it's in the valid range (1-65535) and uses `parser.error()` to exit with a helpful message if validation fails.

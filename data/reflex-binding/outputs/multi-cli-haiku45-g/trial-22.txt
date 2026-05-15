@@ -1,0 +1,58 @@
+Here's a Python CLI tool that does what you need:
+
+```python
+import argparse
+import json
+import sys
+
+def validate_port(value):
+    try:
+        port = int(value)
+        if not (1 <= port <= 65535):
+            raise argparse.ArgumentTypeError(f"port must be between 1 and 65535, got {port}")
+        return port
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value}")
+
+def main():
+    parser = argparse.ArgumentParser(description="CLI tool for host/port configuration")
+    parser.add_argument("--host", default="localhost", help="Host to connect to (default: localhost)")
+    parser.add_argument("--port", type=validate_port, default=8080, help="Port number (default: 8080)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    
+    args = parser.parse_args()
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage (uses defaults)
+python cli_tool.py
+
+# With custom host and port
+python cli_tool.py --host example.com --port 3000
+
+# With verbose flag
+python cli_tool.py --host 192.168.1.1 --port 9000 --verbose
+
+# Invalid port (will error)
+python cli_tool.py --port 70000
+# error: argument --port: port must be between 1 and 65535, got 70000
+
+# Non-integer port (will error)
+python cli_tool.py --port abc
+# error: argument --port: port must be an integer, got abc
+```
+
+The `validate_port()` function is a custom type converter for argparse that validates the port is an integer in the valid range. If validation fails, argparse automatically prints an error and exits with code 2.

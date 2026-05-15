@@ -1,0 +1,61 @@
+Here's a simple async TCP echo server using `asyncio`.
+
+```python
+import asyncio
+
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    print(f"Connected: {addr}")
+    try:
+        while True:
+            line = await reader.readline()
+            if not line:
+                break
+            writer.write(line)
+            await writer.drain()
+    except ConnectionResetError:
+        pass
+    finally:
+        print(f"Disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"Echo server listening on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nShutting down.")
+```
+
+## How to run it
+
+1. Save the code as `echo_server.py` (Python 3.8+; no extra dependencies).
+2. Start the server:
+   ```
+   python echo_server.py
+   ```
+3. In another terminal, connect with any TCP client. A few options:
+   ```
+   nc 127.0.0.1 8888
+   ```
+   or
+   ```
+   telnet 127.0.0.1 8888
+   ```
+   Type a line, press Enter, and the server echoes it back. Open multiple terminals to confirm concurrent clients work — each connection is handled independently by `handle_client` without blocking the others.
+
+## How the concurrency works
+
+- `asyncio.start_server` accepts connections and spawns `handle_client` as a task per client.
+- `reader.readline()` and `writer.drain()` are `await`-points, so while one client is idle, the event loop services others on the same thread — no threads or processes needed.
+- An empty read from `readline()` means EOF (client closed), so the loop exits and the writer is cleaned up in `finally`.

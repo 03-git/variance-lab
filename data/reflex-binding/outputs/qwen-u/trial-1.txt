@@ -1,0 +1,69 @@
+Certainly! Below is an example of how to build an HTTP endpoint using Python's `Flask` framework that returns the current time as a JSON response in the format `{"time": "<ISO 8601 timestamp>"}`. 
+
+### Step 1: Install Flask
+First, you need to install the `Flask` library. You can do this using pip:
+
+```bash
+pip install Flask
+```
+
+### Step 2: Create the Flask Application
+
+Create a Python file, for example, `app.py`, and add the following code:
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_current_time():
+    # Get current time in ISO 8601 format
+    current_time = datetime.now().isoformat()
+    # Return the time as a JSON response
+    return jsonify({"time": current_time})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+### Explanation:
+- **Flask**: A lightweight web framework for Python.
+- **@app.route('/time', methods=['GET'])**: Defines a route for the endpoint `/time` that only accepts GET requests.
+- **datetime.now().isoformat()**: Gets the current time and formats it as an ISO 8601 string.
+- **jsonify**: Converts the Python dictionary to a JSON response.
+
+### Step 3: Run the Flask Application
+
+To run the Flask application, simply execute the `app.py` file:
+
+```bash
+python app.py
+```
+
+### Step 4: Test the Endpoint
+
+You can test the endpoint using a tool like `curl` or by visiting the URL in your web browser.
+
+#### Using `curl`:
+```bash
+curl http://127.0.0.1:5000/time
+```
+
+#### Using Web Browser:
+Open your web browser and navigate to `http://127.0.0.1:5000/time`.
+
+You should see a JSON response like:
+
+```json
+{"time": "2023-10-12T12:34:56.789012"}
+```
+
+This response will reflect the current time in ISO 8601 format.
+
+### Additional Notes:
+- The `debug=True` argument in `app.run()` enables debug mode, which provides helpful error messages and reloading capabilities when you make changes to the code.
+- You can run the application in production mode by setting `debug=False`.
+
+That's it! You now have a simple HTTP endpoint that returns the current time as a JSON response.

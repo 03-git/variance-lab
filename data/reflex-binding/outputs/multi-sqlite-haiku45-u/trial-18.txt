@@ -1,0 +1,78 @@
+Here's a complete Python script that does everything you need:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create connection to database (creates if doesn't exist)
+conn = sqlite3.connect('notes.db')
+cursor = conn.cursor()
+
+# Create table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('First Note', 'This is my first note about Python', datetime.now().isoformat()),
+    ('Second Note', 'Learning SQLite is fun', datetime.now().isoformat()),
+    ('Third Note', 'Remember to practice regularly', datetime.now().isoformat()),
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+# Print notes
+print("All Notes:")
+print("-" * 60)
+for note in notes:
+    print(f"ID: {note[0]}")
+    print(f"Title: {note[1]}")
+    print(f"Body: {note[2]}")
+    print(f"Created: {note[3]}")
+    print("-" * 60)
+
+# Close connection
+conn.close()
+```
+
+**To run it:**
+
+1. Save the code to a file (e.g., `notes.py`)
+2. Run it with: `python notes.py`
+
+**Expected output:**
+```
+All Notes:
+------------------------------------------------------------
+ID: 1
+Title: First Note
+Body: This is my first note about Python
+Created: 2026-05-10T14:32:45.123456
+------------------------------------------------------------
+ID: 2
+Title: Second Note
+Body: Learning SQLite is fun
+Created: 2026-05-10T14:32:45.123457
+------------------------------------------------------------
+ID: 3
+Title: Third Note
+Body: Remember to practice regularly
+Created: 2026-05-10T14:32:45.123458
+------------------------------------------------------------
+```
+
+The script uses parameterized queries (`?` placeholders) to safely insert data, and it creates the database file `notes.db` in the current directory automatically.

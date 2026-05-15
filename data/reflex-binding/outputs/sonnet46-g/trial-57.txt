@@ -1,0 +1,60 @@
+**Python — zero dependencies (stdlib only):**
+
+```python
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != "/time":
+            self.send_response(404)
+            self.end_headers()
+            return
+        body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", len(body))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *_):
+        pass  # suppress access log noise
+
+HTTPServer(("", 8080), Handler).serve_forever()
+```
+
+**Run:**
+```bash
+python3 time_server.py
+curl http://localhost:8080/time
+```
+
+**Response:**
+```json
+{"time": "2026-05-10T14:23:01.456789+00:00"}
+```
+
+---
+
+If you want Flask instead (cleaner, adds one dependency):
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime, timezone
+
+app = Flask(__name__)
+
+@app.get("/time")
+def get_time():
+    return jsonify(time=datetime.now(timezone.utc).isoformat())
+
+app.run(port=8080)
+```
+
+```bash
+pip install flask
+python3 time_server.py
+```
+
+The stdlib version is self-contained and runs anywhere Python is installed.

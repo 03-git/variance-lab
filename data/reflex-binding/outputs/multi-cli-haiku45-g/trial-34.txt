@@ -1,0 +1,87 @@
+I'll create a Python CLI tool with argument validation and JSON output.
+
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="CLI tool that accepts host and port configuration"
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="localhost",
+        help="Host to connect to (default: localhost)"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Port to connect to (default: 8080)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        print(
+            json.dumps({
+                "error": f"Port must be between 1 and 65535, got {args.port}"
+            }),
+            file=sys.stderr
+        )
+        sys.exit(1)
+    
+    # Build config dict
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    # Print as JSON
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage (uses defaults)
+python cli_tool.py
+
+# With custom host and port
+python cli_tool.py --host example.com --port 3000
+
+# With verbose flag
+python cli_tool.py --host 192.168.1.1 --port 9000 --verbose
+
+# Invalid port (demonstrates validation)
+python cli_tool.py --port 70000
+```
+
+**Example outputs:**
+
+```bash
+$ python cli_tool.py --host api.local --port 5432 --verbose
+{
+  "host": "api.local",
+  "port": 5432,
+  "verbose": true
+}
+
+$ python cli_tool.py --port 99999
+{"error": "Port must be between 1 and 65535, got 99999"}
+# (exits with code 1)
+```
+
+The tool validates the port is an integer (argparse handles this automatically) and then checks it's within the valid range (1-65535), printing an error to stderr and exiting with status 1 if invalid.

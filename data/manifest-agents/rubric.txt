@@ -1,0 +1,98 @@
+# Manifest-agents evaluation rubric
+# Pre-committed before any experimental dispatch
+# Signed: ssh-keygen -Y sign -f ~/.ssh/jnous -n subtract.ing
+# Date: 2026-05-10
+
+## Corpus
+
+Primary: subtract.ing git repo (canonical, versioned, signed via llms.txt manifest)
+Secondary: one public corpus (Wikipedia subset or open-source GitHub project —
+named at dispatch time, before any scoring begins)
+
+## Question set (30 questions, stratified)
+
+Filed at: variance-lab/data/manifest-agents/questions.tsv
+Signed before dispatch. Not modified after arms begin.
+
+- 10 traversal ("what's in this directory", "what does this file do",
+  "list the files that define hosuni's platform layer")
+- 10 cross-file synthesis ("which findings cite local inference throughput",
+  "trace the delegation architecture from CLAUDE.md to handler.sh",
+  "what is the relationship between SOUL.txt and hosuni-prefetch")
+- 5 change detection ("what changed in hosuni.c since commit d4e860d",
+  "which files were modified in the last signed manifest update")
+- 5 similarity ("find files related to delegation",
+  "which parts of the codebase are architecturally similar to lookdown")
+
+## Arms
+
+Arm M (manifest): filesystem traversal + signed manifests + per-directory
+  llms.md summaries + claude -p with manifest context as prompt
+Arm R (RAG): chunk corpus + embed + vector retrieval (top-k) + claude -p
+  with retrieved chunks as prompt
+
+Same model for inference in both arms. Same prompt structure
+(system prompt + context + question). Only the context-gathering
+method differs.
+
+## Metrics
+
+A: Answer quality
+   Blind-scored 1-5 by evaluator who does not see arm label.
+   Multi-lineage review: minimum 3 models from 2+ training lineages.
+   Score dimensions:
+     A1: Factual correctness (verifiable against corpus)
+     A2: Completeness (relevant files/sections cited)
+     A3: Coherence (answer addresses the question asked)
+
+B: Cost per query
+   Measured mechanically. Logged per query.
+     B1: Wall-clock time (seconds, end-to-end including retrieval/traversal)
+     B2: Tokens consumed (prompt + completion)
+     B3: Infrastructure cost (compute time for embedding/traversal, amortized)
+
+C: Update cost
+   After initial run: modify 5 files in corpus (content changes, not just mtime).
+   Measure:
+     C1: Time to re-index (Arm R: re-chunk + re-embed) vs re-traverse (Arm M: mtime-filtered walk)
+     C2: Token/compute cost of update
+     C3: Correctness of answers to change-detection questions after update
+
+D: Audit completeness
+   Per query, binary:
+     D1: Can an independent verifier trace the answer back to specific source files?
+     D2: Is the trace cryptographically verifiable (signature chain)?
+   Arm M has signed manifests. Arm R has chunk IDs if retained.
+
+## Scoring
+
+1. A scores evaluated blind (arm label stripped, answers interleaved)
+2. B and C measured mechanically from logs (not scored by evaluator)
+3. D evaluated by independent verifier attempting the trace without
+   knowledge of which arm produced which answer
+4. Multi-lineage review on A: minimum 3 models, 2+ lineages
+   (e.g., Claude + Gemma + Qwen, or Claude + Gemini + Llama)
+
+## Selection rule
+
+- Arm dominance requires advantage on ≥3 of 4 metrics (A, B, C, D)
+- If A is within 0.5 mean across arms → cost metrics (B, C) decide
+- Boundaries where the losing arm wins MUST be named explicitly in findings
+- The finding must state the question types where RAG outperforms
+  (expected: similarity queries on large unstructured corpora)
+
+## Anti-gaming
+
+- This rubric is signed before any dispatch occurs
+- Question set is signed before any dispatch occurs
+- Evaluator does not see arm labels during A scoring
+- Rubric is not revised after outputs are visible
+- If rubric proves inadequate, inadequacy is documented in findings
+  (same treatment as handler methodology finding 2)
+
+## Methodology cost disclosure
+
+To be filled at completion:
+  - Total metered spend: $___
+  - Subscription tier at time of run: ___
+  - Estimated metered cost if reproduced outside flat-fee: $___

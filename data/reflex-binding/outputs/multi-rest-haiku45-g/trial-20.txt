@@ -1,0 +1,91 @@
+I'll show you a Python Flask example with comprehensive validation. You can copy and run this directly.
+
+**Code:**
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route('/users', methods=['POST'])
+def create_user():
+    # Parse JSON
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({"error": "No JSON data provided"}), 400
+    
+    # Validate name
+    name = data.get('name')
+    if not name or not isinstance(name, str) or not name.strip():
+        return jsonify({"error": "name is required and must be a non-empty string"}), 400
+    
+    # Validate email
+    email = data.get('email')
+    if not email or not isinstance(email, str):
+        return jsonify({"error": "email is required and must be a string"}), 400
+    if '@' not in email:
+        return jsonify({"error": "email must contain @"}), 400
+    
+    # Validate age
+    age = data.get('age')
+    if age is None:
+        return jsonify({"error": "age is required"}), 400
+    
+    try:
+        age = int(age)
+    except (ValueError, TypeError):
+        return jsonify({"error": "age must be an integer"}), 400
+    
+    if age < 1 or age > 150:
+        return jsonify({"error": "age must be between 1 and 150"}), 400
+    
+    # Return validated user
+    user = {
+        "id": 1,  # In production, generate/fetch from DB
+        "name": name.strip(),
+        "email": email,
+        "age": age
+    }
+    
+    return jsonify(user), 201
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**How to run it:**
+
+```bash
+# Install Flask if you don't have it
+pip install flask
+
+# Save the code to a file and run it
+python app.py
+```
+
+**Test it with curl:**
+
+```bash
+# Success case (201)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+
+# Missing required field (400)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "email": "bob@example.com"}'
+
+# Invalid email (400)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Charlie", "email": "invalid", "age": 25}'
+
+# Age out of range (400)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Dave", "email": "dave@example.com", "age": 200}'
+```
+
+The endpoint validates each field in order and returns 400 with a descriptive error message for the first validation failure, or 201 with the validated user object on success.

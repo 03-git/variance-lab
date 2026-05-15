@@ -1,0 +1,68 @@
+Health check clean. `sqlite3` ships in the Python stdlib (thin wrapper over the bundled SQLite C library; the "database" is just a file on disk), so no third-party package needed.
+
+```python
+#!/usr/bin/env python3
+"""Create a SQLite notes DB, insert sample rows, query and print them."""
+import sqlite3
+from datetime import datetime, timezone
+
+DB_PATH = "notes.db"  # a plain file; use ":memory:" for an ephemeral DB
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+def main():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS notes (
+            id         INTEGER PRIMARY KEY,
+            title      TEXT NOT NULL,
+            body       TEXT,
+            created_at TEXT NOT NULL
+        )
+    """)
+
+    samples = [
+        ("Groceries",   "milk, eggs, coffee",                 now_iso()),
+        ("Idea",        "primitives generalize for free",     now_iso()),
+        ("Reminder",    "verify signatures before editing",   now_iso()),
+    ]
+    cur.executemany(
+        "INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+        samples,
+    )
+    conn.commit()
+
+    for row in cur.execute("SELECT id, title, body, created_at FROM notes ORDER BY id"):
+        print(f"[{row['id']}] {row['title']}  ({row['created_at']})")
+        print(f"    {row['body']}")
+
+    conn.close()
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it:
+
+```bash
+# 1. save the code as notes_demo.py
+# 2. run with any Python 3.x (sqlite3 is built in — no pip install)
+python3 notes_demo.py
+```
+
+Expected output:
+
+```
+[1] Groceries  (2026-05-10T...Z)
+    milk, eggs, coffee
+[2] Idea  (2026-05-10T...Z)
+    primitives generalize for free
+[3] Reminder  (2026-05-10T...Z)
+    verify signatures before editing
+```
+
+Note: it creates `notes.db` in the current directory and appends 3 new rows each time you run it (the `CREATE TABLE IF NOT EXISTS` is idempotent, the `INSERT`s are not). Delete `notes.db` to start fresh, or swap `DB_PATH` for `":memory:"` to leave nothing on disk.

@@ -1,0 +1,60 @@
+Here's a Python script that fetches a webpage and extracts all hyperlinks:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+url = "https://example.com"
+
+try:
+    response = requests.get(url, timeout=10)
+    response.raise_for_status()
+    
+    soup = BeautifulSoup(response.content, "html.parser")
+    
+    links = soup.find_all("a")
+    
+    if not links:
+        print("No links found on the page.")
+    else:
+        print(f"Found {len(links)} link(s):\n")
+        for link in links:
+            href = link.get("href")
+            text = link.get_text(strip=True)
+            print(f"Text: {text}")
+            print(f"URL:  {href}")
+            print()
+            
+except requests.exceptions.RequestException as e:
+    print(f"Error fetching the URL: {e}")
+```
+
+**How to run it:**
+
+1. **Install dependencies** (if you don't have them):
+   ```bash
+   pip install requests beautifulsoup4
+   ```
+
+2. **Save the script** to a file (e.g., `fetch_links.py`) and run:
+   ```bash
+   python fetch_links.py
+   ```
+
+   Or run it directly in the terminal with:
+   ```bash
+   python -c "$(cat << 'EOF'
+   import requests
+   from bs4 import BeautifulSoup
+   # ... paste the code above ...
+   EOF
+   )"
+   ```
+
+**What it does:**
+- Fetches the HTML from the URL with a 10-second timeout
+- Parses the HTML using BeautifulSoup
+- Finds all `<a>` tags
+- Prints each link's text and href attribute
+
+For `example.com`, you'll see a single link to "More information..." pointing to `https://www.iana.org/domains/example`.

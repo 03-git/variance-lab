@@ -1,0 +1,91 @@
+I'll show you a Python script that fetches a URL and extracts hyperlinks from the HTML.
+
+```python
+import requests
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []
+        self.current_text = []
+        self.in_anchor = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.in_anchor = True
+            self.current_text = []
+            for attr, value in attrs:
+                if attr == 'href':
+                    self.href = value
+                    break
+
+    def handle_data(self, data):
+        if self.in_anchor:
+            self.current_text.append(data.strip())
+
+    def handle_endtag(self, tag):
+        if tag == 'a' and self.in_anchor:
+            self.in_anchor = False
+            link_text = ' '.join(self.current_text)
+            # Resolve relative URLs to absolute URLs
+            absolute_url = urljoin(self.base_url, self.href)
+            self.links.append((absolute_url, link_text))
+
+def fetch_and_extract_links(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        parser = LinkExtractor(url)
+        parser.feed(response.text)
+        
+        return parser.links
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return []
+
+if __name__ == "__main__":
+    url = "https://example.com"
+    links = fetch_and_extract_links(url)
+    
+    if links:
+        print(f"Found {len(links)} links:\n")
+        for href, text in links:
+            print(f"Text: {text}")
+            print(f"URL:  {href}\n")
+    else:
+        print("No links found or error occurred.")
+```
+
+**How to run it:**
+
+1. Install the required library (if not already installed):
+   ```bash
+   pip install requests
+   ```
+
+2. Save the script to a file (e.g., `extract_links.py`) and run it:
+   ```bash
+   python extract_links.py
+   ```
+
+Or run it directly in the Python REPL:
+   ```bash
+   python -c "
+   import requests
+   from html.parser import HTMLParser
+   from urllib.parse import urljoin
+   
+   # [paste the LinkExtractor class and fetch_and_extract_links function here]
+   
+   links = fetch_and_extract_links('https://example.com')
+   for href, text in links:
+       print(f'Text: {text}')
+       print(f'URL:  {href}')
+   "
+   ```
+
+The script uses the built-in `html.parser` (no external dependency) and `requests` to fetch the page. It extracts both the `href` attribute and the visible link text, and converts relative URLs to absolute URLs using `urljoin`.

@@ -1,0 +1,111 @@
+I'll show you a complete REST API implementation using Python with Flask. This is a production-ready example with proper validation and error handling.
+
+```python
+from flask import Flask, request, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+def validate_user(data):
+    """Validate user input and return (is_valid, error_message, user_dict)"""
+    
+    # Check required fields
+    if not isinstance(data, dict):
+        return False, "Request body must be JSON", None
+    
+    if 'name' not in data:
+        return False, "Missing required field: name", None
+    if 'email' not in data:
+        return False, "Missing required field: email", None
+    if 'age' not in data:
+        return False, "Missing required field: age", None
+    
+    # Validate name
+    name = data['name']
+    if not isinstance(name, str) or not name.strip():
+        return False, "name must be a non-empty string", None
+    
+    # Validate email
+    email = data['email']
+    if not isinstance(email, str) or '@' not in email:
+        return False, "email must be a string containing @", None
+    
+    # Validate age
+    age = data['age']
+    if not isinstance(age, int):
+        return False, "age must be an integer", None
+    if age < 1 or age > 150:
+        return False, "age must be between 1 and 150", None
+    
+    return True, None, {
+        'name': name.strip(),
+        'email': email,
+        'age': age,
+        'created_at': datetime.utcnow().isoformat()
+    }
+
+@app.route('/users', methods=['POST'])
+def create_user():
+    try:
+        data = request.get_json()
+    except Exception:
+        return jsonify({'error': 'Invalid JSON'}), 400
+    
+    is_valid, error_msg, user = validate_user(data)
+    
+    if not is_valid:
+        return jsonify({'error': error_msg}), 400
+    
+    return jsonify(user), 201
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({'error': 'Endpoint not found'}), 404
+
+if __name__ == '__main__':
+    app.run(debug=True, host='127.0.0.1', port=5000)
+```
+
+## How to run it
+
+**Install Flask:**
+```bash
+pip install flask
+```
+
+**Run the server:**
+```bash
+python app.py
+```
+
+## Test it with curl
+
+**Valid request (201):**
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","email":"john@example.com","age":30}'
+```
+
+**Missing field (400):**
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","age":30}'
+```
+
+**Invalid email (400):**
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","email":"invalid-email","age":30}'
+```
+
+**Age out of range (400):**
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","email":"john@example.com","age":151}'
+```
+
+The API validates all inputs upfront, returns descriptive errors for any validation failures, and includes a `created_at` timestamp in successful responses.

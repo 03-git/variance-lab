@@ -1,0 +1,49 @@
+```python
+# test_temperature.py
+import pytest
+from temperature import celsius_to_fahrenheit
+
+
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32
+
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212
+
+
+def test_minus_forty_is_same():
+    # -40 °C == -40 °F, the one place the scales meet
+    assert celsius_to_fahrenheit(-40) == -40
+
+
+def test_non_numeric_input_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+For reference, the function under test (in `temperature.py`):
+
+```python
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+```
+
+Note: a string like `"hot"` raises `TypeError` because `"hot" * 9` works but `... / 5` fails. If you'd rather reject non-numeric input explicitly, add a guard:
+
+```python
+def celsius_to_fahrenheit(c):
+    if not isinstance(c, (int, float)):
+        raise TypeError("c must be numeric")
+    return c * 9 / 5 + 32
+```
+
+## How to run
+
+```bash
+pip install pytest
+# put test_temperature.py and temperature.py in the same directory, then:
+pytest test_temperature.py -v
+```
+
+Or just `pytest` from the project directory to discover all `test_*.py` files. Without pytest installed you can still run a quick check with `python -m pytest test_temperature.py`.

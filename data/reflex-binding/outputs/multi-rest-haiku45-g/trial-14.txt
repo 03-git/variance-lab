@@ -1,0 +1,101 @@
+Here's a complete REST API endpoint in Python using Flask:
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+def validate_user(data):
+    """Validate user input and return (is_valid, errors, validated_user)"""
+    errors = {}
+    
+    # Validate name
+    if 'name' not in data:
+        errors['name'] = 'name is required'
+    elif not isinstance(data.get('name'), str) or not data['name'].strip():
+        errors['name'] = 'name must be a non-empty string'
+    
+    # Validate email
+    if 'email' not in data:
+        errors['email'] = 'email is required'
+    elif not isinstance(data.get('email'), str) or '@' not in data['email']:
+        errors['email'] = 'email must contain @'
+    
+    # Validate age
+    if 'age' not in data:
+        errors['age'] = 'age is required'
+    elif not isinstance(data.get('age'), int) or data['age'] < 1 or data['age'] > 150:
+        errors['age'] = 'age must be an integer between 1 and 150'
+    
+    if errors:
+        return False, errors, None
+    
+    validated_user = {
+        'name': data['name'].strip(),
+        'email': data['email'].strip(),
+        'age': data['age']
+    }
+    
+    return True, None, validated_user
+
+@app.route('/users', methods=['POST'])
+def create_user():
+    if not request.is_json:
+        return jsonify({'error': 'Request must be JSON'}), 400
+    
+    is_valid, errors, user = validate_user(request.get_json())
+    
+    if not is_valid:
+        return jsonify({'errors': errors}), 400
+    
+    return jsonify(user), 201
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**How to run:**
+
+```bash
+# Install Flask
+pip install flask
+
+# Save the code to a file (e.g., app.py) and run
+python app.py
+```
+
+**Test examples with curl:**
+
+```bash
+# Valid request (201)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "john@example.com", "age": 30}'
+
+# Missing name (400)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "john@example.com", "age": 30}'
+
+# Invalid email (400)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John", "email": "invalid-email", "age": 30}'
+
+# Invalid age (400)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John", "email": "john@example.com", "age": 200}'
+```
+
+**Responses:**
+
+Success (201):
+```json
+{"name": "John Doe", "email": "john@example.com", "age": 30}
+```
+
+Error (400):
+```json
+{"errors": {"age": "age must be an integer between 1 and 150"}}
+```

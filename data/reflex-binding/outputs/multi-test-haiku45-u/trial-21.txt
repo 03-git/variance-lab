@@ -1,0 +1,64 @@
+I'll show you a comprehensive Python test suite for that function using `pytest`, which is the modern standard for Python testing.
+
+Here's the test code:
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    def test_freezing_point(self):
+        """0°C should equal 32°F"""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """100°C should equal 212°F"""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty(self):
+        """-40°C should equal -40°F (same in both scales)"""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError"""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("0")
+        
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit(None)
+```
+
+**To run it:**
+
+```bash
+# Install pytest if you don't have it
+pip install pytest
+
+# Run the tests
+pytest test_celsius.py -v
+
+# Or run with more details
+pytest test_celsius.py -v --tb=short
+```
+
+**Expected output:**
+```
+test_celsius.py::TestCelsiusToFahrenheit::test_freezing_point PASSED
+test_celsius.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+test_celsius.py::TestCelsiusToFahrenheit::test_negative_forty PASSED
+test_celsius.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+
+======================== 4 passed in 0.05s ========================
+```
+
+**Why this structure:**
+- **Class-based tests**: Groups related tests together and makes them easier to organize
+- **Descriptive names**: Each test name clearly states what it's testing
+- **Docstrings**: Each test includes a one-line explanation of what it verifies
+- **`pytest.raises()`**: Elegant way to assert that an exception is raised for invalid input
+- **Multiple assertions in one test**: The non-numeric test covers multiple invalid types to avoid test duplication
+
+You can also use Python's built-in `unittest` module if you prefer not to install pytest, but pytest is more concise and widely preferred in modern Python projects.

@@ -1,0 +1,77 @@
+Here's a complete Python script that creates a SQLite database with notes:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create/connect to database
+conn = sqlite3.connect(':memory:')  # Use ':memory:' for in-memory DB, or 'notes.db' for file-based
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+notes = [
+    ('Shopping List', 'Milk, bread, eggs, cheese', datetime.now().isoformat()),
+    ('Project Ideas', 'Build a task manager app, learn Go, contribute to open source', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discuss Q2 roadmap, review architecture, plan sprints', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+all_notes = cursor.fetchall()
+
+# Print results
+print("All Notes:")
+print("-" * 60)
+for note in all_notes:
+    print(f"ID: {note[0]}")
+    print(f"Title: {note[1]}")
+    print(f"Body: {note[2]}")
+    print(f"Created: {note[3]}")
+    print("-" * 60)
+
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the script to a file (e.g., `notes.py`)
+2. Run it with: `python notes.py`
+
+**Output:**
+```
+All Notes:
+------------------------------------------------------------
+ID: 1
+Title: Shopping List
+Body: Milk, bread, eggs, cheese
+Created: 2026-05-10T...
+------------------------------------------------------------
+ID: 2
+Title: Project Ideas
+Body: Build a task manager app, learn Go, contribute to open source
+Created: 2026-05-10T...
+------------------------------------------------------------
+ID: 3
+Title: Meeting Notes
+Body: Discuss Q2 roadmap, review architecture, plan sprints
+Created: 2026-05-10T...
+------------------------------------------------------------
+```
+
+The script uses an in-memory database (`:memory:`), so data is lost when the script exits. To persist data, change `':memory:'` to `'notes.db'` on the connection line.

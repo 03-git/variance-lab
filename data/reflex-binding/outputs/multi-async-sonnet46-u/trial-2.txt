@@ -1,0 +1,87 @@
+Here's an async TCP echo server using Python's built-in `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    print(f"Client connected: {addr}")
+
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:
+                break
+            line = data.decode().rstrip("\n")
+            print(f"[{addr}] received: {line!r}")
+            writer.write(data)
+            await writer.drain()
+    except (ConnectionResetError, asyncio.IncompleteReadError):
+        pass
+    finally:
+        print(f"Client disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main() -> None:
+    server = await asyncio.start_server(handle_client, host="127.0.0.1", port=8888)
+    addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
+    print(f"Serving on {addrs}")
+
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**How it works:**
+
+- `asyncio.start_server` registers `handle_client` as a callback for each new TCP connection.
+- Each client gets its own coroutine, so thousands of clients can be served concurrently on a single thread — no threads, no blocking.
+- `reader.readline()` waits for a `\n`-terminated line; the same bytes are written back with `writer.write()`.
+- `await writer.drain()` applies backpressure so a slow client can't fill up memory.
+- A clean disconnect (empty read) or a reset connection both exit the loop gracefully.
+
+---
+
+**Run the server:**
+
+```bash
+python echo_server.py
+```
+
+**Test with `nc` (netcat):**
+
+```bash
+# Each in its own terminal — the server handles all of them concurrently
+nc 127.0.0.1 8888
+Hello, world!       # type this
+Hello, world!       # echoed back
+```
+
+**Test with multiple clients at once using Python:**
+
+```bash
+python - <<'EOF'
+import asyncio
+
+async def client(name: str) -> None:
+    reader, writer = await asyncio.open_connection("127.0.0.1", 8888)
+    for i in range(3):
+        msg = f"{name} message {i}\n"
+        writer.write(msg.encode())
+        await writer.drain()
+        echo = await reader.readline()
+        print(f"[{name}] got: {echo.decode().strip()!r}")
+    writer.close()
+    await writer.wait_closed()
+
+async def main() -> None:
+    await asyncio.gather(*(client(f"client-{i}") for i in range(5)))
+
+asyncio.run(main())
+EOF
+```
+
+This fires 5 clients simultaneously, each sending 3 lines — you'll see all their messages interleaved in the server output.

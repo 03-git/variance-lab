@@ -1,0 +1,339 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./runtime/llms.txt (lines 1-40 of 52)
+# subtract runtime
+
+Deployed scripts for ~/.subtract/. These are what install.sh copies.
+
+## Files
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/subtract
+  Entry point. Boots tmux with shell + claude + docs side by side.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/subtract.sh
+  Translation layer. Sources into your shell, intercepts unknown commands,
+  routes through T0 (lookup) -> T0.5 (man pages) -> T2 (local model) -> T4 (cloud).
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/ask
+  Query local model directly. Claude without the browser.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/lookdown.tsv
+  Personal fork lookup table. Seed copy; yours lives at ~/.subtract/lookdown.tsv.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/kiwix
+  Query local Kiwix corpus (Wikipedia, Stack Exchange, etc).
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/kiwix-search
+  Kiwix search helper.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/cheatsheet.txt
+  Quick reference.
+
+## Shell hooks
+
+Source ONE of these in your shell rc file. They load subtract.sh and wire up
+the command_not_found hook for your shell.
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/hooks/bash.sh
+  For ~/.bashrc: source ~/.subtract/hooks/bash.sh
+
+https://raw.githubusercontent.com/03-git/subtract.ing/main/runtime/hooks/zsh.sh
+  For ~/.zshrc: source ~/.subtract/hooks/zsh.sh
+
+## Install
+
+## ./runtime/syna_poll.c (lines 1-40 of 278)
+/*
+ * syna_poll — i2c-hid polling for GPIO-locked touchpads
+ *
+ * When BIOS locks the interrupt pin in native mode, the i2c-hid
+ * device registers but never fires interrupts. This module polls
+ * the HID input report register on a timer and injects the data
+ * into the existing i2c-hid pipeline.
+ *
+ * Build:
+ *   make -C /lib/modules/$(uname -r)/build M=$(pwd) modules
+ *
+ * Usage:
+ *   insmod syna_poll.ko [poll_ms=10] [vendor=0x06cb] [product=0xcd41]
+ */
+
+#include <linux/module.h>
+#include <linux/i2c.h>
+#include <linux/hid.h>
+#include <linux/input.h>
+#include <linux/timer.h>
+#include <linux/workqueue.h>
+#include <linux/slab.h>
+#include <linux/atomic.h>
+#include <linux/delay.h>
+
+#define DEFAULT_POLL_MS  10
+#define MIN_POLL_MS       1
+#define MAX_REPORT_SIZE  64
+#define HID_DESC_REG     0x0020
+
+static int poll_ms = DEFAULT_POLL_MS;
+module_param(poll_ms, int, 0444);
+MODULE_PARM_DESC(poll_ms, "Polling interval in milliseconds (default 10)");
+
+static int vendor = 0x06CB;
+module_param(vendor, int, 0444);
+MODULE_PARM_DESC(vendor, "I2C HID vendor ID");
+
+static int product = 0xCD41;
+module_param(product, int, 0444);
+
+## ./runtime/subtract.sh (lines 201-240 of 1405)
+
+    # tokenize residual, filter stopwords, grep index for each token
+    local -a tokens matches
+    local token
+    __subtract_to_words tokens "$residual"
+
+    # find files matching ALL non-stopword tokens
+    local stopwords=" a an and are at be by do for from how i if in is it me my no not of on or so the to up us we "
+    local -a search_tokens
+    for token in "${tokens[@]}"; do
+        token=$(__subtract_lower "$token")
+        [ ${#token} -lt 3 ] && continue
+        case "$stopwords" in *" $token "*) continue ;; esac
+        search_tokens+=("$token")
+    done
+    [ ${#search_tokens[@]} -eq 0 ] && return 1
+
+    # intersect candidate files across all tokens (avoids 0-vs-1 index difference between bash/zsh)
+    local candidates="" first=1
+    for token in "${search_tokens[@]}"; do
+        if [ "$first" -eq 1 ]; then
+            candidates=$(grep -i "^${token}	" "$index" 2>/dev/null | cut -f2 | sort -u)
+            [ -z "$candidates" ] && return 1
+            first=0
+        else
+            local next_candidates
+            next_candidates=$(grep -i "^${token}	" "$index" 2>/dev/null | cut -f2 | sort -u)
+            candidates=$(comm -12 <(echo "$candidates") <(echo "$next_candidates"))
+            [ -z "$candidates" ] && return 1
+        fi
+    done
+
+    # count matches
+    local count
+    count=$(echo "$candidates" | wc -l | tr -d ' ')
+
+    if [ "$count" -eq 1 ]; then
+        # single match: display it
+        local filepath="$SUBTRACT_SKILLS/${candidates}.md"
+        if [ -f "$filepath" ]; then
+
+## ./runtime/subtract.sh (lines 1-40 of 1405)
+# subtract -- translation layer
+# type what you mean. the computer figures out the command.
+#
+# T0: lookup table. instant, local, no dependencies.
+# T0.5: man page routing (direct command match) + apropos fallback (discovery queries).
+# T1: embedding similarity (optional).
+# T2: local generative model (optional). requires ollama + a pulled model.
+# T4: cloud escalation (optional). requires claude CLI.
+# kiwix: questions (input ending in ?) route to local kiwix corpus.
+#
+# everything lives in ~/.subtract/. read it, edit it, delete it.
+
+SUBTRACT_DIR="${SUBTRACT_DIR:-$HOME/.subtract}"
+
+# bash hangs on unclosed quotes (what's, don't, can't) with a bare "> " prompt.
+# user doesn't know what happened. replace PS2 with an explanation.
+PS2="(unclosed quote -- press ctrl-c and rephrase without apostrophes) "
+SUBTRACT_LOOKUP_HOST="$SUBTRACT_DIR/lookdown.$(hostname -s).tsv"
+SUBTRACT_LOOKUP_UNIVERSAL="$SUBTRACT_DIR/lookdown.universal.tsv"
+SUBTRACT_SKILLS="$SUBTRACT_DIR/skills"
+SUBTRACT_KIWIX="${SUBTRACT_KIWIX:-http://localhost:8888}"
+SUBTRACT_LAST_OUTPUT=""
+SUBTRACT_MAX_CONTEXT=20
+
+# skills prefix patterns: procedural queries ("how do I X", "teach me X")
+# matched after T0, before kiwix. triggers grep against skills index.
+SUBTRACT_SKILLS_PREFIXES="how do i |how to |teach me |steps to |guide to |tutorial |tutorial for "
+
+# destructive verbs that always gate behind explicit confirmation
+# array, not string: zsh doesn't word-split unquoted $var
+SUBTRACT_DESTRUCTIVE=(rm rmdir dd mkfs chmod chown shred truncate)
+
+# upgrade injection state file
+SUBTRACT_STATE="$SUBTRACT_DIR/.state"
+
+# --- state helpers (upgrade injection) ---
+
+__subtract_state_read() {
+    # read key from state file, default to $2 if missing
+    local key="$1" default="${2:-}"
+
+## ./runtime/squared.c (lines 1-40 of 742)
+/*
+ * squared — HTTP/2 proxy for local inference multiplexing
+ *
+ * Without cert/key: h2c (cleartext HTTP/2, loopback only)
+ * With cert/key:    h2 over TLS (ALPN negotiated, all interfaces)
+ *
+ * Build:
+ *   cc -o squared squared.c $(pkg-config --cflags --libs libnghttp2) \
+ *      -lmbedtls -lmbedx509 -lmbedcrypto -lpthread
+ *
+ * Usage:
+ *   squared [port] [backend_host:port]
+ *   squared [port] [backend_host:port] cert.pem key.pem
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <signal.h>
+#include <poll.h>
+
+#include <nghttp2/nghttp2.h>
+
+#ifndef NO_TLS
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/x509_crt.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/net_sockets.h>
+#endif
+
+## ./runtime/parsimony.c (lines 1-40 of 596)
+/*
+ * parsimony — inference as a unix filter
+ *
+ * Loads a GGUF once. Reads JSON requests from stdin (one per line).
+ * Writes JSON responses to stdout (one per line). Stays alive.
+ * The shell manages the lifecycle via coproc. Stateless: KV cache
+ * clears between requests; the orchestrator owns conversation state.
+ *
+ * Wire format (input, one JSON line per request):
+ *   {"messages":[{"role":"...","content":"..."},...],"max_tokens":N}
+ *   OpenAI chat-completions-shaped. UTF-8 bytes, no \uXXXX escapes.
+ *   No nested objects in content, no JSON inside JSON. Caller
+ *   flattens with jq -c if needed (jq emits UTF-8 by default).
+ *   Input is read dynamically via getline (no fixed cap).
+ *
+ * Wire format (output, one JSON line per response):
+ *   {"choices":[{"message":{"role":"assistant","content":"..."},"finish_reason":"stop"}]}
+ *
+ * Wire format (output, streaming — when input has "stream":true):
+ *   data: {"choices":[{"delta":{"content":"token"},"finish_reason":null}]}
+ *   data: {"choices":[{"delta":{"content":"token"},"finish_reason":null}]}
+ *   ...
+ *   data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
+ *   data: [DONE]
+ *
+ * Build:
+ *   cc -o parsimony parsimony.c -I/path/to/llama.cpp/include \
+ *      -L/path/to/llama.cpp/lib -lllama -lggml -lm -lpthread
+ *
+ * Usage:
+ *   coproc INF { ./parsimony model.gguf; }
+ *   echo '{"messages":[{"role":"user","content":"hello"}]}' >&${INF[1]}
+ *   read -r response <&${INF[0]}
+ *
+ *   # with standing context:
+ *   coproc INF { ./parsimony model.gguf --prelude-file ~/subtract.ing/SOUL.txt; }
+ */
+
+#include <signal.h>
+#include <stdio.h>
+
+## ./runtime/hosuni/platform_linux.c (lines 1-40 of 359)
+/*
+ * platform_linux.c — DRM dumb buffer + evdev
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+#include "hosuni.h"
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
+#include <dirent.h>
+#include <linux/input.h>
+#include <linux/kd.h>
+#include <linux/vt.h>
+#include <signal.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+#include <xkbcommon/xkbcommon.h>
+
+static int drm_fd = -1;
+static uint32_t conn_id;
+static uint32_t crtc_id;
+static drmModeModeInfo mode;
+static uint32_t pitch;
+static size_t map_size;
+
+/* double buffering: draw to back, flip shows it, swap */
+static struct {
+    uint32_t handle;
+    uint32_t fb_id;
+    uint64_t map_offset;
+    void    *map_ptr;
+} bufs[2];
+static int back = 0;  /* index we draw into */
+
+## Question
+What is in runtime/llms.txt and how does it differ from the root llms.txt?

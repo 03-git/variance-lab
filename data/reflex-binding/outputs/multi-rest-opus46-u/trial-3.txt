@@ -1,0 +1,100 @@
+Here's a self-contained implementation using **Node.js + Express**.
+
+## Code
+
+```js
+// server.js
+const express = require('express');
+
+const app = express();
+app.use(express.json());
+
+function validateUser(body) {
+  const errors = [];
+
+  // name: string, required
+  if (typeof body.name !== 'string' || body.name.trim() === '') {
+    errors.push({ field: 'name', message: 'name is required and must be a non-empty string' });
+  }
+
+  // email: string, must contain @
+  if (typeof body.email !== 'string' || !body.email.includes('@')) {
+    errors.push({ field: 'email', message: 'email is required and must contain "@"' });
+  }
+
+  // age: integer, 1-150
+  if (!Number.isInteger(body.age) || body.age < 1 || body.age > 150) {
+    errors.push({ field: 'age', message: 'age is required and must be an integer between 1 and 150' });
+  }
+
+  return errors;
+}
+
+app.post('/users', (req, res) => {
+  const body = req.body ?? {};
+  const errors = validateUser(body);
+
+  if (errors.length > 0) {
+    return res.status(400).json({ error: 'Invalid input', details: errors });
+  }
+
+  const user = {
+    name: body.name.trim(),
+    email: body.email,
+    age: body.age,
+  };
+
+  // (persist user here in a real app)
+  return res.status(201).json(user);
+});
+
+// Handle malformed JSON bodies
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Invalid input', details: [{ message: 'Request body must be valid JSON' }] });
+  }
+  next(err);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Listening on http://localhost:${PORT}`));
+```
+
+## How to run
+
+```bash
+mkdir user-api && cd user-api
+npm init -y
+npm install express
+# save the code above as server.js
+node server.js
+```
+
+## Try it
+
+```bash
+# Success -> 201
+curl -i -X POST http://localhost:3000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Ada Lovelace","email":"ada@example.com","age":36}'
+
+# Invalid -> 400 with details
+curl -i -X POST http://localhost:3000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"","email":"no-at-sign","age":200}'
+```
+
+The invalid request returns:
+
+```json
+{
+  "error": "Invalid input",
+  "details": [
+    { "field": "name", "message": "name is required and must be a non-empty string" },
+    { "field": "email", "message": "email is required and must contain \"@\"" },
+    { "field": "age", "message": "age is required and must be an integer between 1 and 150" }
+  ]
+}
+```
+
+Want a Python (Flask/FastAPI) version instead, or tests added?

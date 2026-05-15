@@ -1,0 +1,441 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from runtime/parsimony.c)
+        p++;
+    if (*p == '"') return p;
+    return NULL;
+}
+
+static int parse_messages(const char *json, struct message *msgs, int max) {
+    const char *p = strstr(json, "\"messages\"");
+    if (!p) return 0;
+
+    p = strchr(p, '[');
+    if (!p) return 0;
+    p++;
+
+    int n = 0;
+    while (n < max) {
+        const char *obj = strchr(p, '{');
+        if (!obj) break;
+
+        const char *role = strstr(obj, "\"role\"");
+        if (!role) break;
+        role = skip_to_value_quote(role + 6);
+        if (!role) break;
+        role++;
+        const char *role_end = strchr(role, '"');
+        if (!role_end) break;
+        int rlen = (int)(role_end - role);
+        if (rlen >= 32) rlen = 31;
+        memcpy(msgs[n].role, role, rlen);
+        msgs[n].role[rlen] = '\0';
+
+        const char *content = strstr(obj, "\"content\"");
+        if (!content) break;
+        content = skip_to_value_quote(content + 9);
+        if (!content) break;
+        content++;
+        int ci = 0;
+        while (*content && ci < 8191) {
+            if (*content == '\\' && *(content + 1) == '"') {
+                msgs[n].content[ci++] = '"';
+                content += 2;
+
+
+### Chunk 2 (from runtime/parsimony.c)
+/*
+ * parsimony — inference as a unix filter
+ *
+ * Loads a GGUF once. Reads JSON requests from stdin (one per line).
+ * Writes JSON responses to stdout (one per line). Stays alive.
+ * The shell manages the lifecycle via coproc. Stateless: KV cache
+ * clears between requests; the orchestrator owns conversation state.
+ *
+ * Wire format (input, one JSON line per request):
+ *   {"messages":[{"role":"...","content":"..."},...],"max_tokens":N}
+ *   OpenAI chat-completions-shaped. UTF-8 bytes, no \uXXXX escapes.
+ *   No nested objects in content, no JSON inside JSON. Caller
+ *   flattens with jq -c if needed (jq emits UTF-8 by default).
+ *   Input is read dynamically via getline (no fixed cap).
+ *
+ * Wire format (output, one JSON line per response):
+ *   {"choices":[{"message":{"role":"assistant","content":"..."},"finish_reason":"stop"}]}
+ *
+ * Wire format (output, streaming — when input has "stream":true):
+ *   data: {"choices":[{"delta":{"content":"token"},"finish_reason":null}]}
+ *   data: {"choices":[{"delta":{"content":"token"},"finish_reason":null}]}
+ *   ...
+ *   data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
+ *   data: [DONE]
+ *
+ * Build:
+ *   cc -o parsimony parsimony.c -I/path/to/llama.cpp/include \
+ *      -L/path/to/llama.cpp/lib -lllama -lggml -lm -lpthread
+ *
+ * Usage:
+ *   coproc INF { ./parsimony model.gguf; }
+ *   echo '{"messages":[{"role":"user","content":"hello"}]}' >&${INF[1]}
+ *   read -r response <&${INF[0]}
+ *
+ *   # with standing context:
+ *   coproc INF { ./parsimony model.gguf --prelude-file ~/subtract.ing/SOUL.txt; }
+ */
+
+#include <signal.h>
+#include <stdio.h>
+
+
+### Chunk 3 (from runtime/hosuni.sh)
+        '{messages: $msgs, max_tokens: 262144, stream: true}')
+
+    log_daemon "streaming payload: $(echo "$payload" | jq -c '{msg_count: (.messages | length), first_role: .messages[0].role}' 2>/dev/null)"
+
+    if [ -p "$PARSIMONY_IN" ] && [ -p "$PARSIMONY_OUT" ]; then
+        local compact; compact=$(echo "$payload" | jq -c .)
+        local _lock_tries=0
+        while ! mkdir "$PARSIMONY_LOCK" 2>/dev/null; do
+            _lock_tries=$((_lock_tries + 1))
+            [ "$_lock_tries" -ge 60 ] && {
+                printf 'data: {"choices":[{"delta":{"content":"(lock timeout)"},"finish_reason":null}]}\n'
+                printf 'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n'
+                printf 'data: [DONE]\n'
+                printf '(lock timeout)' > "$content_file"
+                return
+            }
+            sleep 0.5
+        done
+        trap 'rmdir "$PARSIMONY_LOCK" 2>/dev/null' RETURN
+
+        printf '%s\n' "$compact" > "$PARSIMONY_IN"
+
+        local full_content=""
+        exec 3< "$PARSIMONY_OUT"
+        while IFS= read -r line <&3; do
+            printf '%s\n' "$line"
+            [[ "$line" == "data: [DONE]" ]] && break
+            local delta
+            delta=$(echo "${line#data: }" | jq -r '.choices[0].delta.content // empty' 2>/dev/null) || true
+            [ -n "$delta" ] && full_content+="$delta"
+        done
+        exec 3<&-
+        printf '%s' "$full_content" > "$content_file"
+    else
+        local full_content=""
+        while IFS= read -r line; do
+            printf '%s\n' "$line"
+            [[ "$line" == "data: [DONE]" ]] && break
+            local delta
+            delta=$(echo "${line#data: }" | jq -r '.choices[0].delta.content // empty' 2>/dev/null) || true
+
+
+### Chunk 4 (from runtime/hosuni.sh)
+        while IFS= read -r line; do
+            printf '%s\n' "$line"
+            [[ "$line" == "data: [DONE]" ]] && break
+            local delta
+            delta=$(echo "${line#data: }" | jq -r '.choices[0].delta.content // empty' 2>/dev/null) || true
+            [ -n "$delta" ] && full_content+="$delta"
+        done < <(curl -sN --connect-timeout 10 -m 600 \
+            -X POST "http://${INFERENCE_HOST}:${INFERENCE_PORT}/v1/chat/completions" \
+            -H "Content-Type: application/json" \
+            -d "$(echo "$payload" | jq -c .)" 2>/dev/null)
+        printf '%s' "$full_content" > "$content_file"
+    fi
+}
+
+# --- inference ---
+
+call_inference() {
+    local messages="$1" tools="$2"
+    local payload
+    if [ "$tools" = "[]" ]; then
+        payload=$(jq -n --argjson msgs "$messages" \
+            '{messages: $msgs, max_tokens: 262144, stream: false}')
+    else
+        payload=$(jq -n --argjson msgs "$messages" --argjson tools "$tools" \
+            '{messages: $msgs, max_tokens: 262144, stream: false, tools: $tools}')
+    fi
+
+    log_daemon "payload: $(echo "$payload" | jq -c '{msg_count: (.messages | length), has_tools: (.tools != null), first_role: .messages[0].role}' 2>/dev/null)"
+    local response
+    if [ -p "$PARSIMONY_IN" ] && [ -p "$PARSIMONY_OUT" ]; then
+        local compact; compact=$(echo "$payload" | jq -c .)
+        local _lock_tries=0
+        while ! mkdir "$PARSIMONY_LOCK" 2>/dev/null; do
+            _lock_tries=$((_lock_tries + 1))
+            [ "$_lock_tries" -ge 60 ] && { response='{"error":"inference lock timeout"}'; break; }
+            sleep 0.5
+        done
+        if [ -d "$PARSIMONY_LOCK" ]; then
+            trap 'rmdir "$PARSIMONY_LOCK" 2>/dev/null' RETURN
+            printf '%s\n' "$compact" > "$PARSIMONY_IN"
+
+
+### Chunk 5 (from runtime/hosuni.sh)
+        fi
+
+        break
+    done
+
+    jq -n '{error:"no response after tool loop"}'
+}
+
+# --- listener ---
+
+log_daemon "hosuni starting (stdin/stdout mode)"
+if [ -p "$PARSIMONY_IN" ] && [ -p "$PARSIMONY_OUT" ]; then
+    log_daemon "inference: parsimony (pipes)"
+else
+    log_daemon "inference: ${INFERENCE_HOST}:${INFERENCE_PORT} (curl)"
+fi
+log_daemon "lookdown: $LOOKDOWN_NODE $LOOKDOWN_UNIVERSAL"
+log_daemon "tools: $TOOLS_FILE"
+
+# stdin/stdout mode: read JSON request, write JSON response
+# usage: echo '{"input":"hello","channel":"test"}' | hosuni.sh
+#        or spawned by hosuni-discord.ts per message
+
+request=$(cat)
+log_daemon "raw request: $(echo "$request" | head -c 200)"
+handle_request "$request"
+
+
+### Chunk 6 (from hosuni.txt)
+  macOS:  cc -O2 -o hosuni hosuni.c platform_macos.m -framework Cocoa
+
+## Source
+
+  runtime/hosuni/hosuni.c          main source (canonical)
+  runtime/hosuni/hosuni.h          platform contract, types, colors
+  runtime/hosuni/platform_linux.c  DRM/KMS + evdev
+  runtime/hosuni/platform_macos.m  Cocoa + NSEvent
+  runtime/hosuni/stb_truetype.h    font rendering (vendored)
+
+
+### Chunk 7 (from runtime/parsimony.c)
+            } else if (tools && parse_gemma_tool_call(response_buf, tc_name, sizeof(tc_name),
+                                                       tc_args, sizeof(tc_args))) {
+                char esc_args[8192];
+                json_escape(tc_args, esc_args, sizeof(esc_args));
+                printf("{\"choices\":[{\"message\":{\"role\":\"assistant\","
+                       "\"content\":null,\"tool_calls\":[{\"id\":\"call_1\","
+                       "\"type\":\"function\",\"function\":{\"name\":\"%s\","
+                       "\"arguments\":\"%s\"}}]},\"finish_reason\":\"tool_calls\"}]}\n",
+                       tc_name, esc_args);
+            } else {
+                json_escape(response_buf, escaped_buf, sizeof(escaped_buf));
+
+                printf("{\"choices\":[{\"message\":{\"role\":\"assistant\","
+                       "\"content\":\"%s\"},\"finish_reason\":\"%s\"}]}\n",
+                       escaped_buf, finish);
+            }
+            if (fflush(stdout) != 0) break;
+        }
+    }
+
+        if (conn_in) {
+            fflush(stdout);
+            dup2(saved_out, STDOUT_FILENO);
+            fclose(conn_in);
+            continue;
+        }
+        break;
+    }
+
+    if (srv_fd >= 0) close(srv_fd);
+    llama_sampler_free(smpl);
+    llama_free(ctx);
+    llama_model_free(model);
+    llama_backend_free();
+    return 0;
+}
+
+
+### Chunk 8 (from runtime/hosuni.sh)
+            sleep 0.5
+        done
+        if [ -d "$PARSIMONY_LOCK" ]; then
+            trap 'rmdir "$PARSIMONY_LOCK" 2>/dev/null' RETURN
+            printf '%s\n' "$compact" > "$PARSIMONY_IN"
+            read -r response < "$PARSIMONY_OUT"
+        fi
+    else
+        response=$(curl -s --connect-timeout 10 -m 300 \
+            -X POST "http://${INFERENCE_HOST}:${INFERENCE_PORT}/v1/chat/completions" \
+            -H "Content-Type: application/json" \
+            -d "$payload" 2>/dev/null)
+    fi
+
+    echo "$response"
+}
+
+fallback_claude() {
+    local prompt="$1"
+    claude -p "$prompt" 2>/dev/null || true
+}
+
+# --- conversation state ---
+
+get_messages_file() { echo "$LOG_DIR/hosuni-${1}.messages.json"; }
+
+load_messages() {
+    local file; file=$(get_messages_file "$1")
+    if [ -f "$file" ]; then
+        cat "$file"
+    else
+        echo "[]"
+    fi
+}
+
+save_messages() {
+    local channel="$1" messages="$2"
+    # truncate to last MAX_TURNS * 2 entries
+    local count; count=$(echo "$messages" | jq 'length')
+    if [ "$count" -gt $((MAX_TURNS * 2)) ]; then
+
+
+### Chunk 9 (from runtime/parsimony.c)
+        if (prelude_len > 0) {
+            chat[chat_n].role = "system";
+            if (tools) {
+                snprintf(augmented_prelude, sizeof(augmented_prelude),
+                    "%s\n\nAvailable tools:\n%s\n\n"
+                    "To use a tool, respond with ONLY a JSON object:\n"
+                    "{\"name\":\"tool_name\",\"arguments\":{\"key\":\"value\"}}",
+                    prelude_buf, tools);
+                chat[chat_n].content = augmented_prelude;
+            } else {
+                chat[chat_n].content = prelude_buf;
+            }
+            chat_n++;
+        } else if (tools) {
+            snprintf(augmented_prelude, sizeof(augmented_prelude),
+                "Available tools:\n%s\n\n"
+                "To use a tool, respond with ONLY a JSON object:\n"
+                "{\"name\":\"tool_name\",\"arguments\":{\"key\":\"value\"}}",
+                tools);
+            chat[chat_n].role = "system";
+            chat[chat_n].content = augmented_prelude;
+            chat_n++;
+        }
+        for (int i = 0; i < n_msgs && chat_n < MAX_MESSAGES + 1; i++) {
+            chat[chat_n].role    = msgs_buf[i].role;
+            chat[chat_n].content = msgs_buf[i].content;
+            chat_n++;
+        }
+
+        int prompt_len = llama_chat_apply_template(
+            NULL, chat, (size_t)chat_n, true,
+            prompt_buf, sizeof(prompt_buf));
+        if (prompt_len < 0 || prompt_len >= (int)sizeof(prompt_buf)) {
+            printf("{\"error\":\"template failed\"}\n");
+            fflush(stdout);
+            continue;
+        }
+        prompt_buf[prompt_len] = '\0';
+
+        const struct llama_vocab *vocab = llama_model_get_vocab(model);
+
+
+### Chunk 10 (from runtime/hosuni.sh)
+#!/usr/bin/env bash
+# hosuni — tool-use daemon for local inference
+# listens on a port via nc. receives JSON, checks lookdown,
+# routes inference through parsimony (coproc via named pipes),
+# parses tool calls, executes, loops, logs. pure bash + jq.
+# falls back to curl if parsimony pipes not present.
+#
+# run:   hosuni.sh [port]
+# call:  echo '{"input":"list files","channel":"terminal"}' | nc localhost 8091
+
+set -euo pipefail
+
+export PATH="$HOME/.subtract/bin:$HOME/.subtract:$PATH"
+
+SUBTRACT_DIR="${SUBTRACT_DIR:-$HOME/.subtract}"
+HOSUNI_DIR="${HOSUNI_DIR:-$HOME/.hosuni}"
+INFERENCE_HOST=$(cat "$SUBTRACT_DIR/inference_host" 2>/dev/null || echo "localhost")
+INFERENCE_PORT=$(cat "$SUBTRACT_DIR/inference_port" 2>/dev/null || echo "8085")
+RESEARCH_PORT=$(cat "$SUBTRACT_DIR/research_port" 2>/dev/null || echo "")
+RESEARCH_HOST=$(cat "$SUBTRACT_DIR/research_host" 2>/dev/null || echo "")
+PARSIMONY_IN="$SUBTRACT_DIR/.parsimony.in"
+PARSIMONY_OUT="$SUBTRACT_DIR/.parsimony.out"
+PARSIMONY_LOCK="$SUBTRACT_DIR/.parsimony.lock"
+LOOKDOWN_NODE="$SUBTRACT_DIR/lookdown.$(hostname).tsv"
+LOOKDOWN_UNIVERSAL="$SUBTRACT_DIR/lookdown.universal.tsv"
+TOOLS_FILE="$HOSUNI_DIR/tools.tsv"
+LOG_DIR="$SUBTRACT_DIR/log"
+DAEMON_LOG="$HOME/human/sessions/hosuni.log"
+MAX_TURNS=20
+TOOL_TIMEOUT=300
+
+SOUL_FILE="$HOME/subtract.ing/SOUL.txt"
+SYSTEM_MSG=$(cat "$SOUL_FILE" 2>/dev/null || echo "")
+
+mkdir -p "$LOG_DIR" "$HOSUNI_DIR"
+
+ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+log_daemon() { printf "[%s] %s\n" "$(ts)" "$1" >> "$DAEMON_LOG"; }
+
+
+
+### Chunk 11 (from runtime/hosuni/hosuni.c)
+} hosuni_app;
+
+/* ================================================================
+   conversation history + message building
+   ================================================================ */
+
+static void history_add(ask_ctx *a, const char *role, const char *content) {
+    if (a->history_count >= MAX_HIST_MSGS) {
+        memmove(a->history, a->history + 2,
+                (MAX_HIST_MSGS - 2) * sizeof(a->history[0]));
+        a->history_count -= 2;
+    }
+    snprintf(a->history[a->history_count].role,
+             sizeof(a->history[0].role), "%s", role);
+    snprintf(a->history[a->history_count].content,
+             sizeof(a->history[0].content), "%s", content);
+    a->history_count++;
+}
+
+static int build_messages_json(const char *soul, ask_ctx *a,
+                                const char *query, char *out, int out_max) {
+    int o = 0;
+    int need_comma = 0;
+    o += snprintf(out + o, out_max - o, "[");
+
+    if (soul && soul[0]) {
+        static char esc[32768];
+        json_escape(soul, esc, sizeof(esc));
+        o += snprintf(out + o, out_max - o,
+            "{\"role\":\"system\",\"content\":\"%s\"}", esc);
+        if (o >= out_max) return out_max - 1;
+        need_comma = 1;
+    }
+
+    for (int i = 0; i < a->history_count; i++) {
+        static char esc_hist[8192];
+        json_escape(a->history[i].content, esc_hist, sizeof(esc_hist));
+        if (need_comma) o += snprintf(out + o, out_max - o, ",");
+        o += snprintf(out + o, out_max - o,
+            "{\"role\":\"%s\",\"content\":\"%s\"}",
+
+
+### Chunk 12 (from runtime/squared.c)
+            }
+
+            _exit(0);
+        }
+        close(fd);
+    }
+}
+
+
+
+## Question
+What is parsimony.c and what role does it play in the subtract.ing runtime?

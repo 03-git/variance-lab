@@ -1,0 +1,98 @@
+I will provide two ways to do this: the **Python (FastAPI)** approach, which is modern and highly recommended for its speed and automatic documentation, and the **Node.js (Express)** approach, which is a standard in the JavaScript ecosystem.
+
+---
+
+### Option 1: Python (using FastAPI)
+FastAPI is excellent because it automatically handles JSON conversion and provides an interactive documentation page.
+
+#### 1. The Code
+Create a file named `main.py`:
+
+```python
+from fastapi import FastAPI
+from datetime import datetime
+
+app = FastAPI()
+
+@app.get("/time")
+async def get_time():
+    # Generates the current time in ISO 8601 format
+    return {"time": datetime.now().isoformat()}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
+#### 2. How to run it
+Open your terminal and follow these steps:
+
+1.  **Install dependencies:**
+    ```bash
+    pip install fastapi uvicorn
+    ```
+2.  **Run the server:**
+    ```bash
+    python main.py
+    ```
+3.  **Test it:**
+    Open your browser or use `curl` in another terminal:
+    ```bash
+    curl http://127.0.0.1:8000/time
+    ```
+    **Response:** `{"time":"2023-10-27T10:30:05.123456"}`
+
+---
+
+### Option 2: Node.js (using Express)
+This is the most common way to build lightweight microservices in JavaScript.
+
+#### 1. The Code
+Create a file named `server.js`:
+
+```javascript
+const express = require('express');
+const app = express();
+const PORT = 3000;
+
+app.get('/time', (req, res) => {
+    // toISOString() returns a string in ISO 8601 format
+    res.json({
+        time: new Date().toISOString()
+    });
+});
+
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+});
+```
+
+#### 2. How to run it
+Open your terminal and follow these steps:
+
+1.  **Initialize and install dependencies:**
+    ```bash
+    npm init -y
+    npm install express
+    ```
+2.  **Run the server:**
+    ```bash
+    node server.js
+    ```
+3.  **Test it:**
+    Open your browser or use `curl`:
+    ```bash
+    curl http://localhost:3000/time
+    ```
+    **Response:** `{"time":"2023-10-27T10:30:05.123Z"}`
+
+---
+
+### Summary Comparison
+
+| Feature | Python (FastAPI) | Node.js (Express) |
+| :--- | :--- | :--- |
+| **Best for** | Data science, high performance, auto-docs | Rapid prototyping, JS-heavy environments |
+| **ISO 8601 Method** | `.isoformat()` | `.toISOString()` |
+| **Default Port** | 8000 | 3000 |
+| **Auto-Documentation** | Yes (at `/docs`) | No (requires extra setup) |

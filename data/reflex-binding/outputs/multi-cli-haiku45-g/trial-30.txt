@@ -1,0 +1,66 @@
+I'll show you a Python CLI tool using `argparse` that does exactly that:
+
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(description='Parse and validate host/port configuration')
+    parser.add_argument('--host', required=True, help='Hostname or IP address')
+    parser.add_argument('--port', type=int, required=True, help='Port number')
+    parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
+    
+    args = parser.parse_args()
+    
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        print(f"Error: port must be between 1 and 65535, got {args.port}", file=sys.stderr)
+        sys.exit(1)
+    
+    # Build config
+    config = {
+        'host': args.host,
+        'port': args.port,
+        'verbose': args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == '__main__':
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage
+python script.py --host localhost --port 8080
+
+# With verbose flag
+python script.py --host 0.0.0.0 --port 3000 --verbose
+
+# Invalid port (demonstrates validation)
+python script.py --host example.com --port 99999
+# Output: Error: port must be between 1 and 65535, got 99999
+```
+
+**Example outputs:**
+
+```bash
+$ python script.py --host localhost --port 8080
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": false
+}
+
+$ python script.py --host 192.168.1.1 --port 443 --verbose
+{
+  "host": "192.168.1.1",
+  "port": 443,
+  "verbose": true
+}
+```
+
+The tool uses `argparse` for clean argument parsing, validates the port range before outputting, and returns a non-zero exit code on validation failure.

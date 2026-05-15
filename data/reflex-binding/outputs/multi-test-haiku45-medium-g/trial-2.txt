@@ -1,0 +1,59 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using the `unittest` framework:
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    
+    def test_freezing_point(self):
+        """Test that 0°C equals 32°F."""
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+    
+    def test_boiling_point(self):
+        """Test that 100°C equals 212°F."""
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+    
+    def test_negative_forty(self):
+        """Test that -40°C equals -40°F (the point where scales meet)."""
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+    
+    def test_non_numeric_input(self):
+        """Test that non-numeric input raises TypeError."""
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("thirty")
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+**To run it:**
+
+```bash
+python test_celsius.py
+```
+
+**Expected output:**
+```
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.00s
+
+OK
+```
+
+**Or run with verbose output:**
+```bash
+python test_celsius.py -v
+```
+
+This gives you:
+- **test_freezing_point**: Validates 0°C → 32°F
+- **test_boiling_point**: Validates 100°C → 212°F  
+- **test_negative_forty**: Validates the unique point where both scales are equal
+- **test_non_numeric_input**: Verifies the function properly raises `TypeError` when passed a string
+
+The last test uses `assertRaises` as a context manager to check that the multiplication operation fails with a `TypeError` when given incompatible types.

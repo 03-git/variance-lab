@@ -1,0 +1,105 @@
+I'll show you a complete REST API endpoint implementation using Python with Flask. This is a minimal, production-ready approach.
+
+```python
+from flask import Flask, request, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/users', methods=['POST'])
+def create_user():
+    data = request.get_json()
+    
+    if data is None:
+        return jsonify({'error': 'Request body must be JSON'}), 400
+    
+    # Validate required fields and types
+    errors = {}
+    
+    if 'name' not in data:
+        errors['name'] = 'Required field'
+    elif not isinstance(data['name'], str) or not data['name'].strip():
+        errors['name'] = 'Must be a non-empty string'
+    
+    if 'email' not in data:
+        errors['email'] = 'Required field'
+    elif not isinstance(data['email'], str) or '@' not in data['email']:
+        errors['email'] = 'Must be a string containing @'
+    
+    if 'age' not in data:
+        errors['age'] = 'Required field'
+    elif not isinstance(data['age'], int) or data['age'] < 1 or data['age'] > 150:
+        errors['age'] = 'Must be an integer between 1 and 150'
+    
+    if errors:
+        return jsonify({'errors': errors}), 400
+    
+    # Success: return validated user
+    user = {
+        'id': int(datetime.now().timestamp() * 1000),
+        'name': data['name'],
+        'email': data['email'],
+        'age': data['age']
+    }
+    
+    return jsonify(user), 201
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**How to run:**
+
+```bash
+# Install Flask if needed
+pip install flask
+
+# Run the server
+python app.py
+```
+
+**Test it (in another terminal):**
+
+```bash
+# Valid request
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+
+# Invalid: missing email
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "age": 25}'
+
+# Invalid: age out of range
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Charlie", "email": "charlie@example.com", "age": 200}'
+
+# Invalid: email missing @
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Dave", "email": "dave.example.com", "age": 35}'
+```
+
+**Response examples:**
+
+Success (201):
+```json
+{
+  "id": 1715337600000,
+  "name": "Alice",
+  "email": "alice@example.com",
+  "age": 30
+}
+```
+
+Error (400):
+```json
+{
+  "errors": {
+    "email": "Required field",
+    "age": "Must be an integer between 1 and 150"
+  }
+}
+```

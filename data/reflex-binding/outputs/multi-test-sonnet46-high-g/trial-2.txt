@@ -1,0 +1,38 @@
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_negative_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+**To run it**, save as `test_temp.py` and:
+
+```
+python test_temp.py
+```
+
+Or with verbose output:
+
+```
+python -m unittest -v test_temp
+```
+
+Note: the `test_non_numeric` test passes because Python raises `TypeError` on `"hot" * 9/5`. No special handling needed in the function itself.

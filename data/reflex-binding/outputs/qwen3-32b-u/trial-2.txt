@@ -1,0 +1,63 @@
+Here's a simple HTTP endpoint using Python and Flask that returns the current time as a JSON object with an ISO 8601 timestamp. It's designed to run locally for development purposes.
+
+---
+
+### ✅ Code
+
+Save the following code in a file named `time_api.py`:
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime, timezone
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    # Get the current UTC time in ISO 8601 format (with 'Z' for UTC)
+    current_time = datetime.now(timezone.utc).isoformat()
+    return jsonify({"time": current_time})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+---
+
+### ▶️ How to Run It
+
+1. **Install Flask** (if not already installed):
+   ```bash
+   pip install flask
+   ```
+
+2. **Run the Flask application**:
+   ```bash
+   python time_api.py
+   ```
+
+3. **Access the endpoint**:
+   Open a browser or use `curl` to access:
+   ```
+   http://localhost:5000/time
+   ```
+
+   Example `curl` request:
+   ```bash
+   curl http://localhost:5000/time
+   ```
+
+   Example response:
+   ```json
+   {
+     "time": "2023-10-05T12:34:56.789012Z"
+   }
+   ```
+
+---
+
+### 🧠 Notes
+
+- The server runs by default on `http://localhost:5000`.
+- The endpoint is timezone-aware and returns the current **UTC** time in ISO 8601 format.
+- The `debug=True` flag enables auto-reloading and helpful error messages. **Do not use this in production.** For production, set `debug=False` and consider using a proper WSGI server like Gunicorn.

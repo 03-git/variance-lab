@@ -1,0 +1,48 @@
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    try:
+        while data := await reader.readline():
+            writer.write(data)
+            await writer.drain()
+    except ConnectionError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Disconnected {addr}")
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"Echo server listening on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+```
+
+**Run it:**
+
+```bash
+python3 echo_server.py
+```
+
+**Test from another terminal:**
+
+```bash
+# Using netcat
+nc 127.0.0.1 8888
+# type a line, press Enter, see it echoed back
+
+# Or telnet
+telnet 127.0.0.1 8888
+```
+
+Open multiple `nc` sessions in parallel — each runs as its own coroutine, and `asyncio` multiplexes them on one thread. `readline()` waits for `\n`, so the server echoes line-by-line. Stop with Ctrl+C.

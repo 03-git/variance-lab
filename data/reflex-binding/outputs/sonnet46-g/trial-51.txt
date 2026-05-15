@@ -1,0 +1,49 @@
+**Python (stdlib only):**
+
+```python
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(body)
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, *_): pass  # silence access log
+
+HTTPServer(('', 8080), Handler).serve_forever()
+```
+
+Run: `python3 -c "$(cat above)"` or save to `time_server.py` and `python3 time_server.py`
+
+Test: `curl http://localhost:8080/time`
+
+---
+
+**Node.js (stdlib only):**
+
+```js
+const http = require('http');
+http.createServer((req, res) => {
+  if (req.method === 'GET' && req.url === '/time') {
+    res.writeHead(200, {'Content-Type': 'application/json'});
+    res.end(JSON.stringify({time: new Date().toISOString()}));
+  } else {
+    res.writeHead(404).end();
+  }
+}).listen(8080);
+```
+
+Run: `node -e "$(cat above)"` or save and `node time_server.js`
+
+---
+
+Both bind to port 8080, no dependencies. The Python version uses UTC explicitly; the Node version uses `toISOString()` which is always UTC. Swap port by changing `8080`.

@@ -1,0 +1,65 @@
+I'll show you a Python script that fetches a webpage and extracts hyperlinks. Here's the code:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+
+def extract_links(url):
+    """Fetch a URL and extract all hyperlinks."""
+    try:
+        # Fetch the webpage
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        # Parse the HTML
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Extract all anchor tags
+        links = soup.find_all('a')
+        
+        if not links:
+            print(f"No links found on {url}")
+            return
+        
+        print(f"Found {len(links)} links:\n")
+        for link in links:
+            href = link.get('href')
+            text = link.get_text(strip=True)
+            
+            # Convert relative URLs to absolute URLs
+            if href:
+                href = urljoin(url, href)
+            
+            print(f"Text: {text or '[No text]'}")
+            print(f"href: {href or '[No href]'}")
+            print()
+    
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+
+if __name__ == "__main__":
+    extract_links("https://example.com")
+```
+
+**How to run it:**
+
+1. **Install dependencies** (if you haven't already):
+   ```bash
+   pip install requests beautifulsoup4
+   ```
+
+2. **Run the script:**
+   ```bash
+   python script.py
+   ```
+
+**What the script does:**
+- Fetches the HTML from the URL using `requests`
+- Parses the HTML with `BeautifulSoup`
+- Finds all `<a>` tags
+- Extracts the `href` attribute and link text for each one
+- Converts relative URLs to absolute URLs using `urljoin`
+- Prints the link text and href for each link found
+
+You can modify the URL in the `extract_links()` call at the bottom to fetch different websites.

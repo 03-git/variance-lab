@@ -1,0 +1,78 @@
+I'll show you a complete Python script that creates a SQLite database with a notes table, inserts sample data, and queries it:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create an in-memory database (or use 'notes.db' for a file-based database)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Meeting Notes', 'Discussed Q2 roadmap and timeline', datetime.now().isoformat()),
+    ('Personal Todo', 'Buy groceries, call mom, finish project', datetime.now().isoformat()),
+    ('Project Ideas', 'Mobile app for task management, web scraper tool', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+
+conn.commit()
+
+# Query and print all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+print("All Notes:")
+print("-" * 60)
+for note in notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 60)
+
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the code to a file (e.g., `notes.py`)
+2. Run it with: `python notes.py`
+
+**Output:**
+```
+All Notes:
+------------------------------------------------------------
+ID: 1
+Title: Meeting Notes
+Body: Discussed Q2 roadmap and timeline
+Created: 2026-05-10T14:30:45.123456
+------------------------------------------------------------
+ID: 2
+Title: Personal Todo
+Body: Buy groceries, call mom, finish project
+Created: 2026-05-10T14:30:45.123457
+------------------------------------------------------------
+ID: 3
+Title: Project Ideas
+Body: Mobile app for task management, web scraper tool
+Created: 2026-05-10T14:30:45.123458
+------------------------------------------------------------
+```
+
+The script uses `:memory:` for an in-memory database (data lost when script exits). Change `sqlite3.connect(':memory:')` to `sqlite3.connect('notes.db')` if you want to save data to a file.

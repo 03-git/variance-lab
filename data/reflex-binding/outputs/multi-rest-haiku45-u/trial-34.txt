@@ -1,0 +1,91 @@
+I'll show you a simple REST API endpoint in Python using Flask. Here's the complete code:
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route('/users', methods=['POST'])
+def create_user():
+    data = request.get_json()
+    
+    # Validate required field: name
+    if not data or 'name' not in data:
+        return jsonify({'error': 'name is required'}), 400
+    
+    name = data.get('name')
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({'error': 'name must be a non-empty string'}), 400
+    
+    # Validate required field: email
+    if 'email' not in data:
+        return jsonify({'error': 'email is required'}), 400
+    
+    email = data.get('email')
+    if not isinstance(email, str) or '@' not in email:
+        return jsonify({'error': 'email must contain @'}), 400
+    
+    # Validate required field: age
+    if 'age' not in data:
+        return jsonify({'error': 'age is required'}), 400
+    
+    age = data.get('age')
+    if not isinstance(age, int) or age < 1 or age > 150:
+        return jsonify({'error': 'age must be an integer between 1 and 150'}), 400
+    
+    # All validations passed
+    user = {
+        'name': name.strip(),
+        'email': email,
+        'age': age
+    }
+    
+    return jsonify(user), 201
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**How to run it:**
+
+1. **Install Flask** (if you don't have it):
+```bash
+pip install flask
+```
+
+2. **Run the server**:
+```bash
+python app.py
+```
+
+3. **Test the endpoint** with curl:
+
+Valid request (201 Created):
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "john@example.com", "age": 30}'
+```
+
+Invalid email (400 Bad Request):
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "invalid-email", "age": 30}'
+```
+
+Invalid age (400 Bad Request):
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "john@example.com", "age": 200}'
+```
+
+Missing field (400 Bad Request):
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "age": 30}'
+```
+
+The endpoint validates all three fields and returns appropriate error messages or the validated user object with a 201 status code on success.

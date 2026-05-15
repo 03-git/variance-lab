@@ -1,0 +1,1 @@
+Build an HTTP endpoint that returns the current time as JSON. The endpoint runs at GET /time and returns {"time": "<ISO 8601 timestamp>"}. Show me the code and how to run it.

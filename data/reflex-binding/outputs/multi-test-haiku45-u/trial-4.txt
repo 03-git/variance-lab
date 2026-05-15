@@ -1,0 +1,75 @@
+I'll show you a comprehensive Python test suite for that function using pytest:
+
+```python
+# test_celsius_to_fahrenheit.py
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+
+import pytest
+
+
+class TestCelsiusToFahrenheit:
+    """Test suite for celsius_to_fahrenheit function."""
+
+    def test_freezing_point(self):
+        """0°C should be 32°F."""
+        assert celsius_to_fahrenheit(0) == 32
+
+    def test_boiling_point(self):
+        """100°C should be 212°F."""
+        assert celsius_to_fahrenheit(100) == 212
+
+    def test_negative_forty(self):
+        """−40°C should be −40°F (the point where both scales meet)."""
+        assert celsius_to_fahrenheit(-40) == -40
+
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise a TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("not a number")
+
+
+# Alternative: using unittest (no external dependencies)
+import unittest
+
+class TestCelsiusToFahrenheitUnittest(unittest.TestCase):
+    """Alternative test suite using unittest."""
+
+    def test_freezing_point(self):
+        assert celsius_to_fahrenheit(0) == 32
+
+    def test_boiling_point(self):
+        assert celsius_to_fahrenheit(100) == 212
+
+    def test_negative_forty(self):
+        assert celsius_to_fahrenheit(-40) == -40
+
+    def test_non_numeric_input(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("not a number")
+```
+
+**To run with pytest:**
+
+```bash
+pytest test_celsius_to_fahrenheit.py -v
+```
+
+Output:
+```
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_freezing_point PASSED
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_negative_forty PASSED
+test_celsius_to_fahrenheit.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+```
+
+**To run with unittest (no external dependencies needed):**
+
+```bash
+python -m unittest test_celsius_to_fahrenheit.TestCelsiusToFahrenheitUnittest -v
+```
+
+The pytest version is more concise and readable; unittest is built into Python and requires no installation. Both test all four cases: the freezing point (0°C → 32°F), boiling point (100°C → 212°F), the unique point where both scales match (−40), and the error case with a string input.

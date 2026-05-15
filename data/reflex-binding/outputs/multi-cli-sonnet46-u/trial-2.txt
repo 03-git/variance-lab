@@ -1,0 +1,59 @@
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(description="Network configuration tool")
+    parser.add_argument("--host", default="localhost", help="Target host (default: localhost)")
+    parser.add_argument("--port", type=int, required=True, help="Target port (1-65535)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+
+    args = parser.parse_args()
+
+    if not (1 <= args.port <= 65535):
+        print(f"error: port {args.port} is out of range (must be 1-65535)", file=sys.stderr)
+        sys.exit(1)
+
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose,
+    }
+
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage
+python cli.py --host example.com --port 8080
+
+# With verbose flag
+python cli.py --host example.com --port 443 --verbose
+
+# Default host (localhost)
+python cli.py --port 3000
+
+# Invalid port — exits with error
+python cli.py --port 99999
+```
+
+**Example output** for `python cli.py --host example.com --port 8080 --verbose`:
+
+```json
+{
+  "host": "example.com",
+  "port": 8080,
+  "verbose": true
+}
+```
+
+A few notes:
+- `argparse` rejects non-integer `--port` values automatically (e.g. `--port abc`) before your validation runs
+- The range check is manual since `argparse` has no built-in range constraint for integers
+- `--port` is `required=True`; omitting it prints usage and exits

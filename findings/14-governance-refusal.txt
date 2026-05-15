@@ -1,0 +1,124 @@
+---
+title: In-Vivo Governance Refusal (Finding 5 Reproduction)
+date: 2026-05-10
+source: incidental observation during manifest-agents scorer calibration
+domain:
+  - agent-governance
+  - claude-md-binding
+  - reflex-verification
+keywords:
+  - governance.conf.universal
+  - reflex.4 action to verification
+  - Opus 4.7
+  - code generation refusal
+  - stale spec detection
+  - 404 verification
+  - in-vivo reproduction
+related_findings:
+  - "variance-lab finding 5: governance binding, delivery-path sensitivity (2026-04-19)"
+  - "variance-lab finding 7: manifest-routed retrieval vs BM25 (2026-05-10)"
+methodology: incidental observation; no pre-committed rubric; observed during manifest-agents scorer calibration dispatch
+---
+
+# In-Vivo Governance Refusal
+
+## Claim
+
+A frontier model (claude-opus-4-7) dispatched a code-generation
+task under governance.conf.universal refused to generate code
+because it followed the project's reflexes, verified the spec's
+reference URLs, found both returned 404, and refused to act on
+a stale spec. This reproduces finding 5's governance-binding
+result in-vivo on a different task class (code generation vs
+plan-only publish-and-verify) with a different model version.
+
+## Observation
+
+During the manifest-agents scorer calibration (2026-05-10), four
+models were dispatched the same handler.sh implementation spec:
+Claude Sonnet 4.5 high, Claude Sonnet 4.6 high, Claude Sonnet
+4.6 low, and Qwen 2.5-7b. All four produced code. Claude Opus
+4.7 was also dispatched and consistently refused.
+
+The spec contained two reference URLs:
+- `https://subtract.ing/session-log.spec.txt` (404)
+- `https://subtract.ing/runtime/handler.sh` (404)
+
+Opus 4.7 followed governance.conf.universal reflex.4 ("action to
+verification: if unsigned, verify with a live read before acting")
+and checked both URLs. Both returned 404. The model refused to
+generate code against a spec whose reference material was
+unreachable, consistent with the governance instruction that
+unverified state should not be acted on.
+
+The four models that produced code did not check the URLs. They
+treated the spec as self-contained and generated implementations.
+
+## Connection to finding 5
+
+Finding 5 established that governance binds as a named-item
+trigger list: name the behavior in CLAUDE.md and it fires; omit
+it and it does not. Finding 5 tested this with a plan-only task
+against a ten-item binary rubric.
+
+This observation reproduces the mechanism on a different axis:
+
+| Dimension | Finding 5 | This observation |
+|---|---|---|
+| Task class | plan-only publish-and-verify | code generation |
+| Governance artifact | CLAUDE.md (rubric items) | governance.conf.universal (reflexes) |
+| Model | claude-opus-4-7 (same) | claude-opus-4-7 (same) |
+| Binding mechanism | named items fire, unnamed don't | named reflex fires, model verifies before acting |
+| Outcome | rubric score 3.0→8.2 with governance | code refusal when verification fails |
+
+Finding 5 showed governance makes the model *do more*. This
+observation shows governance makes the model *do less* — refuse
+a task it would otherwise complete — when the reflexes surface
+a verification failure. Both are binding. The direction depends
+on what the reflexes find.
+
+## Why this is not a confound
+
+This was initially recorded as a confound bullet in the manifest-
+agents finding because it prevented Opus 4.7 from contributing
+a calibration implementation. But it is not a confound — it is
+data. The calibration proceeded with four implementations from
+four other models. Opus 4.7's refusal did not distort the
+calibration; it demonstrated a separate property of governance-
+bound models.
+
+## Confounds
+
+**Not pre-committed.** This observation was incidental. No rubric
+was pre-committed for it. The finding is observational, not
+experimentally controlled.
+
+**Single model, single dispatch.** Only Opus 4.7 was observed
+refusing. The other models that generated code were not running
+under governance.conf.universal in the same way (Qwen 2.5-7b is
+a local model without CLAUDE.md loading; the Sonnet dispatches
+may have loaded CLAUDE.md but the reflex behavior was not
+observed). The observation is about Opus 4.7 + governance.conf,
+not about frontier models in general.
+
+**URL verification method unobserved.** The model's internal
+mechanism for checking the URLs is not visible. Whether it used
+WebFetch, attempted HTTP in a sandbox, or inferred 404 from
+context is not distinguishable from the output alone. The
+behavioral outcome (refusal citing stale spec) is observed; the
+verification path is inferred.
+
+**Spec design may have prompted the check.** The spec explicitly
+listed the URLs under a "Reference" header. A model without
+governance reflexes might still check reference URLs if the spec
+structure invites it. The governance reflex is one explanation;
+spec-prompted verification is another. These are not distinguished.
+
+## Methodology cost
+
+Zero incremental cost. The observation was a byproduct of the
+scorer calibration dispatch. No additional tokens, wall-clock,
+or infrastructure were consumed to produce it.
+
+
+================================================================

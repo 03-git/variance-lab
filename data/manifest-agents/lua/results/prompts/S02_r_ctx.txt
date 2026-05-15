@@ -1,0 +1,491 @@
+
+## lprefix.h (lines 1-40)
+/*
+** $Id: lprefix.h $
+** Definitions for Lua code that must come before any other header file
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lprefix_h
+#define lprefix_h
+
+
+/*
+** Allows POSIX/XSI stuff
+*/
+#if !defined(LUA_USE_C89)	/* { */
+
+#if !defined(_XOPEN_SOURCE)
+#define _XOPEN_SOURCE           600
+#elif _XOPEN_SOURCE == 0
+#undef _XOPEN_SOURCE  /* use -D_XOPEN_SOURCE=0 to undefine it */
+#endif
+
+/*
+** Allows manipulation of large files in gcc and some other compilers
+*/
+#if !defined(LUA_32BITS) && !defined(_FILE_OFFSET_BITS)
+#define _LARGEFILE_SOURCE       1
+#define _FILE_OFFSET_BITS       64
+#endif
+
+#endif				/* } */
+
+
+/*
+** Windows stuff
+*/
+#if defined(_WIN32)	/* { */
+
+#if !defined(_CRT_SECURE_NO_WARNINGS)
+#define _CRT_SECURE_NO_WARNINGS  /* avoid warnings about ISO C functions */
+#endif
+
+## luaconf.h (lines 601-640)
+*/
+#define lua_pointer2str(buff,sz,p)	l_sprintf(buff,sz,"%p",p)
+
+
+/*
+@@ lua_number2strx converts a float to a hexadecimal numeral.
+** In C99, 'sprintf' (with format specifiers '%a'/'%A') does that.
+** Otherwise, you can leave 'lua_number2strx' undefined and Lua will
+** provide its own implementation.
+*/
+#if !defined(LUA_USE_C89)
+#define lua_number2strx(L,b,sz,f,n)  \
+	((void)L, l_sprintf(b,sz,f,(LUAI_UACNUMBER)(n)))
+#endif
+
+
+/*
+** 'strtof' and 'opf' variants for math functions are not valid in
+** C89. Otherwise, the macro 'HUGE_VALF' is a good proxy for testing the
+** availability of these variants. ('math.h' is already included in
+** all files that use these macros.)
+*/
+#if defined(LUA_USE_C89) || (defined(HUGE_VAL) && !defined(HUGE_VALF))
+#undef l_mathop  /* variants not available */
+#undef lua_str2number
+#define l_mathop(op)		(lua_Number)op  /* no variant */
+#define lua_str2number(s,p)	((lua_Number)strtod((s), (p)))
+#endif
+
+
+/*
+@@ LUA_KCONTEXT is the type of the context ('ctx') for continuation
+** functions.  It must be a numerical type; Lua will use 'intptr_t' if
+** available, otherwise it will use 'ptrdiff_t' (the nearest thing to
+** 'intptr_t' in C89)
+*/
+#define LUA_KCONTEXT	ptrdiff_t
+
+#if !defined(LUA_USE_C89) && defined(__STDC_VERSION__) && \
+    __STDC_VERSION__ >= 199901L
+
+## loslib.c (lines 121-160)
+#else				/* }{ */
+
+/* ISO C definitions */
+#define LUA_TMPNAMBUFSIZE	L_tmpnam
+#define lua_tmpnam(b,e)		{ e = (tmpnam(b) == NULL); }
+
+#endif				/* } */
+
+#endif				/* } */
+/* }================================================================== */
+
+
+#if !defined(l_system)
+#if defined(LUA_USE_IOS)
+/* Despite claiming to be ISO C, iOS does not implement 'system'. */
+#define l_system(cmd) ((cmd) == NULL ? 0 : -1)
+#else
+#define l_system(cmd)	system(cmd)  /* default definition */
+#endif
+#endif
+
+
+static int os_execute (lua_State *L) {
+  const char *cmd = luaL_optstring(L, 1, NULL);
+  int stat;
+  errno = 0;
+  stat = l_system(cmd);
+  if (cmd != NULL)
+    return luaL_execresult(L, stat);
+  else {
+    lua_pushboolean(L, stat);  /* true if there is a shell */
+    return 1;
+  }
+}
+
+
+static int os_remove (lua_State *L) {
+  const char *filename = luaL_checkstring(L, 1);
+  errno = 0;
+  return luaL_fileresult(L, remove(filename) == 0, filename);
+
+## liolib.c (lines 801-840)
+  luaL_setfuncs(L, meth, 0);  /* add file methods to method table */
+  lua_setfield(L, -2, "__index");  /* metatable.__index = method table */
+  lua_pop(L, 1);  /* pop metatable */
+}
+
+
+/*
+** function to (not) close the standard files stdin, stdout, and stderr
+*/
+static int io_noclose (lua_State *L) {
+  LStream *p = tolstream(L);
+  p->closef = &io_noclose;  /* keep file opened */
+  luaL_pushfail(L);
+  lua_pushliteral(L, "cannot close standard file");
+  return 2;
+}
+
+
+static void createstdfile (lua_State *L, FILE *f, const char *k,
+                           const char *fname) {
+  LStream *p = newprefile(L);
+  p->f = f;
+  p->closef = &io_noclose;
+  if (k != NULL) {
+    lua_pushvalue(L, -1);
+    lua_setfield(L, LUA_REGISTRYINDEX, k);  /* add file to registry */
+  }
+  lua_setfield(L, -2, fname);  /* add file to module */
+}
+
+
+LUAMOD_API int luaopen_io (lua_State *L) {
+  luaL_newlib(L, iolib);  /* new module */
+  createmeta(L);
+  /* create (and set) default files */
+  createstdfile(L, stdin, IO_INPUT, "stdin");
+  createstdfile(L, stdout, IO_OUTPUT, "stdout");
+  createstdfile(L, stderr, NULL, "stderr");
+  return 1;
+}
+
+## lstate.h (lines 241-280)
+#define CIST_OAH	(CIST_TBC << 1)
+/* call is running a debug hook */
+#define CIST_HOOKED	(CIST_OAH << 1)
+/* doing a yieldable protected call */
+#define CIST_YPCALL	(CIST_HOOKED << 1)
+/* call was tail called */
+#define CIST_TAIL	(CIST_YPCALL << 1)
+/* last hook called yielded */
+#define CIST_HOOKYIELD	(CIST_TAIL << 1)
+/* function "called" a finalizer */
+#define CIST_FIN	(CIST_HOOKYIELD << 1)
+
+
+#define get_nresults(cs)  (cast_int((cs) & CIST_NRESULTS) - 1)
+
+/*
+** Field CIST_RECST stores the "recover status", used to keep the error
+** status while closing to-be-closed variables in coroutines, so that
+** Lua can correctly resume after an yield from a __close method called
+** because of an error.  (Three bits are enough for error status.)
+*/
+#define getcistrecst(ci)     (((ci)->callstatus >> CIST_RECST) & 7)
+#define setcistrecst(ci,st)  \
+  check_exp(((st) & 7) == (st),   /* status must fit in three bits */  \
+            ((ci)->callstatus = ((ci)->callstatus & ~(7u << CIST_RECST))  \
+                                | (cast(l_uint32, st) << CIST_RECST)))
+
+
+/* active function is a Lua function */
+#define isLua(ci)	(!((ci)->callstatus & CIST_C))
+
+/* call is running Lua code (not a hook) */
+#define isLuacode(ci)	(!((ci)->callstatus & (CIST_C | CIST_HOOKED)))
+
+
+#define setoah(ci,v)  \
+  ((ci)->callstatus = ((v) ? (ci)->callstatus | CIST_OAH  \
+                           : (ci)->callstatus & ~CIST_OAH))
+#define getoah(ci)  (((ci)->callstatus & CIST_OAH) ? 1 : 0)
+
+
+## liolib.c (lines 241-280)
+
+/*
+** function to close regular files
+*/
+static int io_fclose (lua_State *L) {
+  LStream *p = tolstream(L);
+  errno = 0;
+  return luaL_fileresult(L, (fclose(p->f) == 0), NULL);
+}
+
+
+static LStream *newfile (lua_State *L) {
+  LStream *p = newprefile(L);
+  p->f = NULL;
+  p->closef = &io_fclose;
+  return p;
+}
+
+
+static void opencheck (lua_State *L, const char *fname, const char *mode) {
+  LStream *p = newfile(L);
+  p->f = fopen(fname, mode);
+  if (l_unlikely(p->f == NULL))
+    luaL_error(L, "cannot open file '%s' (%s)", fname, strerror(errno));
+}
+
+
+static int io_open (lua_State *L) {
+  const char *filename = luaL_checkstring(L, 1);
+  const char *mode = luaL_optstring(L, 2, "r");
+  LStream *p = newfile(L);
+  const char *md = mode;  /* to traverse/check mode */
+  luaL_argcheck(L, l_checkmode(md), 2, "invalid mode");
+  errno = 0;
+  p->f = fopen(filename, mode);
+  return (p->f == NULL) ? luaL_fileresult(L, 0, filename) : 1;
+}
+
+
+/*
+
+## liolib.c (lines 201-240)
+  LStream *p = (LStream *)lua_newuserdatauv(L, sizeof(LStream), 0);
+  p->closef = NULL;  /* mark file handle as 'closed' */
+  luaL_setmetatable(L, LUA_FILEHANDLE);
+  return p;
+}
+
+
+/*
+** Calls the 'close' function from a file handle. The 'volatile' avoids
+** a bug in some versions of the Clang compiler (e.g., clang 3.0 for
+** 32 bits).
+*/
+static int aux_close (lua_State *L) {
+  LStream *p = tolstream(L);
+  volatile lua_CFunction cf = p->closef;
+  p->closef = NULL;  /* mark stream as closed */
+  return (*cf)(L);  /* close it */
+}
+
+
+static int f_close (lua_State *L) {
+  tofile(L);  /* make sure argument is an open stream */
+  return aux_close(L);
+}
+
+
+static int io_close (lua_State *L) {
+  if (lua_isnone(L, 1))  /* no argument? */
+    lua_getfield(L, LUA_REGISTRYINDEX, IO_OUTPUT);  /* use default output */
+  return f_close(L);
+}
+
+
+static int f_gc (lua_State *L) {
+  LStream *p = tolstream(L);
+  if (!isclosed(p) && p->f != NULL)
+    aux_close(L);  /* ignore closed and incompletely open files */
+  return 0;
+}
+
+
+## liolib.c (lines 281-320)
+** function to close 'popen' files
+*/
+static int io_pclose (lua_State *L) {
+  LStream *p = tolstream(L);
+  errno = 0;
+  return luaL_execresult(L, l_pclose(L, p->f));
+}
+
+
+static int io_popen (lua_State *L) {
+  const char *filename = luaL_checkstring(L, 1);
+  const char *mode = luaL_optstring(L, 2, "r");
+  LStream *p = newprefile(L);
+  luaL_argcheck(L, l_checkmodep(mode), 2, "invalid mode");
+  errno = 0;
+  p->f = l_popen(L, filename, mode);
+  p->closef = &io_pclose;
+  return (p->f == NULL) ? luaL_fileresult(L, 0, filename) : 1;
+}
+
+
+static int io_tmpfile (lua_State *L) {
+  LStream *p = newfile(L);
+  errno = 0;
+  p->f = tmpfile();
+  return (p->f == NULL) ? luaL_fileresult(L, 0, NULL) : 1;
+}
+
+
+static FILE *getiofile (lua_State *L, const char *findex) {
+  LStream *p;
+  lua_getfield(L, LUA_REGISTRYINDEX, findex);
+  p = (LStream *)lua_touserdata(L, -1);
+  if (l_unlikely(isclosed(p)))
+    luaL_error(L, "default %s file is closed", findex + IOPREF_LEN);
+  return p->f;
+}
+
+
+static int g_iofile (lua_State *L, const char *f, const char *mode) {
+
+## lstate.h (lines 1-40)
+/*
+** $Id: lstate.h $
+** Global State
+** See Copyright Notice in lua.h
+*/
+
+#ifndef lstate_h
+#define lstate_h
+
+#include "lua.h"
+
+
+/* Some header files included here need this definition */
+typedef struct CallInfo CallInfo;
+
+
+#include "lobject.h"
+#include "ltm.h"
+#include "lzio.h"
+
+
+/*
+** Some notes about garbage-collected objects: All objects in Lua must
+** be kept somehow accessible until being freed, so all objects always
+** belong to one (and only one) of these lists, using field 'next' of
+** the 'CommonHeader' for the link:
+**
+** 'allgc': all objects not marked for finalization;
+** 'finobj': all objects marked for finalization;
+** 'tobefnz': all objects ready to be finalized;
+** 'fixedgc': all objects that are not to be collected (currently
+** only small strings, such as reserved words).
+**
+** For the generational collector, some of these lists have marks for
+** generations. Each mark points to the first element in the list for
+** that particular generation; that generation goes until the next mark.
+**
+** 'allgc' -> 'survival': new objects;
+** 'survival' -> 'old': objects that survived one collection;
+** 'old1' -> 'reallyold': objects that became old in last collection;
+
+## lua.h (lines 521-547)
+
+
+/******************************************************************************
+* Copyright (C) 1994-2026 Lua.org, PUC-Rio.
+*
+* Permission is hereby granted, free of charge, to any person obtaining
+* a copy of this software and associated documentation files (the
+* "Software"), to deal in the Software without restriction, including
+* without limitation the rights to use, copy, modify, merge, publish,
+* distribute, sublicense, and/or sell copies of the Software, and to
+* permit persons to whom the Software is furnished to do so, subject to
+* the following conditions:
+*
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+******************************************************************************/
+
+
+#endif
+
+## lstate.h (lines 161-200)
+/* kinds of Garbage Collection */
+#define KGC_INC		0	/* incremental gc */
+#define KGC_GENMINOR	1	/* generational gc in minor (regular) mode */
+#define KGC_GENMAJOR	2	/* generational in major mode */
+
+
+typedef struct stringtable {
+  TString **hash;  /* array of buckets (linked lists of strings) */
+  int nuse;  /* number of elements */
+  int size;  /* number of buckets */
+} stringtable;
+
+
+/*
+** Information about a call.
+** About union 'u':
+** - field 'l' is used only for Lua functions;
+** - field 'c' is used only for C functions.
+** About union 'u2':
+** - field 'funcidx' is used only by C functions while doing a
+** protected call;
+** - field 'nyield' is used only while a function is "doing" an
+** yield (from the yield until the next resume);
+** - field 'nres' is used only while closing tbc variables when
+** returning from a function;
+*/
+struct CallInfo {
+  StkIdRel func;  /* function index in the stack */
+  StkIdRel top;  /* top for this function */
+  struct CallInfo *previous, *next;  /* dynamic call link */
+  union {
+    struct {  /* only for Lua functions */
+      const Instruction *savedpc;
+      volatile l_signalT trap;  /* function is tracing lines/counts */
+      int nextraargs;  /* # of extra arguments in vararg functions */
+    } l;
+    struct {  /* only for C functions */
+      lua_KFunction k;  /* continuation in case of yields */
+      ptrdiff_t old_errfunc;
+      lua_KContext ctx;  /* context info. in case of yields */
+
+## lua.h (lines 81-120)
+
+/* predefined values in the registry */
+/* index 1 is reserved for the reference mechanism */
+#define LUA_RIDX_GLOBALS	2
+#define LUA_RIDX_MAINTHREAD	3
+#define LUA_RIDX_LAST		3
+
+
+/* type of numbers in Lua */
+typedef LUA_NUMBER lua_Number;
+
+
+/* type for integer functions */
+typedef LUA_INTEGER lua_Integer;
+
+/* unsigned integer type */
+typedef LUA_UNSIGNED lua_Unsigned;
+
+/* type for continuation-function contexts */
+typedef LUA_KCONTEXT lua_KContext;
+
+
+/*
+** Type for C functions registered with Lua
+*/
+typedef int (*lua_CFunction) (lua_State *L);
+
+/*
+** Type for continuation functions
+*/
+typedef int (*lua_KFunction) (lua_State *L, int status, lua_KContext ctx);
+
+
+/*
+** Type for functions that read/write blocks when loading/dumping Lua chunks
+*/
+typedef const char * (*lua_Reader) (lua_State *L, void *ud, size_t *sz);
+
+typedef int (*lua_Writer) (lua_State *L, const void *p, size_t sz, void *ud);
+

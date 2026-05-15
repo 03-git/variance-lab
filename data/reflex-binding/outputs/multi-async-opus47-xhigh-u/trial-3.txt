@@ -1,0 +1,65 @@
+Here's an async TCP echo server using `asyncio`.
+
+```python
+import asyncio
+
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info("peername")
+    print(f"connected: {addr}")
+    try:
+        while True:
+            line = await reader.readline()
+            if not line:
+                break
+            writer.write(line)
+            await writer.drain()
+    except ConnectionError:
+        pass
+    finally:
+        print(f"disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"serving on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+```
+
+**How it works**
+- `asyncio.start_server` accepts connections and spawns `handle_client` as a task per client, so concurrency is automatic.
+- `reader.readline()` waits for a `\n`-terminated line; an empty bytes result means the client closed the connection.
+- `writer.drain()` applies backpressure so a slow client can't blow up memory.
+
+**Run it**
+
+Save the snippet as `echo_server.py` (Python 3.8+), then:
+
+```bash
+python echo_server.py
+```
+
+**Test with multiple clients** — open two terminals and run:
+
+```bash
+nc 127.0.0.1 8888
+```
+
+Type a line in each; you'll get the same line echoed back. Both sessions are served concurrently by the single process.
+
+For a quick scripted test:
+
+```bash
+printf 'hello\n' | nc -q1 127.0.0.1 8888
+```

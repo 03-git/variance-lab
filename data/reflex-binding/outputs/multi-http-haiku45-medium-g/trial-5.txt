@@ -1,0 +1,60 @@
+I'll show you a simple HTTP endpoint in a few different languages. Here's Node.js (most common):
+
+```javascript
+import http from 'http';
+
+const server = http.createServer((req, res) => {
+  if (req.url === '/time' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ time: new Date().toISOString() }));
+  } else {
+    res.writeHead(404);
+    res.end('Not Found');
+  }
+});
+
+server.listen(3000, () => console.log('Server running on http://localhost:3000'));
+```
+
+**To run it:**
+```bash
+node server.js
+```
+
+Then test it:
+```bash
+curl http://localhost:3000/time
+```
+
+---
+
+Or Python with `http.server`:
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            response = json.dumps({'time': datetime.utcnow().isoformat() + 'Z'})
+            self.wfile.write(response.encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+server = HTTPServer(('localhost', 3000), TimeHandler)
+print('Server running on http://localhost:3000')
+server.serve_forever()
+```
+
+**To run it:**
+```bash
+python3 server.py
+```
+
+Both listen on port 3000. Hit `GET /time` to see `{"time": "2026-05-10T14:32:45.123Z"}` (or similar).

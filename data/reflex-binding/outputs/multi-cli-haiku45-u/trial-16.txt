@@ -1,0 +1,89 @@
+Here's a Python CLI tool that does what you need:
+
+```python
+import argparse
+import json
+import sys
+
+
+def validate_port(value):
+    """Validate that port is an integer between 1-65535."""
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Port must be an integer, got '{value}'")
+    
+    if not (1 <= port <= 65535):
+        raise argparse.ArgumentTypeError(f"Port must be between 1-65535, got {port}")
+    
+    return port
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Parse and display host/port configuration as JSON"
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="localhost",
+        help="Host to connect to (default: localhost)"
+    )
+    parser.add_argument(
+        "--port",
+        type=validate_port,
+        default=8000,
+        help="Port to connect to (1-65535, default: 8000)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Save as config_cli.py, then:
+
+# Basic usage (defaults)
+python config_cli.py
+# Output: {"host": "localhost", "port": 8000, "verbose": false}
+
+# With custom host and port
+python config_cli.py --host 192.168.1.1 --port 3000
+# Output: {"host": "192.168.1.1", "port": 3000, "verbose": false}
+
+# With verbose flag
+python config_cli.py --host example.com --port 443 --verbose
+# Output: {"host": "example.com", "port": 443, "verbose": true}
+
+# Invalid port (will error)
+python config_cli.py --port 99999
+# Error: usage: config_cli.py [-h] [--host HOST] [--port PORT] [--verbose]
+#        config_cli.py: error: argument --port: Port must be between 1-65535, got 99999
+
+# Invalid port type (will error)
+python config_cli.py --port abc
+# Error: argument --port: Port must be an integer, got 'abc'
+
+# Help
+python config_cli.py --help
+```
+
+The `validate_port()` function is used as a custom type converter in argparse, so validation happens automatically when parsing arguments.

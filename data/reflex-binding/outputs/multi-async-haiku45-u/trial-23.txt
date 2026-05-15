@@ -1,0 +1,90 @@
+I'll show you an async TCP echo server using Python's `asyncio` module that handles multiple concurrent clients.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read up to 1024 bytes
+            data = await reader.readline()
+            
+            # If client disconnects, data will be empty
+            if not data:
+                break
+            
+            # Echo the data back to the client
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def start_server(host='127.0.0.1', port=8888):
+    """Start the TCP echo server."""
+    server = await asyncio.start_server(handle_client, host, port)
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server started on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(start_server())
+```
+
+**How to run it:**
+
+1. **Start the server** in one terminal:
+```bash
+python echo_server.py
+```
+
+2. **Connect with a client** in another terminal. Use `nc` (netcat):
+```bash
+nc 127.0.0.1 8888
+```
+
+3. **Type messages** and they'll be echoed back:
+```
+hello
+hello
+world test
+world test
+^C
+```
+
+**Alternative: Test with multiple clients at once:**
+```bash
+# Terminal 1
+python echo_server.py
+
+# Terminal 2
+nc 127.0.0.1 8888
+
+# Terminal 3
+nc 127.0.0.1 8888
+
+# Terminal 4
+nc 127.0.0.1 8888
+```
+
+All three clients will be handled concurrently by the single async server.
+
+**Key points:**
+- `asyncio.start_server()` creates a server that accepts connections
+- Each client gets its own `handle_client()` coroutine running concurrently
+- `reader.readline()` reads until a newline, blocking that coroutine but not others
+- `writer.drain()` ensures data is actually sent before reading the next line
+- The server handles unlimited concurrent clients without threads

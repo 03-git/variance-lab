@@ -1,0 +1,23 @@
+```python
+import sys
+import urllib.request
+
+def fetch(url):
+    with urllib.request.urlopen(url) as r:
+        print(f"Status: {r.status}")
+        print("\nHeaders:")
+        for k, v in r.headers.items():
+            print(f"  {k}: {v}")
+        body = r.read(500).decode("utf-8", errors="replace")
+        print(f"\nBody (first 500 chars):\n{body}")
+
+fetch(sys.argv[1])
+```
+
+Run it:
+
+```
+python3 script.py https://example.com
+```
+
+Uses only stdlib — `urllib.request.urlopen` follows redirects by default.

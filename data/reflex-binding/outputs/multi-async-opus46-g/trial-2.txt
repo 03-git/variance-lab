@@ -1,0 +1,58 @@
+Kernel primitive first (reflex.1): this is non-blocking sockets multiplexed by the OS readiness interface — `kqueue` on this M1 Studio (`epoll` on Linux). `asyncio` is the stdlib wrapper over that; `asyncio.start_server` is the right tool, no third-party library needed.
+
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    peer = writer.get_extra_info("peername")
+    try:
+        while True:
+            line = await reader.readline()
+            if not line:                      # client closed the connection
+                break
+            writer.write(line)                # echo the raw line back, newline included
+            await writer.drain()              # respect backpressure
+    except ConnectionResetError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"closed {peer}")
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"echo server listening on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+```
+
+How it handles concurrency: `start_server` accepts each connection and schedules `handle_client` as its own task on the single-threaded event loop. While one client is blocked in `await reader.readline()`, the loop services every other client — no threads, no per-client memory cost beyond a coroutine frame.
+
+Run it:
+
+```
+python3 echo_server.py
+```
+
+Test with multiple concurrent clients — open several terminals:
+
+```
+nc 127.0.0.1 8888
+```
+
+Type a line, get the same line back. Or hit it concurrently in one shot:
+
+```
+for i in 1 2 3 4 5; do (echo "hello $i" | nc 127.0.0.1 8888) & done; wait
+```
+
+Each `hello N` comes back echoed; the interleaving in your terminal shows they were served simultaneously. `Ctrl-C` stops the server.
+
+One caveat: `readline()` buffers until it sees `\n` or EOF — a client that never sends a newline will sit there consuming buffer. For untrusted input you'd cap it with `reader.readuntil()` wrapped in a length check or use `readexactly` framing, but for a line-echo server this is the correct shape.

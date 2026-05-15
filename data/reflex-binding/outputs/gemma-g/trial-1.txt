@@ -1,0 +1,54 @@
+To provide the most efficient solution, I must first address the governance rules regarding primitives and authority.
+
+**Reflex.1 (Library to Kernel):** The kernel primitive for this task is a **TCP socket listener** (via the `listen` and `accept` syscalls). To implement this at a high level, I will use the `http` standard library (for Go) or `http.server` (for Python).
+
+**Autonomy Intake:**
+1. **Irreducible judgment:** You must decide which language/runtime fits your existing infrastructure.
+2. **Blockers:** I do not have access to your local environment to verify port availability or installed runtimes.
+3. **Minimal access:** I only need to provide the source code and the shell commands to execute it.
+
+Below is the implementation using **Python**, as it is a standard primitive in most environments.
+
+### Implementation (Python)
+
+```python
+import json
+from datetime import datetime
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            
+            # Generate ISO 8601 timestamp
+            response = {
+                "time": datetime.now().isoformat()
+            }
+            
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+def run(server_class=HTTPServer, handler_class=TimeHandler, port=8000):
+    server_address = ('', port)
+    httpd = server_class(server_address, handler_class)
+    print(f"Starting server on port {port}...")
+    httpd.serve_forever()
+
+if __name__ == '__main__':
+    run()
+```
+
+### How to run it
+
+1.  **Save the code:** Save the block above as `server.py`.
+2.  **Execute the script:**
+    ```bash
+    python3 server.py
+    ```
+3.  **Test the endpoint:**
+    Open a new terminal

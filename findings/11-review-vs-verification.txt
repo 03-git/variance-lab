@@ -1,0 +1,700 @@
+---
+title: Model Review Yield vs Functional Verification on Systems Code
+date: 2026-05-07
+source: production empirical (three-gate code review of cal.c, 1768 lines C)
+domain:
+  - code-review
+  - model-evaluation
+  - functional-verification
+  - autonomy-assessment
+keywords:
+  - model code review
+  - functional verification
+  - false pass
+  - display verification
+  - human gate
+  - autonomy.1
+  - effort tier
+  - crash path detection
+  - DRM framebuffer
+  - three-gate methodology
+related_findings:
+  - "variance-lab finding 1: handler-methodology (sonnet-low caught showstopper opus-xhigh missed)"
+  - "variance-lab finding 3 rerun: interaction-mode-variance (replication under pre-committed rubric)"
+  - "variance-lab finding 5: governance binding, delivery-path sensitivity (deploy script = same mechanism)"
+  - "variance-lab: three questions for agentic autonomy (autonomy.1 empirically demonstrated)"
+prior_art_status: >
+  Published code-review studies compare human reviewers or static
+  analysis tools. No published study compares multi-model AI code
+  review yield against functional verification yield on the same
+  codebase with confirmed/unconfirmed tracking per finding. The
+  effort-tier inversion (cheaper model finds crash path that
+  expensive model misses) has one prior observation in this corpus
+  (handler-methodology Finding 1) and no published equivalent.
+
+methodology: three-gate (compilation → first-run survival → rubric scoring), pre-committed rubric (cal-review-rubric.txt), multi-model dispatch (5 reviews across 4 models and 3 effort tiers), functional verification on target hardware (acer1660ti, i915 eDP-1)
+harness: github.com/03-git/variance-lab, findings/cal/
+---
+
+# Model Review Yield vs Functional Verification on Systems Code
+
+## Claim
+
+Model code review and functional verification have complementary but
+asymmetric yield. On a 1768-line C framebuffer application, five model
+reviews across three models and three effort tiers produced 26 findings;
+1 was confirmed (F01, double-free) and 1 partially confirmed (F24, DRM master conflict) by build and execution. Functional verification
+produced 6 findings; 6 (100%) were confirmed by direct observation.
+The functional findings included the single bug (FV5: drmModeSetCrtc
+EACCES) that blocked all further gate testing. Without it, the
+methodology would have scored a display application that never displayed.
+
+This replicates handler-methodology Finding 1 on a different spec
+(1768 lines C with DRM/evdev/signals, vs shell scripts) and a
+different task class (systems code, vs automation). The falsification
+condition stated in Finding 1's Limitations — "single spec, single
+task class" — did not falsify.
+
+## Three claims
+
+### 1. Functional verification finds the bugs that block testing other bugs
+
+Model reviews generated 26 hypotheses (F01-F26). Functional verification
+(compilation + first-run on target hardware) confirmed 2 model findings
+and discovered 6 new findings invisible to static analysis:
+
+  FV1  Bluetooth evdev gap on Asahi Fedora (hardware/driver interaction)
+  FV2  DRM requires video group membership (deployment prerequisite)
+  FV3  evdev requires input group membership (deployment prerequisite)
+  FV4  fbcon overwrites DRM framebuffer (kernel subsystem interaction)
+  FV5  drmModeSetCrtc returns EACCES when DRM master not held (silent failure)
+  FV6  Gate 1 false pass: process liveness ≠ display liveness
+
+FV5 was the root cause that blocked all gate 1 testing. No model
+reviewer identified it. F24 (opus-4-7 xhigh) was "in the neighborhood"
+but described a different mechanism. The finding that prevented
+verification of the other 24 findings was itself invisible to the
+review methodology that generated them.
+
+### 2. Effort tier does not predict crash-path accuracy (replicated)
+
+F01 (font_large double-free) was the only finding confirmed by isolated
+functional test from the pre-rubric review pass. It was caught by
+sonnet-4-6 at low effort on its first dispatch and again on retry. It
+was missed by opus-4-7 at xhigh effort, both in the prior v2 writeup
+and the fresh dispatch.
+
+  | Reviewer              | Found F01 | Effort | Cost tier |
+  |-----------------------|:---------:|:------:|:---------:|
+  | sonnet-4-6 low (1st)  | yes       | low    | lowest    |
+  | sonnet-4-6 low (2nd)  | yes       | low    | lowest    |
+  | opus-4-5 high         | yes       | high   | medium    |
+  | opus-4-7 xhigh v2     | no        | xhigh  | highest   |
+  | opus-4-7 xhigh fresh  | no        | xhigh  | highest   |
+
+The smaller, cheaper model running cooler caught the showstopper that
+the larger, more expensive model running hotter wrote elegant prose
+around. This is the same pattern as handler-methodology Finding 1,
+reproduced on a different codebase in a different language with
+different failure modes. The pattern is not specific to shell scripts
+or to a particular model version.
+
+### 3. autonomy.1 empirically demonstrated
+
+The display bug (FV5) was a hard human gate. The agent (rousseau,
+opus-4-6) had full access: SSH to the target machine, root privileges,
+DRM ioctls, mmap readback, process status, kernel logs. Every
+observable from inside the machine said "working." The screen said
+otherwise.
+
+The agent spent approximately 45 minutes building seven diagnostic
+programs, dispatching three model consultations, and testing
+increasingly narrow hypotheses — all from inside the SSH session. The
+governor walked to the machine, looked at the screen, and said "blank
+screen." That observation took one second and required no tooling.
+
+Three model consultations were dispatched to diagnose the blank screen:
+
+  sonnet-4-6 low:  vsync race (wrong)
+  opus-4-5 high:   pointer replacement (wrong)
+  opus-4-7 xhigh:    CRTC state check (correct diagnostic, wrong cause)
+
+None identified the root cause (drmIsMaster=0, SetCrtc returns EACCES).
+opus-4-7's contribution was suggesting the diagnostic primitive
+(drmModeGetCrtc readback) that the kernel answered with. The models
+converged on which primitive to query; their causal explanations
+were all wrong.
+
+This maps directly to governance.conf.universal's autonomy intake:
+
+  autonomy.1: what can you do that an agent cannot? → look at the screen
+  autonomy.2: what prevents autonomy? → agent cannot observe physical display output
+  autonomy.3: what access is needed? → the gap is observation modality, not access
+
+There exist failure modes where the agent's full sensor surface is
+strictly insufficient and the human's single sensor (eyes on screen)
+is strictly sufficient. The three-questions framework predicted this
+gate before it occurred. The methodology that omitted visual
+confirmation produced a false pass that consumed 45 minutes of
+debugging budget.
+
+## Mechanism
+
+Model code review operates on source text. It can identify patterns
+(unchecked return values, double-free paths, missing NULL checks) by
+syntactic and semantic analysis of the code-as-written. It cannot
+observe runtime state: kernel driver interactions, hardware register
+values, cache coherency behavior, or physical display output.
+
+The six functional-verification findings (FV1-FV6) share a common
+mechanism: they arise from the interaction between the program and
+its deployment environment (kernel subsystems, group permissions,
+DRM master ownership, fbcon contention, i915 cache coherency).
+These interactions are invisible in source text because they depend
+on runtime state that varies by hardware, driver version, and
+system configuration.
+
+The autonomy.1 observation extends this: even with full programmatic
+access to the runtime environment (SSH, root, DRM ioctls, mmap
+readback), the agent could not observe the physical output of the
+display controller. The display pipeline terminates at the panel;
+the panel is observable only by photons reaching a sensor outside
+the machine. The agent's sensor surface covers the digital domain
+completely and the physical domain not at all. The human's eye
+covers the physical domain in one observation.
+
+
+## Additional finding: governance binding at the deploy-script layer
+
+The deploy script used `grep "error:"` to filter compiler output and
+determine whether to launch the binary. Builds v9-v12 compiled with
+errors (missing KEY_ defines in cal.h). Errors were printed to stderr
+but grep's exit code gated the launch — "no match" (exit 1) was
+interpreted as "no errors." Four consecutive deploys ran the old binary
+silently. The governor noticed because the UI never changed. An agent
+running unattended would not have noticed.
+
+This is finding-5's delivery-path effect (governance binds what it
+names; unnamed items regress under attention shift) manifesting at the
+deploy-script layer. The four reflexes existed in CLAUDE.md; the deploy
+script was outside that governance context. Same mechanism, different
+layer.
+
+## Measurement
+
+  Gate 0 (compilation): PASS on emile (aarch64) and media (x86_64)
+  Gate 1 (first-run):   5/5 PASS after bug fixes
+    G1.1  display appears (i915 eDP-1, 1920x1080)
+    G1.2  streaming inference (470 tokens, 35 tok/s, TTFB 70ms)
+    G1.3  edit mode write/quit verified
+    G1.4  kiosk SIGTERM, TTY + VT switching restored
+    G1.5  F01 double-free fixed and isolation-verified
+  Gate 2 (rubric scoring): 19/22
+    C1=2 C2=1 C3=2 C4=2 C5=2 C6=2
+    R1=2 R2=2 R3=1 R4=1
+    P1=2 P2=deferred
+
+  Remaining 1s: C2 (vi dd/yy/p untested), R3 (OOM propagation
+  incomplete), R4 (silent 64KB truncation). None block deployment.
+
+## Local model reviews (same prompt, zero cost)
+
+The same review prompt (1768 lines C source, identical to frontier
+dispatches) was sent to five local models on the M1 Mac Studio 64GB
+through the same llama-server endpoint cal.c uses for inference.
+
+  | Model                  | Type  | GGUF  | Tokens | tok/s | Found F01 |
+  |------------------------|-------|-------|--------|-------|-----------|
+  | Qwen 2.5 7B Q4         | Dense | 4.4GB | 1,055  | 36.1  | No        |
+  | Gemma 4 26B-A4B Q4     | MoE   | 16GB  | 4,096  | 42.9  | No        |
+  | Qwen3.5 35B-A3B Q4     | MoE   | 20GB  | —      | —     | TIMEOUT   |
+  | Qwen3-Coder 30B-A3B Q4 | MoE   | 17GB  | —      | —     | TIMEOUT   |
+  | Qwen3 32B Q4           | Dense | 18GB  | —      | —     | TIMEOUT   |
+
+Three of five models could not load at the 25K context required
+for the 20K-token prompt on 64GB hardware. The KV cache at 25K
+context plus model weights exceeds available unified memory for
+models above ~16GB GGUF. This is the hardware wall that the M5
+Max 128GB is designed to clear.
+
+Of the two models that completed:
+
+**Qwen 2.5 7B** produced 1,055 tokens identifying real patterns
+(unzeroed struct, missing edge case handling) but hallucinated
+line numbers (citing line 2694 in a 1400-line file). It did not
+find F01.
+
+**Gemma 4 26B-A4B** produced 4,096 tokens of methodical analysis
+in reasoning mode (42.9 tok/s). It explicitly reviewed
+cal_font_free and called it "correct" — it examined the right
+code and missed the double-free. Same pattern as opus-4-7 xhigh.
+
+Neither local model found F01. The effort-tier pattern extends
+downward: F01 was caught only by sonnet-4-6 at low effort. Every
+other reviewer — frontier (opus-4-5 high, opus-4-7 xhigh twice)
+and local (qwen 7B, gemma 26B) — missed it. The 32B+ local
+comparison awaits hardware with sufficient memory for 20K-token
+context windows on dense models.
+
+## Confounds
+
+**Single operator.** The governor is the same person across handler
+and cal.c reviews. Operator behavior (what they notice, how they
+debug) is a confound for the human-gate finding. A different operator
+might have looked at the screen earlier or later.
+
+**Model versions not frozen.** The five reviews were dispatched on
+2026-05-07 to then-current model versions. Future reruns with
+different model versions may produce different findings.
+
+**Single target hardware.** Functional verification ran on one
+machine (acer1660ti, Intel i915, eDP-1). The DRM bugs (FV4, FV5,
+platform_flip cache coherency) are i915-specific. Other DRM drivers
+(amdgpu, nouveau) may have different failure modes.
+
+**The 2/26 ratio may improve.** 24 model findings remain unverified,
+not refuted. Some may be real bugs that gate 1 scenarios didn't
+trigger. The ratio is a lower bound on model review accuracy,
+not an upper bound.
+
+**Deploy-script silent failures.** Builds v9-v12 compiled with errors
+but the deploy script ran the old binary. Any testing performed during
+this window (approximately 20 minutes) was against a stale binary.
+The gate 1 and gate 2 results reported here were all measured after
+the compile was verified successful (v13+). No reported measurement
+was taken against a stale binary.
+
+
+## Limitations
+
+**Replication is N=2.** Handler-methodology and cal.c are two runs
+of the same methodology. The "effort tier doesn't predict crash-path
+accuracy" claim survives one replication. Statistical significance
+requires more runs on more specs.
+
+**The autonomy.1 demonstration is specific to display applications.**
+The hard human gate ("look at the screen") generalizes to any
+application with physical output that the agent cannot observe. It
+does not generalize to applications where the agent's sensor surface
+is sufficient (CLI tools, API services, data pipelines).
+
+**macOS platform untested.** platform_macos.m was not compiled or
+run during this review. P2 is deferred to next run.
+
+## Harness
+
+  Source:            findings/cal/source/{cal.h, cal.c, platform_linux.c, platform_macos.m}
+  Rubric:            findings/cal/rubric.txt
+  Methodology report: findings/cal/methodology-report.txt (1100+ lines, full timeline)
+  Reviews:           findings/cal/reviews/ (5 reviews + 1 methodology review)
+  Repository:        github.com/03-git/variance-lab
+
+## Post-publication review (opus-4-7, web, fresh context)
+
+A fresh opus-4-7 instance with no prior session context reviewed
+the shipped code against the methodology report. It found bugs
+that all seven prior reviewers (5 frontier, 2 local) missed:
+
+**Confirmed: cal_infer_recv silent data drop.** When the static
+buffer fills with data containing no "content":" substring
+(reasoning model preambles, HTTP headers, tool-call frames),
+last_consumed stays at the buffer start. The next read hits
+space <= 0, resets buf_len to 0, and silently drops up to 8KB.
+This is the mechanism behind R4's "silent truncation" — the
+rubric scored the symptom without identifying the cause.
+
+**Confirmed: KEY_D deletes on single press, not dd.** The comment
+says "simplified: single d deletes current line." A vi user
+pressing d to start a delete-motion will lose a line. C2=1
+was scored as "untested" when it should have been scored as
+"diverges from spec."
+
+**Refuted: cal_infer_tools JSON malformation on round 2.** The
+reviewer claimed snprintf(messages + mlen - 1, ...) overwrites
+the wrong bracket on the second iteration. The rousseau session
+traced it: the format string ends with }], so messages always
+ends with ], and mlen-1 always points to the closing array
+bracket. The invariant holds across iterations. The reviewer
+retracted after re-tracing: "I asserted a bug without tracing
+it. That's the kind of confident wrong I should not produce."
+
+**Retracted: vi_cursor_pos Enter-at-EOL.** The reviewer claimed
+inserting \\n at end-of-line produces wrong behavior. Re-traced:
+at EOL in INSERT, col = ll, position = start + ll (points at
+the existing newline), gap_insert('\\n') pushes the existing
+newline forward, producing content + \\n + \\n. cy++ and cx=0
+puts cursor on the empty line between them — correct split-at-
+EOL behavior. Mid-line also correct. Retracted by reviewer.
+
+**Structural: f->bitmap dual naming.** The field stores raw TTF
+file data but the name suggests rendered glyph bitmap. The
+font_large_shared fix prevents the double-free but the naming
+smell persists. A future contributor who caches rendered bitmaps
+in the font struct reintroduces F01.
+
+### The reviewer's own yield
+
+The fresh review generated five findings. Two survived checking
+on rousseau (recv truncation, d-as-d). Three did not (tools JSON
+construction correct, vi_cursor_pos correct, both retracted by
+reviewer after re-tracing). Yield: 2/5 (40%).
+
+This is the same regime the original five reviewers operated in.
+The methodology report's 2/26 (8%) confirmation rate for model
+findings is not an indictment of those specific reviewers — it
+is the floor for any review operating on source text without
+execution. The fresh reviewer, with access to the methodology
+report and gate results (more context than the originals had),
+still produced 3 false positives out of 5 claims. The variable
+that closes the gap is execution, not effort tier, not model
+capability, not reviewer context.
+
+### Meta-observation (revised)
+
+"Both gates leaked, and the second gate was scoped to a narrow
+happy path that didn't surface the leaks."
+
+Gate 1 tested ASK happy-path and EDIT happy-path. It did not
+test: tool-calling (dead code, never called), reasoning-model
+preambles (no reasoning model connected), multi-turn tool loops
+(reverted from main path), or vi motions beyond basic insert/
+save/quit. The rubric scored functions that have never been
+called (cal_infer_tools) and behaviors that diverge from spec
+(d-as-dd).
+
+Model code review on systems code produces findings at roughly
+a 1-in-N confirmation rate where N is large, regardless of
+which model is doing the reviewing, regardless of effort tier,
+and regardless of whether the reviewer had time to write up the
+finding carefully or was reasoning quickly. The variable that
+closes the gap is execution. Effort tier is a smaller factor
+than execution-vs-no-execution.
+
+The next iteration should expand gate 1 to cover: (a) at least
+one prompt producing a reasoning preface, (b) the tool-calling
+path if wired, (c) vi motions that diverge from canonical vi
+(d, dd, yy, p). The 24 unverified model findings should be
+treated as a test set — each scored confirmed/refuted/
+inconclusive after gate-1 expansion — not as a residual.
+
+## Integration: cal.c ← hosuni (legs)
+
+cal.c ships as a standalone framebuffer client that talks
+directly to llama-server. It bypasses hosuni (tool-use daemon),
+has no SOUL.txt, no conversation memory, no lookdown (instant
+answers), and no tool use — all of which hosuni already handles.
+The integration rewires cal.c as a framebuffer frontend to
+hosuni. Executed as legs with three-gate review between each.
+
+### Leg 1 — parsimony.c streaming output
+
+**Change:** ~40 lines added to runtime/parsimony.c. New
+`parse_bool_field` function. When input JSON contains
+`"stream":true`, tokens emit individually as SSE `data:` lines
+(`delta.content` per token, `finish_reason:null` mid-stream,
+`finish_reason:"stop"` on final, `data: [DONE]` sentinel).
+Non-streaming path untouched.
+
+**Why:** parsimony.c is inference-as-a-unix-filter. It loads a
+GGUF once, reads JSON from stdin, writes JSON to stdout. Without
+streaming, the caller waits for full generation (10-26s on
+consumer hardware) before seeing any output. Streaming lets
+cal.c display tokens as they generate.
+
+**Rubric:** seven binary criteria pre-committed before dispatch
+(correctness, non-regression, null-termination, flush semantics,
+pipe-close, filter contract, format compatibility).
+
+**Dispatch:** three reviewers across two lineages.
+  - Sonnet 4.6 (rousseau, `claude -p`)
+  - Opus 4.6 (emile, `ssh m2mini "claude -p"`)
+  - Local llama.cpp (rousseau, :8087)
+
+**Results:**
+
+| Criterion | Sonnet 4.6 | Opus 4.6 | Local |
+|-----------|-----------|----------|-------|
+| C1 correctness | pass | pass | pass |
+| C2 non-regression | pass | pass | pass |
+| C3 null-term | pass | pass | pass |
+| C4 flush | pass | pass | pass |
+| C5 pipe-close | FAIL | FAIL | pass (wrong) |
+| C6 filter contract | pass | pass | pass (truncated) |
+| C7 format compat | cond. pass | pass | — |
+
+**Bug found (C5):** per-token `fflush(stdout)` discarded its
+return value. With SIGPIPE ignored, a broken pipe mid-stream
+burns O(max_gen) decode cycles on a dead pipe before the
+post-loop check fires. Both Claude instances caught it; local
+model missed it — marked C5 pass with incorrect justification.
+
+**Fix applied:** `fflush(stdout)` → `if (fflush(stdout) != 0)
+{ finish = "error"; break; }` inside the streaming token loop.
+
+**Reviewer consensus (Sonnet 4.6 + Opus 4.6):**
+  Q1: per-token fflush is correct granularity (decode latency
+      dominates syscall cost)
+  Q2: 1536-byte escape buffer is 3x safe for 256-byte piece
+  Q3: reasoning_content does not belong at this layer —
+      parsimony is model-agnostic and passes tokens verbatim.
+      Note: this applies to parsimony/llama.cpp where thinking
+      models emit `<think>` tags inline. llama-server with some
+      models (e.g. Gemma) splits reasoning into a separate
+      `reasoning_content` field — a different protocol variant
+      that cal.c does not handle (see Gate 2).
+
+**Observation:** local model missed the only real bug in this
+leg. In this instance, the local model had the weakest
+result — but the sample is N=1 per reviewer.
+
+**Gate 2 status:** pending — compile and test on acer with
+`"stream":true` vs `"stream":false`.
+
+### Leg 2 — cal.c lookdown check
+
+**Change:** ~70 lines added to runtime/cal/cal.c. Loads lookdown
+TSV files at startup (`$HOME/.subtract/lookdown.$(hostname).tsv`
+then `lookdown.universal.tsv` — same paths and priority as
+hosuni.sh). On Enter in ASK mode, checks input against loaded
+patterns via `fnmatch(3)` before hitting inference. Match →
+popen the command, display output instantly. No match → fall
+through to inference as before.
+
+**Why:** kids' questions like "what is a caterpillar" should
+answer instantly from the lookdown table (T0), not wait 10-26s
+for inference. hosuni already does this; cal.c bypassed it.
+
+**Implementation:**
+  - `fnmatch(3)` for glob matching (POSIX, the kernel primitive
+    — reflex.1)
+  - Input lowercased (ASCII) before matching, same as hosuni
+  - Three-column TSV support (pattern\t[tag]\tcommand)
+  - `popen` executes the matched command (same trust domain as
+    .bashrc — TSV is under $HOME/.subtract/)
+  - Output lands in the same `ask.output` buffer as inference,
+    rendered by the same `draw_ask_wrap` path
+
+**Rubric:** seven binary criteria pre-committed before dispatch
+(correctness, non-regression, TSV parsing, file paths, buffer
+safety, timing, display).
+
+**Dispatch:** three reviewers, two responded.
+  - Opus 4.6 (emile, `ssh m2mini "claude -p"`)
+  - Sonnet 4.6 (rousseau, `claude -p`)
+  - Local llama.cpp (rousseau, :8087) — FAILED, cal.c at 1500+
+    lines exceeds 4096 context window
+
+**Results:**
+
+| Criterion | Opus 4.6 | Sonnet 4.6 |
+|-----------|----------|------------|
+| C1 correctness | pass | pass (caveat: ASCII-only lowercase) |
+| C2 non-regression | pass | pass |
+| C3 TSV parsing | pass | pass |
+| C4 file paths | pass | pass |
+| C5 buffer safety | pass | pass |
+| C6 timing | pass | pass |
+| C7 display | pass | pass |
+
+**Bug found (Sonnet 4.6 only):** matched-but-empty command
+output. If a lookdown pattern matches but the command produces
+no stdout (conditional command, empty echo, etc.), `fread`
+returns 0, `lookdown_check` returns 0, and the caller's `> 0`
+check falls through to inference. The pattern was consumed but
+the result discarded — the kid waits 10-26s for inference on
+a query lookdown was supposed to handle.
+
+Opus 4.6 missed this. Local llama couldn't attempt it.
+
+**Fixes applied:**
+  1. Empty-command guard at load time: `if (!*cmd) continue;`
+     (both reviewers recommended)
+  2. Caller changed from `> 0` to `>= 0` so matched-but-empty
+     displays nothing rather than escalating to inference
+
+**Open questions (reviewer consensus):**
+  Q1: empty-command guard — yes, applied
+  Q2: popen injection — no external input reaches popen, TSV
+      is same trust domain as .bashrc
+  Q3: fnmatch vs bash glob — equivalent for standard patterns,
+      extglob unsupported but not used in current TSV
+
+**Observation:** local model is now structurally excluded from
+reviewing cal.c — the file exceeds its context window. This
+limits the third lineage to parsimony-sized artifacts. The
+finding from leg 1 (local missed the fflush bug) may have been
+partly explained by context pressure, not just capability.
+
+**Gate 2 status:** pending — compile and test lookdown on acer
+with children's patterns (godzilla, caterpillar, etc.).
+
+### Leg 3 — SOUL injection + conversation history
+
+**Change:** ~120 lines added to runtime/cal/cal.c.
+`cal_infer_stream_msgs` sends a pre-built messages JSON array
+instead of a bare prompt. `build_messages_json` constructs
+`[system, ...history, user]` from SOUL file + conversation
+history + current query. `history_add` manages a 20-message
+ring buffer (10 turns), evicting oldest turn when full. SOUL
+loaded at startup from `--soul` flag or default
+`$HOME/subtract.ing/SOUL.txt`. ESC clears history.
+
+**Why:** cal.c sent single stateless prompts with no system
+context. Every query was independent — no SOUL (personality/
+constraints), no memory of prior turns. The model couldn't
+maintain a conversation or follow standing instructions.
+
+**Architecture decision:** cal.c builds its own messages array
+and sends directly to llama-server via HTTP, rather than
+routing through hosuni.sh. This avoids modifying hosuni's
+non-streaming inference path and keeps the streaming socket
+approach that already works. Hosuni integration for tool use
+and cloud fallback deferred to a future leg.
+
+**Rubric:** seven binary criteria pre-committed before dispatch
+(messages format, SOUL loading, history ring, history lifecycle,
+non-regression, JSON escaping, buffer safety).
+
+**Dispatch:** two reviewers (local llama excluded — context
+window too small for 1600-line file).
+  - Sonnet 4.6 (rousseau, `claude -p`)
+  - Opus 4.6 (emile, `ssh m2mini "claude -p"`)
+
+**Results:**
+
+| Criterion | Sonnet 4.6 | Opus 4.6 |
+|-----------|-----------|----------|
+| C1 messages format | pass | pass |
+| C2 SOUL loading | FAIL (false positive*) | pass |
+| C3 history ring | pass | pass |
+| C4 history lifecycle | pass | pass |
+| C5 non-regression | pass | pass |
+| C6 JSON escaping | pass | pass |
+| C7 buffer safety | FAIL | FAIL |
+
+*Sonnet read the null-terminator initializer `app.soul[0] =
+'\0'` as a space character and flagged it as a bug. Verified
+on disk: the code is correct. First false positive from a
+Claude model in this series — prior false positives were only
+from the local llama.
+
+**Bugs found:**
+
+1. **snprintf overflow (C7, both reviewers):** `snprintf`
+   returns would-be length, not actual. After truncation, `o`
+   exceeds `out_max`. Next call gets negative size cast to huge
+   `size_t` — write past buffer. Every `o += snprintf(...)` line
+   in `build_messages_json` was affected.
+
+2. **Definition ordering (Opus only):** `history_add` and
+   `build_messages_json` referenced `ask_ctx` before its
+   typedef — won't compile. Sonnet didn't flag this.
+
+3. **Orphaned user (both, noted):** `history_add("user")`
+   called unconditionally before checking if inference
+   succeeded. Failed connection left unmatched user message
+   in history, corrupting next request's context.
+
+**Fixes applied:**
+  1. Clamp `o` after each snprintf: `if (o >= out_max) return
+     out_max - 1;`
+  2. Moved history_add and build_messages_json below ask_ctx
+     definition
+  3. Moved `history_add("user")` inside the success branch
+
+**Observations:**
+
+Sonnet's false positive (C2) is the first model confabulation
+from a Claude reviewer in this series. The local model's false
+positives in legs 1-2 could be attributed to context pressure
+or capability. Sonnet had no context pressure (the file fits
+easily) — it read `'\0'` as `' '`. This is the kind of error
+that functional verification catches trivially (the file
+compiles and runs correctly with `'\0'`).
+
+Opus caught the definition ordering issue that Sonnet missed.
+Definition ordering is a compile-time error, so gate 2
+(functional verification) would have caught it immediately.
+Both reviewers caught the snprintf overflow — the most
+consequential bug, which is a latent runtime issue that
+wouldn't surface during normal testing.
+
+### Gate 2 — functional verification on acer
+
+**Target:** acer1660ti (i915 eDP-1, Debian, DRM framebuffer).
+Inference routed to rousseau (100.110.250.103:8087, Qwen 2.5
+7B Q4) via Tailscale.
+
+**Pre-existing issue found:** `.bash_profile` hardcoded
+`-p 8086` (Gemma reasoning model). Port 8086 sends
+`reasoning_content` in a separate field with empty `content`,
+which cal.c doesn't parse — hard freeze, no key input
+possible (main loop never yields to `platform_event` while
+the socket feeds empty content chunks). Fixed `.bash_profile`
+to `-p 8087`.
+
+**Build:** clean compile on first attempt after fixing a
+pre-existing missing `/*` comment opener on the build
+instructions block (line 13). Not a regression — the prior
+binary on acer was compiled from an earlier source.
+
+**Test results:**
+
+| Test | Result |
+|------|--------|
+| Lookdown (T0): "godzilla", "what is a caterpillar" | instant, correct |
+| Inference: "what is the meaning of chiaroscuro" | FAIL then PASS |
+| SOUL injection | confirmed (debug log shows system message) |
+| Conversation continuity (follow-up question) | confirmed |
+
+**Bug found during gate 2 (not caught by any reviewer):**
+`cal_infer_recv` returns 0 when it reads data but finds no
+`"content":"` pattern (HTTP headers, first SSE chunk with
+`"content":null`). The main loop treated `n <= 0` as stream
+end — closed the socket before any tokens arrived.
+
+Without SOUL, the request body was small (~100 bytes) and
+the server responded fast enough that the first `read()`
+included headers AND first content tokens. With SOUL, the
+request is ~1600 bytes, server takes longer to start
+generating, and the first `read()` returns only HTTP headers.
+`cal_infer_recv` returns 0. Main loop kills the connection.
+
+This is a timing-dependent bug. The same code path existed
+before leg 3, but the larger request body changed the
+timing enough to trigger it consistently.
+
+**Fix:** changed `} else {` to `} else if (n < 0) {` in the
+streaming drain block. `n == 0` (data read, no content yet)
+now continues polling. `n < 0` (read error/EOF) closes the
+connection. Verified: chiaroscuro query streams correctly
+after fix.
+
+**Observation:** four model reviewers across legs 2-3 examined
+cal.c including `cal_infer_recv`'s return value semantics.
+None flagged the `n == 0` ambiguity. The bug requires knowing
+that HTTP headers arrive before SSE data, that `strstr` won't
+match in header bytes, and that the timing depends on request
+body size. This class of bug — timing-dependent, protocol-
+aware — is invisible at the source level.
+
+Conversely, the snprintf overflow caught by review in leg 3
+is a latent memory corruption that functional testing is
+unlikely to trigger (requires a long accumulated conversation
+context to exceed the buffer). Review and execution catch
+different classes of bugs. Neither subsumes the other.
+
+**Parsimony streaming (leg 1):** not directly tested on acer.
+Parsimony requires llama.cpp headers to compile, which acer
+doesn't have — inference goes to rousseau's llama-server via
+HTTP. Assumption: llama-server's native SSE format is
+equivalent to parsimony's new streaming wire format (both
+use `data:` prefix, `delta.content`, `[DONE]` sentinel).
+Cal.c's parser is exercised against llama-server's output,
+but parsimony's specific code paths (fflush fix, escape
+buffer, finish_reason handling) remain unverified.
+Parsimony-specific verification deferred to deployment as
+a coproc on a node with local inference.
+
+
+================================================================

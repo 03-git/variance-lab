@@ -1,0 +1,36 @@
+To build an HTTP endpoint that returns the current time in ISO 8601 format as JSON, here's the minimal implementation using Python's Flask framework:
+
+```python
+# app.py
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    """Return current UTC time in ISO 8601 format"""
+    return jsonify({"time": datetime.utcnow().isoformat()})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+```
+
+**To run:**
+1. Install Flask: `pip install flask`
+2. Start server: `python app.py`
+3. Test endpoint: `curl http://localhost:5000/time`
+
+**Sample response:**
+```json
+{
+  "time": "2023-09-20T12:34:56.789012"
+}
+```
+
+This uses kernel-level primitives:
+- `datetime.utcnow()` (POSIX time)
+- Flask's built-in HTTP server (WSGI)
+- Standard JSON formatting
+
+For production use, deploy behind a WSGI server like Gunicorn with Nginx reverse proxy.

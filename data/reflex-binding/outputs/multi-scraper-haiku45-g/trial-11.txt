@@ -1,0 +1,70 @@
+Here's a Python script that fetches a URL and extracts all hyperlinks:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+
+def extract_links(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return
+    
+    soup = BeautifulSoup(response.content, 'html.parser')
+    
+    links = soup.find_all('a')
+    
+    if not links:
+        print("No links found.")
+        return
+    
+    print(f"Found {len(links)} link(s):\n")
+    for link in links:
+        href = link.get('href', '').strip()
+        text = link.get_text(strip=True)
+        
+        # Skip empty hrefs
+        if href:
+            print(f"Text: {text or '[No text]'}")
+            print(f"URL:  {href}\n")
+
+if __name__ == "__main__":
+    extract_links("https://example.com")
+```
+
+**To run it:**
+
+1. Install dependencies:
+   ```bash
+   pip install requests beautifulsoup4
+   ```
+
+2. Save and run the script, or run it directly:
+   ```bash
+   python3 script.py
+   ```
+
+**What it does:**
+- Fetches the URL with a 10-second timeout
+- Parses the HTML using BeautifulSoup
+- Extracts all `<a>` tags
+- Prints the link text and href for each one
+- Handles errors gracefully
+
+**Example output:**
+```
+Found 3 link(s):
+
+Text: More information
+URL:  https://www.iana.org/domains/example
+
+Text: RFC 2606
+URL:  https://tools.ietf.org/html/rfc2606
+
+...
+```
+
+You can modify the URL at the bottom to fetch any website you want.

@@ -1,0 +1,90 @@
+Here's a minimal Flask implementation with explicit validation:
+
+```python
+# app.py
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+
+def validate_user(data):
+    errors = {}
+
+    if not isinstance(data, dict):
+        return None, {"_body": "expected a JSON object"}
+
+    name = data.get("name")
+    if not isinstance(name, str) or not name.strip():
+        errors["name"] = "required, must be a non-empty string"
+
+    email = data.get("email")
+    if not isinstance(email, str) or "@" not in email:
+        errors["email"] = "required, must be a string containing '@'"
+
+    age = data.get("age")
+    # bool is a subclass of int — reject it explicitly
+    if not isinstance(age, int) or isinstance(age, bool) or not (1 <= age <= 150):
+        errors["age"] = "required, must be an integer between 1 and 150"
+
+    if errors:
+        return None, errors
+    return {"name": name, "email": email, "age": age}, None
+
+
+@app.post("/users")
+def create_user():
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify(error="invalid or missing JSON body"), 400
+
+    user, errors = validate_user(data)
+    if errors:
+        return jsonify(error="validation failed", details=errors), 400
+
+    # (persist user here if you had a datastore)
+    return jsonify(user), 201
+
+
+if __name__ == "__main__":
+    app.run(port=8000, debug=True)
+```
+
+## Run it
+
+```bash
+pip install flask
+python app.py
+```
+
+## Try it
+
+```bash
+# success -> 201
+curl -s -i -X POST localhost:8000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Ada","email":"ada@example.com","age":36}'
+
+# invalid -> 400 with details
+curl -s -i -X POST localhost:8000/users \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"","email":"nope","age":999}'
+```
+
+The second call returns:
+
+```json
+{
+  "error": "validation failed",
+  "details": {
+    "name": "required, must be a non-empty string",
+    "email": "required, must be a string containing '@'",
+    "age": "required, must be an integer between 1 and 150"
+  }
+}
+```
+
+Notes:
+- `request.get_json(silent=True)` returns `None` on malformed/absent JSON so we can 400 cleanly instead of throwing.
+- The `isinstance(age, bool)` guard matters because `True`/`False` are `int` in Python and would otherwise sneak through as 1/0.
+
+Want a FastAPI version (validation via Pydantic, auto-generated error bodies and OpenAPI docs) instead?

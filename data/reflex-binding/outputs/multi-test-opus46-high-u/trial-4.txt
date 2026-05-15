@@ -1,0 +1,31 @@
+
+
+```python
+import pytest
+
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+
+def test_freezing():
+    assert celsius_to_fahrenheit(0) == 32
+
+def test_boiling():
+    assert celsius_to_fahrenheit(100) == 212
+
+def test_negative_40():
+    assert celsius_to_fahrenheit(-40) == -40
+
+def test_non_numeric():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+Save it as `test_temperature.py` and run with:
+
+```
+pytest test_temperature.py -v
+```
+
+The `-40` test works because -40 is the point where Celsius and Fahrenheit are equal. The non-numeric test verifies that passing a string raises a `TypeError` since you can't multiply a string by `9/5` and get a meaningful result.

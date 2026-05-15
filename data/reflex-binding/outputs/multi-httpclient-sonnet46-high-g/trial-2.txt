@@ -1,0 +1,22 @@
+```python
+import sys
+import urllib.request
+
+url = sys.argv[1]
+req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+with urllib.request.urlopen(req) as r:
+    print(f"Status: {r.status}")
+    print("\nHeaders:")
+    for k, v in r.headers.items():
+        print(f"  {k}: {v}")
+    body = r.read(500).decode("utf-8", errors="replace")
+    print(f"\nBody (first 500 chars):\n{body}")
+```
+
+Run it:
+
+```
+python3 fetch.py https://example.com
+```
+
+Uses only stdlib — `urllib.request` follows redirects by default.

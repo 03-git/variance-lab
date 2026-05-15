@@ -1,0 +1,518 @@
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from runtime/subtract.sh)
+            _SUBTRACT_FROM_HANDLER=1
+            return 0
+            ;;
+        "ask sub "*)
+            __subtract_handle "ask llama.cpp ${input#ask sub }"
+            return
+            ;;
+        "ask add "*)
+            __subtract_handle "ask curl ${input#ask add }"
+            return
+            ;;
+        "ask local "*)
+            # backwards compat alias
+            __subtract_handle "ask llama.cpp ${input#ask local }"
+            return
+            ;;
+        "ask llama.cpp "*)
+            local query="${input#ask llama.cpp }"
+            if [ -z "$query" ]; then
+                echo "usage: ask llama.cpp <your question>"
+                _SUBTRACT_FROM_HANDLER=1
+                return 0
+            fi
+            local answer
+            answer=$(__subtract_ask_local "$query")
+            if [ -n "$answer" ]; then
+                echo "$answer"
+            else
+                echo "local model not available"
+            fi
+            _SUBTRACT_FROM_HANDLER=1
+            return 0
+            ;;
+        "ask curl "*)
+            local query="${input#ask curl }"
+            if [ -z "$query" ]; then
+                echo "usage: ask curl <your question>"
+                _SUBTRACT_FROM_HANDLER=1
+                return 0
+            fi
+
+
+### Chunk 2 (from runtime/subtract.sh)
+
+    # T1 hit: generate command using matched entry as hint
+    local context=""
+    if [ -n "$SUBTRACT_LAST_OUTPUT" ]; then
+        context=$(__subtract_truncate "$SUBTRACT_LAST_OUTPUT")
+    fi
+
+    local model
+    model=$(/usr/bin/head -1 "$SUBTRACT_DIR/model" 2>/dev/null)
+    [ -z "$model" ] && model="qwen2.5:7b"
+
+    local ctx_str=""
+    [ -n "$context" ] && ctx_str=" Previous output: $context."
+
+    local prompt="Translate to a single bash command. Output ONLY the command, nothing else. No explanation. No markdown. No code fences. A similar intent \"${matched_text}\" maps to: ${hint_cmd}. Use that as a hint but generate the exact command for this intent.${ctx_str} Input: ${input}"
+
+    local payload result
+    payload=$(jq -n --arg model "$model" --arg prompt "$prompt" \
+        '{model: $model, prompt: $prompt, stream: false}')
+    result=$(curl -s --connect-timeout 3 -X POST -H "Content-Type: application/json" \
+        -d "$payload" http://localhost:11434/api/generate 2>/dev/null)
+    [ -z "$result" ] && return 1
+
+    result=$(echo "$result" | jq -r '.response // empty')
+    [ -z "$result" ] && return 1
+
+    result="${result//\`\`\`bash/}"
+    result="${result//\`\`\`/}"
+    result=$(echo "$result" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    echo "$result"
+}
+
+# --- ask llama.cpp/cloud: direct answers (not command translation) ---
+
+__subtract_ask_local() {
+    local inference_host inference_port
+    inference_host=$(cat "$SUBTRACT_DIR/inference_host" 2>/dev/null)
+    inference_port=$(cat "$SUBTRACT_DIR/inference_port" 2>/dev/null)
+    [ -z "$inference_port" ] && inference_port="8081"
+
+
+### Chunk 3 (from runtime/subtract.sh)
+    case "$cloud_ai" in
+        claude)
+            command -v claude &>/dev/null || [ -x "$HOME/.local/bin/claude" ] || return 1
+            result=$(claude -p "Answer concisely: $input" 2>/dev/null)
+            ;;
+        xai|grok)
+            local xai_key
+            xai_key=$(cat "$SUBTRACT_DIR/xai_key" 2>/dev/null)
+            [ -z "$xai_key" ] && return 1
+            local payload
+            payload=$(jq -n --arg q "$input" '{
+                model: "grok-4.20-0309-reasoning",
+                messages: [{role: "user", content: ("Answer concisely: " + $q)}],
+                max_tokens: 262144
+            }')
+            result=$(curl -s -X POST https://api.x.ai/v1/chat/completions \
+                -H "Authorization: Bearer $xai_key" \
+                -H "Content-Type: application/json" \
+                -d "$payload" 2>/dev/null)
+            result=$(echo "$result" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    [ -z "$result" ] && return 1
+    echo "$result"
+}
+
+# --- T2: local generative model (optional) ---
+
+__subtract_generate() {
+    # requires: llama-server (local or remote via inference_host)
+    local inference_host inference_port
+    inference_host=$(cat "$SUBTRACT_DIR/inference_host" 2>/dev/null)
+    inference_port=$(cat "$SUBTRACT_DIR/inference_port" 2>/dev/null)
+    [ -z "$inference_port" ] && inference_port="8081"
+
+    local input="$1"
+
+
+### Chunk 4 (from runtime/subtract.sh)
+    inference_host=$(cat "$SUBTRACT_DIR/inference_host" 2>/dev/null)
+    inference_port=$(cat "$SUBTRACT_DIR/inference_port" 2>/dev/null)
+    [ -z "$inference_port" ] && inference_port="8081"
+
+    local input="$1"
+    local prompt="Translate to a single bash command. Output ONLY the command, nothing else. No explanation. No markdown. No code fences. /no_think Input: ${input}"
+    local payload result
+
+    payload=$(printf '{"messages":[{"role":"user","content":"%s"}],"max_tokens":262144}' "$prompt")
+
+    # remote inference: SSH to host and curl llama-server there
+    if [ -n "$inference_host" ] && [ "$inference_host" != "localhost" ]; then
+        result=$(ssh -o ConnectTimeout=5 "$inference_host" \
+            "curl -s http://localhost:${inference_port}/v1/chat/completions -H 'Content-Type: application/json' -d '${payload}'" 2>/dev/null)
+    else
+        # local inference: llama-server on localhost
+        curl -s --connect-timeout 1 "http://localhost:${inference_port}/v1/models" &>/dev/null || return 1
+        result=$(curl -s --connect-timeout 10 -X POST -H "Content-Type: application/json" \
+            -d "$payload" "http://localhost:${inference_port}/v1/chat/completions" 2>/dev/null)
+    fi
+
+    [ -z "$result" ] && return 1
+
+    # extract response from OpenAI-compatible format
+    result=$(echo "$result" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+    [ -z "$result" ] && return 1
+
+    # strip markdown fences
+    result="${result//\`\`\`bash/}"
+    result="${result//\`\`\`/}"
+    result=$(echo "$result" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    echo "$result"
+}
+
+# --- tier 4: cloud escalation (optional) ---
+
+__subtract_cloud() {
+    local cloud_ai
+    cloud_ai=$(cat "$SUBTRACT_DIR/cloud_ai" 2>/dev/null)
+
+
+### Chunk 5 (from runtime/subtract.sh)
+__subtract_ask_local() {
+    local inference_host inference_port
+    inference_host=$(cat "$SUBTRACT_DIR/inference_host" 2>/dev/null)
+    inference_port=$(cat "$SUBTRACT_DIR/inference_port" 2>/dev/null)
+    [ -z "$inference_port" ] && inference_port="8081"
+
+    local input="$1"
+    local prompt="Answer concisely. ${input}"
+    local payload result
+
+    local escaped_prompt; escaped_prompt=$(printf "%s" "$prompt" | jq -Rs .)
+    payload="{\"messages\":[{\"role\":\"user\",\"content\":${escaped_prompt}}],\"max_tokens\":262144}"
+    if [ -n "$inference_host" ] && [ "$inference_host" != "localhost" ]; then
+        result=$(ssh -o ConnectTimeout=5 "$inference_host" \
+            "curl -s http://localhost:${inference_port}/v1/chat/completions -H 'Content-Type: application/json' -d '${payload}'" 2>/dev/null)
+    else
+        curl -s --connect-timeout 1 "http://localhost:${inference_port}/v1/models" &>/dev/null || return 1
+        result=$(curl -s --connect-timeout 10 -X POST -H "Content-Type: application/json" \
+            -d "$payload" "http://localhost:${inference_port}/v1/chat/completions" 2>/dev/null)
+    fi
+
+    [ -z "$result" ] && return 1
+    result=$(echo "$result" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+    [ -z "$result" ] && return 1
+    echo "$result"
+}
+
+__subtract_ask_cloud() {
+    local cloud_ai
+    cloud_ai=$(cat "$SUBTRACT_DIR/cloud_ai" 2>/dev/null)
+    [ -z "$cloud_ai" ] && return 1
+
+    local input="$1"
+    local result
+
+    case "$cloud_ai" in
+        claude)
+            command -v claude &>/dev/null || [ -x "$HOME/.local/bin/claude" ] || return 1
+            result=$(claude -p "Answer concisely: $input" 2>/dev/null)
+            ;;
+
+
+### Chunk 6 (from variance-lab.txt)
+
+Conversely, the snprintf overflow caught by review in leg 3
+is a latent memory corruption that functional testing is
+unlikely to trigger (requires a long accumulated conversation
+context to exceed the buffer). Review and execution catch
+different classes of bugs. Neither subsumes the other.
+
+**Parsimony streaming (leg 1):** not directly tested on acer.
+Parsimony requires llama.cpp headers to compile, which acer
+doesn't have — inference goes to rousseau's llama-server via
+HTTP. Assumption: llama-server's native SSE format is
+equivalent to parsimony's new streaming wire format (both
+use `data:` prefix, `delta.content`, `[DONE]` sentinel).
+Cal.c's parser is exercised against llama-server's output,
+but parsimony's specific code paths (fflush fix, escape
+buffer, finish_reason handling) remain unverified.
+Parsimony-specific verification deferred to deployment as
+a coproc on a node with local inference.
+
+
+================================================================
+
+---
+title: Lookdown Routing Discipline and Inference Model Selection
+date: 2026-05-08
+source: production empirical (cal.c + lookdown.tsv on acer1660ti, m2mini, rousseau)
+domain:
+  - intent-routing
+  - local-inference
+  - knowledge-retrieval
+  - fine-tuning-data-design
+keywords:
+  - lookdown table
+  - glob pattern discipline
+  - QLoRA training data
+  - inference model routing
+  - confabulation prevention
+  - Gemma-4 vs Qwen 2.5
+  - tiered knowledge architecture
+prior_art_status: no published framework distinguishes static lookup tables by QLoRA-portability as a design constraint
+
+
+### Chunk 7 (from runtime/subtract.sh)
+    local input="$*"
+    local result
+
+    local prompt="Create or edit content based on this request. Output ONLY the content, no commentary: ${input}"
+
+    local escaped_prompt payload inference_host inference_port
+    escaped_prompt=$(printf '%s' "$prompt" | jq -Rs .)
+    payload="{\"messages\":[{\"role\":\"user\",\"content\":${escaped_prompt}}],\"max_tokens\":262144}"
+    inference_host=$(cat "$SUBTRACT_DIR/inference_host" 2>/dev/null)
+    inference_port=$(cat "$SUBTRACT_DIR/inference_port" 2>/dev/null)
+    [ -z "$inference_port" ] && inference_port="8083"
+
+    if [ -n "$inference_host" ] && [ "$inference_host" != "localhost" ]; then
+        result=$(echo "$payload" | ssh -o ConnectTimeout=5 "$inference_host" \
+            "curl -s http://localhost:${inference_port}/v1/chat/completions -H 'Content-Type: application/json' -d @-" 2>/dev/null \
+            | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+    elif curl -s --connect-timeout 1 "http://localhost:${inference_port}/v1/models" &>/dev/null; then
+        result=$(curl -s --connect-timeout 60 -X POST -H "Content-Type: application/json" \
+            -d "$payload" "http://localhost:${inference_port}/v1/chat/completions" 2>/dev/null \
+            | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+    fi
+
+    if [ -z "$result" ]; then
+        result=$(__subtract_ask_cloud "$input")
+    fi
+
+    if [ -n "$result" ]; then
+        echo "$result"
+    else
+        echo "no model available"
+        return 1
+    fi
+}
+
+__subtract_exec() {
+    __subtract_generate "$@"
+}
+
+__subtract_route_by_mode() {
+    local input="$*"
+
+
+### Chunk 8 (from runtime/hosuni.sh)
+        fi
+
+        # if tool calls present, execute them
+        if [ -n "$tool_calls" ] && [ "$tool_calls" != "null" ]; then
+            # append assistant message with tool calls
+            local assistant_msg; assistant_msg=$(echo "$response" | jq '.choices[0].message')
+            messages=$(echo "$messages" | jq --argjson msg "$assistant_msg" '. + [$msg]')
+
+            # execute each tool call
+            local n_calls; n_calls=$(echo "$tool_calls" | jq 'length')
+            local i=0
+            while [ "$i" -lt "$n_calls" ]; do
+                local tc_id; tc_id=$(echo "$tool_calls" | jq -r ".[$i].id")
+                local tc_name; tc_name=$(echo "$tool_calls" | jq -r ".[$i].function.name")
+                local tc_args; tc_args=$(echo "$tool_calls" | jq -r ".[$i].function.arguments")
+
+                log_daemon "[${channel}] tool call: $tc_name($tc_args)"
+                local tc_result; tc_result=$(execute_tool "$tc_name" "$tc_args")
+                log_daemon "[${channel}] tool result: $(echo "$tc_result" | head -c 200)"
+
+                # append tool result
+                messages=$(echo "$messages" | jq \
+                    --arg id "$tc_id" \
+                    --arg content "$tc_result" \
+                    '. + [{"role":"tool","tool_call_id":$id,"content":$content}]')
+
+                i=$((i + 1))
+            done
+            # loop back to inference with tool results
+            continue
+        fi
+
+        # no tool calls — either we have a final response, or model returned nothing
+        # if research port available and tools were used, hand off to research model
+        # timeout: 20s — if research model is slow, use the primary model's answer
+        if [ -n "$RESEARCH_PORT" ] && [ "$round" -gt 1 ]; then
+            log_daemon "[${channel}] handing off to research model on port $RESEARCH_PORT (20s timeout)"
+            local saved_port="$INFERENCE_PORT" saved_host="$INFERENCE_HOST"
+            INFERENCE_PORT="$RESEARCH_PORT"
+            [ -n "$RESEARCH_HOST" ] && INFERENCE_HOST="$RESEARCH_HOST"
+
+
+### Chunk 9 (from runtime/subtract.sh)
+    echo "$mode"
+}
+
+__subtract_read() {
+    local input="$*"
+    local session context result
+    session=$(__subtract_session_file)
+
+    [ -f "${session}.log" ] && context=$(tail -n 30 "${session}.log")
+    # Fallback to Claude session context if no handler context
+    [ -z "$context" ] && context=$(__subtract_claude_context)
+    local prompt
+    if [ -n "$context" ]; then
+        prompt="Previous conversation:
+${context}
+
+Question: ${input}
+
+Answer concisely, using context if relevant."
+    else
+        prompt="Answer concisely: ${input}"
+    fi
+
+    # YouTube pre-fetch
+    local url transcript_file transcript_text
+    if [[ "$input" =~ (https?://[^ ]*(youtube\.com|youtu\.be)[^ ]*) ]]; then
+        url="${BASH_REMATCH[1]}"
+        transcript_file=$("$HOME/scripts/yt-transcript.sh" "$url" 2>/dev/null)
+        if [ -f "$transcript_file" ]; then
+            transcript_text=$(cat "$transcript_file")
+            input="${input//$url/}"
+            prompt="${prompt}
+
+---
+TRANSCRIPT:
+${transcript_text}"
+        fi
+    fi
+
+    local escaped_prompt payload inference_host inference_port
+
+
+### Chunk 10 (from runtime/hosuni.sh)
+        if [ -n "$RESEARCH_PORT" ] && [ "$round" -gt 1 ]; then
+            log_daemon "[${channel}] handing off to research model on port $RESEARCH_PORT (20s timeout)"
+            local saved_port="$INFERENCE_PORT" saved_host="$INFERENCE_HOST"
+            INFERENCE_PORT="$RESEARCH_PORT"
+            [ -n "$RESEARCH_HOST" ] && INFERENCE_HOST="$RESEARCH_HOST"
+            local research_resp _research_tmp="${TMPDIR:-/tmp}/.hosuni_research.$$"
+            ( call_inference "$messages" "[]" > "$_research_tmp" 2>/dev/null ) &
+            local _rpid=$!
+            ( sleep 20; kill "$_rpid" 2>/dev/null ) &
+            local _rwdog=$!
+            wait "$_rpid" 2>/dev/null || true
+            kill "$_rwdog" 2>/dev/null || true; wait "$_rwdog" 2>/dev/null || true
+            research_resp=$(cat "$_research_tmp" 2>/dev/null) || true
+            rm -f "$_research_tmp"
+            INFERENCE_PORT="$saved_port"
+            INFERENCE_HOST="$saved_host"
+            local research_content; research_content=$(echo "$research_resp" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+            [[ "$research_content" == "<|channel>thought"* ]] && research_content="${research_content#*"<channel|>"}"
+            if [ -n "$research_content" ]; then
+                content="$research_content"
+                source="research"
+            else
+                log_daemon "[${channel}] research timeout/empty, using primary answer"
+            fi
+        fi
+
+        if [ -n "$content" ]; then
+            messages=$(echo "$messages" | jq --arg c "$content" \
+                '. + [{"role":"assistant","content":$c}]')
+            save_messages "$channel" "$messages"
+            log_session "$channel" "A" "$content"
+            log_daemon "[${channel}] [$source] reply: $(echo "$content" | head -c 200)"
+            jq -n --arg r "$content" --arg s "$source" \
+                '{response: $r, source: $s}'
+            return
+        fi
+
+        break
+    done
+
+
+
+### Chunk 11 (from variance-lab.txt)
+  against local LLM inference on consumer hardware has no published
+  precedent, but the mechanism is well understood. This finding measures
+  whether the theoretical advantage produces a practical one.
+---
+
+# HTTP/2 Multiplexing vs HTTP/1.1 for Local Inference Concurrency
+
+## Claim
+
+End-to-end, HTTP/2 multiplexing through squared provides no measurable
+advantage over parallel HTTP/1.1 for local inference via curl. Inference
+time dominates wall-clock latency; the protocol is not the bottleneck.
+
+The advantage is specific to browsers: the 6-connection-per-origin limit
+in Chrome/Brave creates artificial serialization that h2 eliminates. At
+c=3 from a browser, h2 is 2.5× faster. From curl, the protocols are
+equivalent.
+
+Dispatch overhead (time to place requests on the wire, not time to receive
+responses) is 30× lower for h2 at c=3. This is a real measurement but not
+an end-to-end speedup — the user still waits for inference regardless of
+how fast the request was dispatched.
+
+## Measurement
+
+All measurements use gemma-4-26B-A4B-it-Q4_K_M (26B parameters, 4-bit
+quantized) on an M4 Max via llama-server with 4 parallel slots (-np 4).
+h2 path goes through squared, a 716-line C proxy using nghttp2. h1.1
+path hits llama-server directly via parallel background curl processes.
+
+Prompts are natural-language shell-translation requests — the actual
+workload subtract handles when lookdown.tsv misses. Examples: "rename all
+jpg files to lowercase", "find files modified in the last hour", "show
+which process is using port 8080".
+
+### End-to-end: curl, real inference, validated responses (15 rows)
+
+Both protocols measured from request start to complete response body
+received. All responses validated to contain model output (not errors).
+80 max_tokens, loopback.
+
+
+### Chunk 12 (from runtime/subtract.sh)
+${transcript_text}"
+        fi
+    fi
+
+    local escaped_prompt payload inference_host inference_port
+    escaped_prompt=$(printf '%s' "$prompt" | jq -Rs .)
+    payload="{\"messages\":[{\"role\":\"user\",\"content\":${escaped_prompt}}],\"max_tokens\":262144}"
+    inference_host=$(cat "$SUBTRACT_DIR/inference_host" 2>/dev/null)
+    inference_port=$(cat "$SUBTRACT_DIR/inference_port" 2>/dev/null)
+    [ -z "$inference_port" ] && inference_port="8083"
+
+    if [ -n "$inference_host" ] && [ "$inference_host" != "localhost" ]; then
+        result=$(echo "$payload" | ssh -o ConnectTimeout=5 "$inference_host" \
+            "curl -s http://localhost:${inference_port}/v1/chat/completions -H 'Content-Type: application/json' -d @-" 2>/dev/null \
+            | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+    elif curl -s --connect-timeout 1 "http://localhost:${inference_port}/v1/models" &>/dev/null; then
+        result=$(curl -s --connect-timeout 30 -X POST -H "Content-Type: application/json" \
+            -d "$payload" "http://localhost:${inference_port}/v1/chat/completions" 2>/dev/null \
+            | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+    fi
+
+    if [ -z "$result" ]; then
+        result=$(__subtract_ask_cloud "$input")
+    fi
+
+    if [ -n "$result" ]; then
+        echo "$result"
+        printf "%s\tQ\t%s\n%s\tA\t%s\n" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$input" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$result" >> "${session}.log"
+    else
+        echo "no model available"
+        return 1
+    fi
+}
+
+__subtract_write() {
+    local input="$*"
+    local result
+
+    local prompt="Create or edit content based on this request. Output ONLY the content, no commentary: ${input}"
+
+
+

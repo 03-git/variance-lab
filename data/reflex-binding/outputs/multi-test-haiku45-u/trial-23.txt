@@ -1,0 +1,80 @@
+I'll create a comprehensive Python test suite for the `celsius_to_fahrenheit` function. Here's the code:
+
+```python
+import pytest
+
+
+def celsius_to_fahrenheit(c):
+    """Convert temperature from Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+
+class TestCelsiusToFahrenheit:
+    """Test suite for celsius_to_fahrenheit function."""
+    
+    def test_zero_celsius(self):
+        """0°C should equal 32°F (freezing point of water)."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """100°C should equal 212°F (boiling point of water)."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty(self):
+        """−40°C should equal −40°F (same in both scales)."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("25")
+    
+    def test_float_input(self):
+        """Float inputs should work correctly."""
+        assert celsius_to_fahrenheit(36.5) == 97.7
+    
+    def test_negative_celsius(self):
+        """Negative temperatures should convert correctly."""
+        assert celsius_to_fahrenheit(-10) == 14
+
+
+if __name__ == "__main__":
+    # Run with: python test_file.py
+    pytest.main([__file__, "-v"])
+```
+
+**How to run it:**
+
+1. **Install pytest** (if not already installed):
+   ```bash
+   pip install pytest
+   ```
+
+2. **Run the tests**:
+   ```bash
+   pytest test_file.py -v
+   ```
+   
+   Or directly with Python:
+   ```bash
+   python test_file.py
+   ```
+
+**Expected output:**
+```
+test_file.py::TestCelsiusToFahrenheit::test_zero_celsius PASSED
+test_file.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+test_file.py::TestCelsiusToFahrenheit::test_negative_forty PASSED
+test_file.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+test_file.py::TestCelsiusToFahrenheit::test_float_input PASSED
+test_file.py::TestCelsiusToFahrenheit::test_negative_celsius PASSED
+
+6 passed in 0.05s
+```
+
+The test suite covers:
+- **0°C** → 32°F (water freezing point)
+- **100°C** → 212°F (water boiling point)
+- **−40°C** → −40°F (where both scales converge)
+- **Non-numeric input** → TypeError exception
+- Plus bonus tests for float and negative values

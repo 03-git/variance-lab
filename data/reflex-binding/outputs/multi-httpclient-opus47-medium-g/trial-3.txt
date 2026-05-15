@@ -1,0 +1,41 @@
+Kernel primitive first (reflex.1): this is an HTTP GET over a TCP socket — Python's stdlib `urllib.request` wraps that directly and follows redirects by default, so no third-party `requests` dependency needed.
+
+```python
+#!/usr/bin/env python3
+import sys
+import urllib.request
+
+def main():
+    if len(sys.argv) != 2:
+        print(f"usage: {sys.argv[0]} <url>", file=sys.stderr)
+        sys.exit(2)
+
+    url = sys.argv[1]
+    req = urllib.request.Request(url, headers={"User-Agent": "fetch.py"})
+
+    # urllib follows redirects (301/302/303/307) automatically via HTTPRedirectHandler.
+    with urllib.request.urlopen(req) as resp:
+        body = resp.read(500).decode("utf-8", errors="replace")
+
+        print(f"Status: {resp.status} {resp.reason}")
+        print(f"Final URL: {resp.url}")          # differs from input if redirected
+        print("\nHeaders:")
+        for k, v in resp.headers.items():
+            print(f"  {k}: {v}")
+        print("\nBody (first 500 chars):")
+        print(body)
+
+if __name__ == "__main__":
+    main()
+```
+
+Run it:
+
+```bash
+python3 fetch.py https://example.com
+```
+
+Notes:
+- `urlopen` raises `urllib.error.HTTPError` on 4xx/5xx — that exception object is itself a response, so if you want to *print* error statuses rather than traceback, wrap the `with` block in `try/except urllib.error.HTTPError as resp:` and reuse the same printing code.
+- `resp.read(500)` reads at most 500 bytes; for multi-byte UTF-8 that can be slightly fewer than 500 characters and may split a codepoint, hence `errors="replace"`.
+- No `pip install` required — all stdlib.

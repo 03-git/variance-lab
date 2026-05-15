@@ -1,0 +1,31 @@
+```python
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json, datetime
+
+class H(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/time":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"time": datetime.datetime.now(datetime.timezone.utc).isoformat()}).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+HTTPServer(("", 8000), H).serve_forever()
+```
+
+Run it:
+
+```
+python3 server.py
+```
+
+Test it:
+
+```
+curl http://localhost:8000/time
+```
+
+Kernel primitive: `socket(2)` → `bind(2)` → `listen(2)` → `accept(2)`. `http.server` is stdlib wrapping those directly — no pip dependencies.

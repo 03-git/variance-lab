@@ -1,0 +1,152 @@
+Here's a complete async TCP echo server in Python using `asyncio`:
+
+## Server Code
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client {addr} connected")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If no data, client disconnected
+            if not data:
+                break
+            
+            # Echo it back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Client {addr}: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error handling client {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client {addr} disconnected")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server started on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Simple Client for Testing
+
+```python
+import asyncio
+
+async def main():
+    reader, writer = await asyncio.open_connection('127.0.0.1', 8888)
+    
+    try:
+        while True:
+            message = input("Enter text (or 'quit'): ")
+            if message.lower() == 'quit':
+                break
+            
+            writer.write((message + '\n').encode())
+            await writer.drain()
+            
+            response = await reader.readline()
+            print(f"Received: {response.decode().strip()}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## How to Run
+
+**Terminal 1 - Start the server:**
+```bash
+python3 << 'EOF'
+import asyncio
+
+async def handle_client(reader, writer):
+    addr = writer.get_extra_info('peername')
+    print(f"Client {addr} connected")
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:
+                break
+            writer.write(data)
+            await writer.drain()
+            print(f"Client {addr}: {data.decode().strip()}")
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client {addr} disconnected")
+
+async def main():
+    server = await asyncio.start_server(handle_client, '127.0.0.1', 8888)
+    print(f"Server started on 127.0.0.1:8888")
+    async with server:
+        await server.serve_forever()
+
+asyncio.run(main())
+EOF
+```
+
+**Terminal 2+ - Run multiple clients (or use telnet):**
+```bash
+telnet 127.0.0.1 8888
+```
+
+Or in another Python session:
+```bash
+python3 << 'EOF'
+import asyncio, sys
+
+async def main():
+    reader, writer = await asyncio.open_connection('127.0.0.1', 8888)
+    try:
+        while True:
+            msg = input(">>> ")
+            if msg.lower() == 'quit':
+                break
+            writer.write((msg + '\n').encode())
+            await writer.drain()
+            response = await reader.readline()
+            print(f"<<< {response.decode().strip()}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+asyncio.run(main())
+EOF
+```
+
+## Key Features
+
+- **Concurrent handling**: Uses `asyncio` to handle multiple clients simultaneously without threads
+- **Line-based protocol**: Reads/writes complete lines using `readline()`
+- **Connection tracking**: Prints when clients connect/disconnect
+- **Error handling**: Gracefully handles client disconnections and errors
+- **Async/await**: Modern Python async syntax for clean, non-blocking code
+
+The server will handle as many concurrent clients as you connect to it!

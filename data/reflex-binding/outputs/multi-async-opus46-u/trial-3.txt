@@ -1,0 +1,68 @@
+```python
+# echo_server.py
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    peer = writer.get_extra_info("peername")
+    print(f"connected: {peer}")
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:               # client closed the connection
+                break
+            writer.write(data)         # echo the line back verbatim
+            await writer.drain()
+    except ConnectionResetError:
+        pass
+    finally:
+        print(f"disconnected: {peer}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"serving on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+```
+
+How it works: `asyncio.start_server` spawns a fresh `handle_client` task per connection, so many clients run concurrently on a single thread. `reader.readline()` yields one `\n`-terminated line (returns `b""` on EOF). `writer.drain()` applies backpressure if the client is slow to read.
+
+## Run it
+
+```bash
+python echo_server.py
+```
+
+## Test it
+
+With netcat — each line you type comes straight back:
+
+```bash
+nc 127.0.0.1 8888
+```
+
+Open several `nc` sessions at once to see concurrent clients. Or a quick Python client:
+
+```python
+import asyncio
+
+async def main():
+    reader, writer = await asyncio.open_connection("127.0.0.1", 8888)
+    writer.write(b"hello world\n")
+    await writer.drain()
+    print((await reader.readline()).decode().rstrip())
+    writer.close()
+    await writer.wait_closed()
+
+asyncio.run(main())
+```
+
+Stop the server with Ctrl+C.

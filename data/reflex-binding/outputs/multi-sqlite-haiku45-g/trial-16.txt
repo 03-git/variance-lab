@@ -1,0 +1,83 @@
+Here's a complete Python script that creates and manages a SQLite notes database:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create/connect to database
+conn = sqlite3.connect('notes.db')
+cursor = conn.cursor()
+
+# Create table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ("Python Tips", "Remember to use list comprehensions for cleaner code", datetime.now().isoformat()),
+    ("Project Ideas", "Build a CLI tool for managing todos with SQLite", datetime.now().isoformat()),
+    ("Learning Goals", "Master async/await in Python and build a web scraper", datetime.now().isoformat()),
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+
+# Commit changes
+conn.commit()
+
+# Query and print all notes
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+notes = cursor.fetchall()
+
+print("All Notes:")
+print("-" * 80)
+for note in notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 80)
+
+# Close connection
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the code to a file (e.g., `notes_db.py`)
+2. Run it:
+   ```bash
+   python notes_db.py
+   ```
+
+**Output:**
+```
+All Notes:
+--------------------------------------------------------------------------------
+ID: 1
+Title: Python Tips
+Body: Remember to use list comprehensions for cleaner code
+Created: 2026-05-10T...
+--------------------------------------------------------------------------------
+ID: 2
+Title: Project Ideas
+Body: Build a CLI tool for managing todos with SQLite
+Created: 2026-05-10T...
+--------------------------------------------------------------------------------
+ID: 3
+Title: Learning Goals
+Body: Master async/await in Python and build a web scraper
+Created: 2026-05-10T...
+--------------------------------------------------------------------------------
+```
+
+The script will create a `notes.db` file in the same directory. Running it again will append more notes (the `CREATE TABLE IF NOT EXISTS` prevents errors on subsequent runs).

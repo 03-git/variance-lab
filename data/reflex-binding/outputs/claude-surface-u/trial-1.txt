@@ -1,0 +1,13 @@
+The file is written. Here's how to run it and test it:
+
+```bash
+python3 /tmp/time_server.py
+```
+
+In another terminal:
+
+```bash
+curl http://127.0.0.1:8000/time
+```
+
+Response shape: `{"time": "2026-05-10T12:34:56.789012+00:00"}`. Stop with Ctrl+C.

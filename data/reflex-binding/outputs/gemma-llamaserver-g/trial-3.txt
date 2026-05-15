@@ -1,0 +1,52 @@
+**Kernel Primitive:** `socket` and `http` (Python Standard Library)
+**Library:** `http.server`
+
+### Code (`server.py`)
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import json
+from datetime import datetime
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            
+            response = {
+                "time": datetime.now().isoformat()
+            }
+            
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b'Not Found')
+
+if __name__ == "__main__":
+    server_address = ('', 8000)
+    httpd = HTTPServer(server_address, TimeHandler)
+    print("Server running on http://localhost:8000")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\nServer stopping...")
+        httpd.server_close()
+```
+
+### How to run it
+
+1.  **Save the code:** Save the block above as a file named `server.py`.
+2.  **Run the server:** Open your terminal and execute:
+    ```bash
+    python3 server.py
+    ```
+3.  **Test the endpoint:** Open a second terminal or your browser and access:
+    ```bash
+    curl http://localhost:8000/time
+    ```
+
+**Expected Output:**
+`{"time": "2023-10-27T10:30:05.123456"}` (with current timestamp)

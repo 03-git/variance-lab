@@ -1,0 +1,39 @@
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_equal_point(self):
+        # -40 is the point where Celsius and Fahrenheit are equal
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_input(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+**To run it**, save the code to a file (e.g. `test_temp.py`) and run:
+
+```bash
+python -m pytest test_temp.py -v
+# or, without pytest:
+python test_temp.py
+```
+
+**Notes on the tests:**
+- `0°C → 32°F` — water's freezing point
+- `100°C → 212°F` — water's boiling point
+- `-40°C → -40°F` — the crossover point where both scales are equal
+- Passing `"hot"` raises `TypeError` because Python can't multiply a string by `9/5` — no extra validation needed in the function itself

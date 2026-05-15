@@ -1,0 +1,68 @@
+Here's a minimal implementation using Node.js (no dependencies, built-in `http` module):
+
+```javascript
+// server.js
+const http = require("http");
+
+const server = http.createServer((req, res) => {
+  if (req.method === "GET" && req.url === "/time") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ time: new Date().toISOString() }));
+  } else {
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Not found" }));
+  }
+});
+
+server.listen(3000, () => {
+  console.log("Listening on http://localhost:3000");
+});
+```
+
+Run it:
+
+```sh
+node server.js
+```
+
+Test it:
+
+```sh
+curl http://localhost:3000/time
+# {"time":"2026-05-10T12:34:56.789Z"}
+```
+
+`new Date().toISOString()` always emits a valid ISO 8601 / RFC 3339 timestamp in UTC (the trailing `Z`).
+
+---
+
+If you'd rather not use Node, here's the same thing in Python with only the standard library:
+
+```python
+# server.py
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/time":
+            body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+            self.send_response(200)
+        else:
+            body = json.dumps({"error": "Not found"}).encode()
+            self.send_response(404)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(body)
+
+HTTPServer(("", 3000), Handler).serve_forever()
+```
+
+```sh
+python3 server.py
+curl http://localhost:3000/time
+# {"time": "2026-05-10T12:34:56.789012+00:00"}
+```
+
+Want me to adapt this to a specific framework (Express, Flask, FastAPI, Go, etc.) or add anything like a timezone query param?

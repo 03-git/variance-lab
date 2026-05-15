@@ -1,0 +1,43 @@
+Here's a complete test suite using Python's `unittest` framework:
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+    
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+    
+    def test_negative_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+    
+    def test_non_numeric_input(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("not a number")
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+**To run it:**
+
+```bash
+python test_file.py
+```
+
+Or for verbose output:
+
+```bash
+python test_file.py -v
+```
+
+The test suite covers:
+- **0°C → 32°F** (freezing point of water)
+- **100°C → 212°F** (boiling point of water)
+- **-40°C → -40°F** (the point where both scales intersect)
+- **Non-numeric input** (verifies the function raises `TypeError`)

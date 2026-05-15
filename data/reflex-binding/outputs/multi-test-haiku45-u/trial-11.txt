@@ -1,0 +1,66 @@
+I'll show you a comprehensive test suite for the celsius_to_fahrenheit function using Python's unittest framework.
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    
+    def test_freezing_point(self):
+        """Test conversion of 0°C (freezing point)."""
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+    
+    def test_boiling_point(self):
+        """Test conversion of 100°C (boiling point)."""
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+    
+    def test_same_in_both_scales(self):
+        """Test -40°C which is the same in both Celsius and Fahrenheit."""
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+    
+    def test_non_numeric_input(self):
+        """Test that non-numeric input raises TypeError."""
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("not a number")
+    
+    def test_none_input(self):
+        """Test that None input raises TypeError."""
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit(None)
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+**How to run it:**
+
+Save the code to a file (e.g., `test_conversion.py`) and run:
+
+```bash
+python test_conversion.py
+```
+
+Or run with verbose output:
+
+```bash
+python test_conversion.py -v
+```
+
+**Expected output:**
+```
+test_freezing_point (test_conversion.TestCelsiusToFahrenheit) ... ok
+test_boiling_point (test_conversion.TestCelsiusToFahrenheit) ... ok
+test_same_in_both_scales (test_conversion.TestCelsiusToFahrenheit) ... ok
+test_non_numeric_input (test_conversion.TestCelsiusToFahrenheit) ... ok
+test_none_input (test_conversion.TestCelsiusToFahrenheit) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.001s
+
+OK
+```
+
+The test suite covers your required cases (0, 100, -40) plus an extra test for None to catch common edge cases. The non-numeric input test uses `assertRaises` to verify that a TypeError is properly raised when a string is passed.

@@ -1,0 +1,74 @@
+I'll show you a Python script that fetches a webpage and extracts hyperlinks:
+
+```python
+import requests
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []
+        self.current_text = []
+        self.in_anchor = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.in_anchor = True
+            self.current_text = []
+            for attr, value in attrs:
+                if attr == 'href':
+                    href = urljoin(self.base_url, value)
+                    self.current_href = href
+
+    def handle_data(self, data):
+        if self.in_anchor:
+            self.current_text.append(data.strip())
+
+    def handle_endtag(self, tag):
+        if tag == 'a' and self.in_anchor:
+            self.in_anchor = False
+            text = ' '.join(self.current_text)
+            self.links.append((self.current_href, text))
+
+def fetch_and_extract_links(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        parser = LinkExtractor(url)
+        parser.feed(response.text)
+        
+        return parser.links
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return []
+
+if __name__ == '__main__':
+    url = 'https://example.com'
+    links = fetch_and_extract_links(url)
+    
+    if links:
+        print(f"Found {len(links)} links:\n")
+        for href, text in links:
+            print(f"URL: {href}")
+            print(f"Text: {text or '(no text)'}")
+            print()
+    else:
+        print("No links found or error occurred.")
+```
+
+**How to run it:**
+
+1. Install the required library:
+   ```bash
+   pip install requests
+   ```
+
+2. Run the script:
+   ```bash
+   python script.py
+   ```
+
+The script uses `requests` to fetch the HTML and `HTMLParser` to extract anchor tags. It collects the `href` attribute and the link text, handling relative URLs by converting them to absolute URLs based on the page's base URL.

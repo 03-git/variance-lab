@@ -1,0 +1,98 @@
+Here's a Python CLI tool using `argparse`:
+
+```python
+import argparse
+import json
+import sys
+
+def validate_port(value):
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Port must be an integer, got '{value}'")
+    
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError(f"Port must be between 1 and 65535, got {port}")
+    
+    return port
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="CLI tool that parses and displays configuration"
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="localhost",
+        help="Host address (default: localhost)"
+    )
+    parser.add_argument(
+        "--port",
+        type=validate_port,
+        default=8080,
+        help="Port number, must be 1-65535 (default: 8080)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Save to a file (e.g., cli_tool.py) and run:
+
+# Basic usage with defaults
+python cli_tool.py
+
+# With custom host and port
+python cli_tool.py --host 192.168.1.1 --port 3000
+
+# Enable verbose
+python cli_tool.py --host example.com --port 9000 --verbose
+
+# Invalid port (will show error)
+python cli_tool.py --port 99999
+
+# Invalid port type (will show error)
+python cli_tool.py --port abc
+```
+
+**Example outputs:**
+
+```bash
+$ python cli_tool.py
+{
+  "host": "localhost",
+  "port": 8080,
+  "verbose": false
+}
+
+$ python cli_tool.py --host 0.0.0.0 --port 443 --verbose
+{
+  "host": "0.0.0.0",
+  "port": 443,
+  "verbose": true
+}
+
+$ python cli_tool.py --port 70000
+usage: cli_tool.py [-h] [--host HOST] [--port PORT] [--verbose]
+cli_tool.py: error: argument --port: Port must be between 1 and 65535, got 70000
+```
+
+The `validate_port` function is a custom type converter that `argparse` calls automatically, ensuring port validation happens before the main function runs.

@@ -1,0 +1,58 @@
+Kernel primitive: the process receives flags via the `execve` argument vector → `sys.argv`. `argparse` is the stdlib wrapper over that; no third-party dep needed.
+
+```python
+#!/usr/bin/env python3
+import argparse
+import json
+import sys
+
+
+def port_type(value):
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value!r}")
+    if not (1 <= port <= 65535):
+        raise argparse.ArgumentTypeError(f"port must be between 1 and 65535, got {port}")
+    return port
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Print parsed connection config as JSON.")
+    parser.add_argument("--host", required=True, help="target hostname")
+    parser.add_argument("--port", required=True, type=port_type, help="target port (1-65535)")
+    parser.add_argument("--verbose", action="store_true", help="enable verbose output")
+    args = parser.parse_args(argv)
+
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run:
+
+```
+# from stdin/save as cli.py, then:
+python3 cli.py --host example.com --port 8080
+python3 cli.py --host example.com --port 8080 --verbose
+
+# validation failures (exit code 2, argparse-style):
+python3 cli.py --host example.com --port 99999      # -> port must be between 1 and 65535
+python3 cli.py --host example.com --port abc         # -> port must be an integer, got 'abc'
+python3 cli.py --port 80                             # -> the following arguments are required: --host
+```
+
+Sample output for the first command:
+
+```json
+{
+  "host": "example.com",
+  "port": 8080,
+  "verbose": false
+}
+```
+
+Notes: `type=port_type` runs the check during parsing so bad input is rejected before `main` sees it; `action="store_true"` makes `--verbose` default to `False` with no value. `main(argv=None)` makes it importable/testable without going through the real `sys.argv`.

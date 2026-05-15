@@ -1,0 +1,414 @@
+## Retrieved chunks (BM25, top-12)
+
+### Chunk 1 (from runtime/hosuni-discord.sh)
+#!/bin/bash
+# hosuni-discord — poll Discord channels, pipe to hosuni.sh
+set -uo pipefail
+
+PIDFILE="$HOME/.hosuni/discord-poller.pid"
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    echo "already running (pid $(cat "$PIDFILE"))" >&2
+    exit 0
+fi
+echo $$ > "$PIDFILE"
+trap 'rm -f "$PIDFILE"' EXIT
+
+TOKEN=$(cat "$HOME/.keymaster/jean-discord-token.txt")
+WHITELIST="$HOME/.hosuni-discord-whitelist"
+HOSUNI="$HOME/.subtract/hosuni.sh"
+LOG="$HOME/human/sessions/hosuni-discord.log"
+STATE="$HOME/.hosuni/discord-state"
+API="https://discord.com/api/v10"
+POLL_INTERVAL=5
+CHANNELS="1489355263361286204 1483978150852559030"
+
+mkdir -p "$STATE"
+
+log() { printf "[%s] %s\n" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" >> "$LOG"; }
+
+is_whitelisted() { grep -qx "$1" "$WHITELIST" 2>/dev/null; }
+
+get_last_id() { cat "$STATE/$1" 2>/dev/null || echo "0"; }
+set_last_id() { printf '%s' "$2" > "$STATE/$1"; }
+
+send_reply() {
+    local channel="$1" content="$2"
+    while [ -n "$content" ]; do
+        local chunk
+        chunk=$(printf '%s' "$content" | head -c 2000)
+        content=$(printf '%s' "$content" | tail -c +2001)
+        curl -s -X POST "$API/channels/$channel/messages" \
+            -H "Authorization: Bot $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg c "$chunk" '{content: $c}')" >/dev/null
+
+
+### Chunk 2 (from runtime/hosuni-discord.ts)
+/**
+ * hosuni Discord DM daemon (Deno)
+ * - Listens for DMs and #hosuni channel messages via Gateway WebSocket
+ * - Whitelist-gated auto-reply via hosuni daemon on rousseau
+ * - YouTube URLs: fetches transcript via yt-dlp, pipes as context
+ * - Log to ~/human/sessions/hosuni-discord.log
+ */
+
+const TOKEN_PATH = `${Deno.env.get("HOME")}/.keymaster/jean-discord-token.txt`;
+const WHITELIST_PATH = `${Deno.env.get("HOME")}/.hosuni-discord-whitelist`;
+const LOG_PATH = `${Deno.env.get("HOME")}/human/sessions/hosuni-discord.log`;
+const TRANSCRIPT_DIR = `${Deno.env.get("HOME")}/human/transcripts`;
+const HOSUNI_CHANNEL_IDS = new Set(["1489355263361286204", "1483978150852559030"]);
+const API = "https://discord.com/api/v10";
+
+function log(msg: string) {
+  const ts = new Date().toISOString();
+  const line = `[${ts}] ${msg}\n`;
+  Deno.writeTextFileSync(LOG_PATH, line, { append: true });
+}
+
+function loadSet(path: string): Set<string> {
+  try {
+    return new Set(
+      Deno.readTextFileSync(path).split("\n").map((l) => l.trim()).filter(Boolean)
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+const TOKEN = Deno.readTextFileSync(TOKEN_PATH).trim();
+
+async function apiPost(path: string, body: unknown): Promise<unknown> {
+  const res = await fetch(`${API}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bot ${TOKEN}`,
+      "Content-Type": "application/json",
+    },
+
+
+### Chunk 3 (from runtime/hosuni/hosuni.h)
+
+/* --- modes --- */
+
+typedef enum {
+    MODE_READ,
+    MODE_RUN,
+    MODE_TEACH,
+    MODE_COUNT
+} hosuni_mode;
+
+/* --- colors --- */
+
+#define COL_BG        0xFF000000
+#define COL_FG        0xFFFFFFFF
+#define COL_GREEN     0xFF50FA7B
+#define COL_YELLOW    0xFFFFB86C
+#define COL_DIM       0xFF666666
+#define COL_CURSOR    0xFFFF79C6
+#define COL_INPUT_BG  0xFF111111
+
+/* --- font --- */
+
+typedef struct {
+    unsigned char *bitmap;
+    int w, h;
+    float scale;
+    int ascent, descent, linegap;
+    void *info; /* stbtt_fontinfo* */
+    void *fallback_info; /* stbtt_fontinfo* for CJK fallback */
+    unsigned char *fallback_data;
+} hosuni_font;
+
+int  hosuni_font_init(hosuni_font *f, const char *ttf_path, float px);
+void hosuni_font_free(hosuni_font *f);
+void hosuni_draw_char(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   uint32_t cp, uint32_t color);
+int  hosuni_draw_text(hosuni_surface *s, hosuni_font *f, int x, int y,
+                   const char *text, uint32_t color);
+int  hosuni_char_width(hosuni_font *f, uint32_t cp);
+int  hosuni_line_height(hosuni_font *f);
+
+
+### Chunk 4 (from runtime/hosuni/hosuni.h)
+/*
+ * hosuni.h — framebuffer computing for humans
+ *
+ * Copyright (C) 2026 subtract.ing
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+#ifndef HOSUNI_H
+#define HOSUNI_H
+
+#include <stdint.h>
+
+/* --- platform contract --- */
+
+typedef struct {
+    uint32_t *pixels;
+    int width;
+    int height;
+    int stride; /* bytes per row */
+} hosuni_surface;
+
+typedef enum { HOSUNI_KEY, HOSUNI_MOUSE, HOSUNI_TOUCH } hosuni_input_type;
+
+typedef struct {
+    hosuni_input_type type;
+    int code;   /* KEY_* from linux/input-event-codes.h */
+    int value;  /* 1=press 0=release 2=repeat */
+    int x, y;   /* mouse/touch coords, 0 for keys */
+} hosuni_event;
+
+int  platform_init(hosuni_surface *s);
+int  platform_event(hosuni_event *ev, int timeout_ms);
+void platform_flip(hosuni_surface *s);
+void platform_cleanup(void);
+void platform_yield(void);
+void platform_reclaim(void);
+void platform_drain_input(void);
+void platform_close_child_fds(void);
+void platform_xkb_update(int evdev_code, int value);
+int  platform_key_utf8(int evdev_code, char *out, int out_max);
+
+
+### Chunk 5 (from hosuni.txt)
+  macOS:  cc -O2 -o hosuni hosuni.c platform_macos.m -framework Cocoa
+
+## Source
+
+  runtime/hosuni/hosuni.c          main source (canonical)
+  runtime/hosuni/hosuni.h          platform contract, types, colors
+  runtime/hosuni/platform_linux.c  DRM/KMS + evdev
+  runtime/hosuni/platform_macos.m  Cocoa + NSEvent
+  runtime/hosuni/stb_truetype.h    font rendering (vendored)
+
+
+### Chunk 6 (from runtime/hosuni/hosuni.c)
+    chat_msg history[MAX_HIST_MSGS];
+    int history_count;
+} ask_ctx;
+
+/* ================================================================
+   main application
+   ================================================================ */
+
+typedef struct {
+    int sel;
+    int scroll;
+    int count;
+    char filter[64];
+    int filter_len;
+    int show_all;
+} run_ctx;
+
+typedef struct {
+    hosuni_surface surface;
+    hosuni_font font;
+    hosuni_font font_large;
+    hosuni_font font_small;
+    hosuni_mode mode;
+    vi_ctx vi;
+    ask_ctx ask;
+    run_ctx run;
+    int running;
+    int shift;
+    int ctrl;
+    char infer_host[64];
+    int infer_port;
+    int margin;
+    char soul[16384];
+    int starred;
+    focused_ctx focused;
+} hosuni_app;
+
+/* ================================================================
+   conversation history + message building
+   ================================================================ */
+
+
+### Chunk 7 (from runtime/hosuni-discord.ts)
+    log(`gateway error: ${event}`);
+  };
+}
+
+// Ensure transcript dir exists
+try {
+  Deno.mkdirSync(TRANSCRIPT_DIR, { recursive: true });
+} catch { /* exists */ }
+
+log("DAEMON STARTED");
+connectGateway();
+
+
+### Chunk 8 (from hosuni.txt)
+## How it renders
+
+hosuni.c talks directly to the display hardware:
+
+  Linux:  DRM/KMS — opens /dev/dri/card*, sets mode, double-buffered
+          page flip with vsync. Reads keyboard via /dev/input/event*.
+
+  macOS:  Cocoa — NSWindow with a backing bitmap, keyboard events via
+          NSEvent. Same rendering code, different platform layer.
+
+Both platforms implement the contract defined in hosuni.h:
+platform_init, platform_event, platform_flip, platform_cleanup
+(plus platform_yield and platform_reclaim for child process handoff).
+The rendering code (text, rectangles, scrolling) is shared.
+
+Font rendering uses stb_truetype (single-header, vendored).
+
+## Inference
+
+hosuni.c builds its own HTTP requests over raw TCP sockets. No curl,
+no HTTP library. It speaks the OpenAI-compatible chat completions
+format:
+
+  - Streaming (SSE) for READ mode — tokens render as they arrive
+  - Non-streaming with tool calls — the model can call web_search,
+    web_fetch, run_command, read_file, and list_dir. hosuni.c
+    executes them and feeds results back in a multi-turn loop.
+  - Thinking tag filter strips Gemma-4 <|channel>...</channel|> blocks
+
+hosuni-discord (runtime/hosuni-discord.sh) wraps the same inference
+path for delivery over Discord.
+
+## Build
+
+  Linux:  cc -O2 -o hosuni hosuni.c platform_linux.c -ldrm
+  macOS:  cc -O2 -o hosuni hosuni.c platform_macos.m -framework Cocoa
+
+## Source
+
+  runtime/hosuni/hosuni.c          main source (canonical)
+
+
+### Chunk 9 (from runtime/hosuni.sh)
+        fi
+
+        break
+    done
+
+    jq -n '{error:"no response after tool loop"}'
+}
+
+# --- listener ---
+
+log_daemon "hosuni starting (stdin/stdout mode)"
+if [ -p "$PARSIMONY_IN" ] && [ -p "$PARSIMONY_OUT" ]; then
+    log_daemon "inference: parsimony (pipes)"
+else
+    log_daemon "inference: ${INFERENCE_HOST}:${INFERENCE_PORT} (curl)"
+fi
+log_daemon "lookdown: $LOOKDOWN_NODE $LOOKDOWN_UNIVERSAL"
+log_daemon "tools: $TOOLS_FILE"
+
+# stdin/stdout mode: read JSON request, write JSON response
+# usage: echo '{"input":"hello","channel":"test"}' | hosuni.sh
+#        or spawned by hosuni-discord.ts per message
+
+request=$(cat)
+log_daemon "raw request: $(echo "$request" | head -c 200)"
+handle_request "$request"
+
+
+### Chunk 10 (from runtime/hosuni/hosuni.c)
+        if (*p == ' ') { x += hosuni_char_width(f, ' '); p++; }
+    }
+    return line + 1;
+}
+
+static void draw_ask(hosuni_app *app) {
+    int lh = hosuni_line_height(&app->font);
+    int m = app->margin;
+    int max_x = app->surface.width - m;
+
+    /* header at top */
+    hosuni_draw_text(&app->surface, &app->font_large, m, m, "hosuni.c", COL_FG);
+    hosuni_draw_text(&app->surface, &app->font, m, m + hosuni_line_height(&app->font_large) + 4,
+                  "subtract your questions, ask about anything", COL_DIM);
+
+    /* input at bottom, above status bar */
+    int status_h = lh + 4;
+    int input_y = app->surface.height - status_h - lh - 16;
+    int prompt_w = hosuni_draw_text(&app->surface, &app->font, 0, input_y + 4, "> ", COL_DIM);
+    int input_x0 = prompt_w + 4;
+    int input_area_w = app->surface.width - input_x0 - m;
+    fill_rect(&app->surface, prompt_w, input_y, app->surface.width - prompt_w - m, lh + 8, COL_INPUT_BG);
+    if (app->ask.input_len > 0) {
+        int total_w = 0;
+        for (int i = 0; i < app->ask.input_len; i++)
+            total_w += hosuni_char_width(&app->font, app->ask.input[i]);
+        int skip = 0;
+        if (total_w > input_area_w - 4) {
+            int excess = total_w - input_area_w + 4;
+            int w = 0;
+            for (skip = 0; skip < app->ask.input_len && w < excess; skip++)
+                w += hosuni_char_width(&app->font, app->ask.input[skip]);
+        }
+        hosuni_draw_text(&app->surface, &app->font, input_x0, input_y + 4,
+                      app->ask.input + skip, COL_FG);
+        int vis_w = 0;
+        for (int i = skip; i < app->ask.input_len; i++)
+            vis_w += hosuni_char_width(&app->font, app->ask.input[i]);
+        if (!app->ask.streaming)
+            fill_rect(&app->surface, input_x0 + vis_w, input_y + 4, 2, lh, COL_CURSOR);
+
+
+### Chunk 11 (from runtime/hosuni/hosuni.c)
+        hosuni_draw_text(&app->surface, &app->font, cx_pixel, cy_line, tmp, col);
+        cx_pixel += cw;
+    }
+    if (active && cursor == len)
+        fill_rect(&app->surface, cx_pixel, cy_line, 2, lh, COL_CURSOR);
+}
+
+static void draw_focused(hosuni_app *app) {
+    focused_ctx *f = &app->focused;
+    int lh = hosuni_line_height(&app->font);
+    int m = app->margin;
+    int y = lh;
+
+    hosuni_draw_text(&app->surface, &app->font, m, y, "EDIT LOOKDOWN", COL_YELLOW);
+    y += lh;
+
+    char label[512];
+    snprintf(label, sizeof(label), "source:   %s:%d",
+             lookdown_table[f->ld_idx].source_file, lookdown_table[f->ld_idx].source_line);
+    hosuni_draw_text(&app->surface, &app->font, m, y, label, COL_DIM);
+    y += lh * 2;
+
+    hosuni_draw_text(&app->surface, &app->font, m, y, "pattern:", f->field == 0 ? COL_FG : COL_DIM);
+    y += lh;
+    draw_focused_field(app, y, f->pat, f->pat_len, f->pat_cursor, f->field == 0);
+    y += lh * 2;
+
+    hosuni_draw_text(&app->surface, &app->font, m, y, "command:", f->field == 1 ? COL_FG : COL_DIM);
+    y += lh;
+    draw_focused_field(app, y, f->cmd, f->cmd_len, f->cmd_cursor, f->field == 1);
+
+    int footer_y = app->surface.height - lh * 2;
+    hosuni_draw_text(&app->surface, &app->font, m, footer_y, "Tab: switch field    Enter: save    Esc: cancel", COL_DIM);
+}
+
+static void draw_edit(hosuni_app *app) {
+    int lh = hosuni_line_height(&app->font);
+    int m = app->margin;
+    int lines_visible = (app->surface.height - lh - 8) / lh;
+    int total = vi_line_count(&app->vi);
+
+
+### Chunk 12 (from runtime/hosuni/hosuni.h)
+int  hosuni_infer_recv(int sock, char *chunk, int chunk_max);
+
+/* --- session log --- */
+
+void hosuni_log_init(const char *program);
+void hosuni_log_trial(const char *program, int trial,
+                   const char *stimulus, const char *response,
+                   int latency_ms, int correct);
+
+#endif
+
+

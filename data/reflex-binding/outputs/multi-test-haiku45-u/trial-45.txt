@@ -1,0 +1,66 @@
+I'll show you a comprehensive test suite for the `celsius_to_fahrenheit` function using Python's `unittest` framework:
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    
+    def test_freezing_point(self):
+        """Test conversion of 0°C (freezing point of water)"""
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+    
+    def test_boiling_point(self):
+        """Test conversion of 100°C (boiling point of water)"""
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+    
+    def test_same_in_both_scales(self):
+        """Test -40°C which equals -40°F"""
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+    
+    def test_non_numeric_input(self):
+        """Test that non-numeric input raises TypeError"""
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("25")
+    
+    def test_none_input(self):
+        """Test that None input raises TypeError"""
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit(None)
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+**To run the tests:**
+
+```bash
+python test_celsius.py
+```
+
+Or for more verbose output:
+
+```bash
+python test_celsius.py -v
+```
+
+**Expected output:**
+```
+test_boiling_point (__main__.TestCelsiusToFahrenheit) ... ok
+test_freezing_point (__main__.TestCelsiusToFahrenheit) ... ok
+test_non_numeric_input (__main__.TestCelsiusToFahrenheit) ... ok
+test_none_input (__main__.TestCelsiusToFahrenheit) ... ok
+test_same_in_both_scales (__main__.TestCelsiusToFahrenheit) ... ok
+
+Ran 5 tests in 0.001s
+
+OK
+```
+
+The test suite covers:
+- **0°C → 32°F** (freezing point of water)
+- **100°C → 212°F** (boiling point of water)  
+- **-40°C → -40°F** (the point where both scales meet)
+- **Non-numeric inputs** (string and None), which raise `TypeError` as expected

@@ -1,0 +1,76 @@
+```python
+#!/usr/bin/env python3
+"""Simple CLI tool that parses connection config and prints it as JSON."""
+
+import argparse
+import json
+import sys
+
+
+def port_type(value):
+    """Validate that the given value is an integer in the range 1-65535."""
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value!r}")
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError(f"port must be between 1 and 65535, got {port}")
+    return port
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description="Parse and display connection configuration.")
+    parser.add_argument("--host", default="localhost", help="Hostname (default: localhost)")
+    parser.add_argument("--port", type=port_type, default=8080, help="Port number, 1-65535 (default: 8080)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    print(json.dumps(config, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it:
+
+```bash
+# Save the code as cli.py, then:
+
+python3 cli.py --host example.com --port 443 --verbose
+# {
+#   "host": "example.com",
+#   "port": 443,
+#   "verbose": true
+# }
+
+# Defaults (no flags):
+python3 cli.py
+# {
+#   "host": "localhost",
+#   "port": 8080,
+#   "verbose": false
+# }
+
+# Invalid port — exits with code 2 and an error message:
+python3 cli.py --port 99999
+# usage: cli.py [-h] [--host HOST] [--port PORT] [--verbose]
+# cli.py: error: argument --port: port must be between 1 and 65535, got 99999
+
+python3 cli.py --port abc
+# cli.py: error: argument --port: port must be an integer, got 'abc'
+
+# Built-in help:
+python3 cli.py --help
+```
+
+Notes:
+- `argparse` handles the validation plumbing — `port_type` is a custom type function that raises `ArgumentTypeError`, which argparse turns into a clean usage error and exit code 2.
+- `--verbose` is a boolean flag (`store_true`), so it's `false` unless present.
+- `main(argv=None)` lets you import and test this without going through the shell.
+
+I didn't write any files, per your request. Want me to drop this into a file (e.g. `cli.py`) so you can run it directly?

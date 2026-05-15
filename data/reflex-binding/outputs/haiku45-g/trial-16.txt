@@ -1,0 +1,68 @@
+I'll show you a simple HTTP endpoint in Python that returns the current time in ISO 8601 format.
+
+```python
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import datetime
+import json
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/time':
+            response = {
+                "time": datetime.utcnow().isoformat() + "Z"
+            }
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, format, *args):
+        pass  # Suppress request logging
+
+if __name__ == '__main__':
+    server = HTTPServer(('localhost', 8000), TimeHandler)
+    print("Server running at http://localhost:8000/time")
+    server.serve_forever()
+```
+
+**To run it:**
+```bash
+python3 endpoint.py
+```
+
+**To test it:**
+```bash
+curl http://localhost:8000/time
+```
+
+**Response:**
+```json
+{"time": "2026-05-10T14:32:45.123456Z"}
+```
+
+If you prefer a framework-based approach, here's a Flask version:
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    return jsonify({"time": datetime.utcnow().isoformat() + "Z"})
+
+if __name__ == '__main__':
+    app.run(port=8000)
+```
+
+**To run Flask version:**
+```bash
+pip install flask
+python3 endpoint.py
+```
+
+Both versions return the same JSON response. The built-in `http.server` version has no dependencies, while Flask is more suitable if you plan to expand with more endpoints.

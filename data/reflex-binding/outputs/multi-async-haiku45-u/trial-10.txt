@@ -1,0 +1,82 @@
+I'll show you an async TCP echo server using Python's `asyncio` module:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    client_addr = writer.get_extra_info('peername')
+    print(f"Client connected: {client_addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If client closes connection, data will be empty
+            if not data:
+                print(f"Client disconnected: {client_addr}")
+                break
+            
+            # Echo the data back
+            message = data.decode().strip()
+            print(f"Received from {client_addr}: {message}")
+            
+            writer.write(data)
+            await writer.drain()
+    
+    except Exception as e:
+        print(f"Error handling {client_addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+async def start_server():
+    """Start the TCP echo server."""
+    server = await asyncio.start_server(
+        handle_client, 
+        '127.0.0.1', 
+        8888
+    )
+    
+    async with server:
+        print("Server started on 127.0.0.1:8888")
+        print("Waiting for connections...")
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(start_server())
+```
+
+**How to run it:**
+
+1. **Start the server** in one terminal:
+   ```bash
+   python echo_server.py
+   ```
+
+2. **Connect a client** in another terminal using `nc` (netcat):
+   ```bash
+   nc 127.0.0.1 8888
+   ```
+   Then type a message and press Enter—it echoes back.
+
+3. **Or test with a Python client** in another terminal:
+   ```python
+   import socket
+   
+   s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+   s.connect(('127.0.0.1', 8888))
+   s.sendall(b'Hello, Server!\n')
+   print(s.recv(1024).decode())
+   s.close()
+   ```
+
+**Key features:**
+- `asyncio.start_server()` creates a server that calls `handle_client()` for each new connection
+- `await reader.readline()` non-blockingly reads a line, freeing up the event loop for other clients
+- `await writer.drain()` ensures all data is sent before continuing
+- Multiple clients can connect simultaneously—each gets its own coroutine task
+- Graceful cleanup with `writer.close()` and `await writer.wait_closed()`
+
+To test with multiple concurrent clients, run `nc 127.0.0.1 8888` in several terminals at once—they'll all work independently.

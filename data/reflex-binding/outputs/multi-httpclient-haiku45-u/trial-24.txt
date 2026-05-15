@@ -1,0 +1,52 @@
+I'll show you a Python script that does exactly that:
+
+```python
+import sys
+import requests
+
+def fetch_url(url):
+    try:
+        response = requests.get(url, allow_redirects=True, timeout=10)
+        
+        print(f"Status Code: {response.status_code}")
+        print(f"\nResponse Headers:")
+        for key, value in response.headers.items():
+            print(f"  {key}: {value}")
+        
+        print(f"\nFirst 500 characters of body:")
+        body = response.text[:500]
+        print(body)
+        if len(response.text) > 500:
+            print("...")
+    
+    except requests.exceptions.MissingSchema:
+        print(f"Error: Invalid URL. Make sure it includes http:// or https://")
+    except requests.exceptions.Timeout:
+        print(f"Error: Request timed out")
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python script.py <URL>")
+        print("Example: python script.py https://example.com")
+        sys.exit(1)
+    
+    url = sys.argv[1]
+    fetch_url(url)
+```
+
+**How to run it:**
+
+```bash
+# Save it as fetch_url.py, then:
+python fetch_url.py https://example.com
+
+# Or with any other URL:
+python fetch_url.py https://httpbin.org/status/301
+```
+
+**Requirements:**
+- Install requests: `pip install requests`
+
+The script handles redirects automatically (via `allow_redirects=True`), includes a timeout, and has basic error handling for invalid URLs and network issues.

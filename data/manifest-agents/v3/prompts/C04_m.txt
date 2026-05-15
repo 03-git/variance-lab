@@ -1,0 +1,409 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./SOUL.txt (lines 1-29 of 29)
+SOUL.txt — signed under hodori@subtract.ing
+
+You are hosuni. You answer questions and operate this machine.
+
+The humans asking include children. Answer directly.
+If you know it, say it. If you don't, say that.
+Match the question's level — a seven-year-old and an adult
+get different answers to the same question.
+
+When someone asks about the world — history, science, animals,
+games, how things work — answer from what you know. Prefer
+the concrete: real things, real names, real numbers.
+You are a starting point, not the last word.
+
+When someone asks about this machine — files, commands, what
+is running — operate:
+  Read before assuming.
+  Check before claiming.
+  Name the primitive before reaching for a wrapper.
+  Don't delete, move, or overwrite without being asked.
+
+Short answers that feel complete. No preamble. No apology.
+No three paragraphs before the useful part.
+
+If a question is dangerous to answer for a child, say why
+instead of just refusing.
+
+The goal is literacy. The human learns the command and stops
+needing translation. Besides, not instead.
+
+## ./variance-lab.txt (lines 2081-2120 of 2802)
+      extglob unsupported but not used in current TSV
+
+**Observation:** local model is now structurally excluded from
+reviewing cal.c — the file exceeds its context window. This
+limits the third lineage to parsimony-sized artifacts. The
+finding from leg 1 (local missed the fflush bug) may have been
+partly explained by context pressure, not just capability.
+
+**Gate 2 status:** pending — compile and test lookdown on acer
+with children's patterns (godzilla, caterpillar, etc.).
+
+### Leg 3 — SOUL injection + conversation history
+
+**Change:** ~120 lines added to runtime/cal/cal.c.
+`cal_infer_stream_msgs` sends a pre-built messages JSON array
+instead of a bare prompt. `build_messages_json` constructs
+`[system, ...history, user]` from SOUL file + conversation
+history + current query. `history_add` manages a 20-message
+ring buffer (10 turns), evicting oldest turn when full. SOUL
+loaded at startup from `--soul` flag or default
+`$HOME/subtract.ing/SOUL.txt`. ESC clears history.
+
+**Why:** cal.c sent single stateless prompts with no system
+context. Every query was independent — no SOUL (personality/
+constraints), no memory of prior turns. The model couldn't
+maintain a conversation or follow standing instructions.
+
+**Architecture decision:** cal.c builds its own messages array
+and sends directly to llama-server via HTTP, rather than
+routing through hosuni.sh. This avoids modifying hosuni's
+non-streaming inference path and keeps the streaming socket
+approach that already works. Hosuni integration for tool use
+and cloud fallback deferred to a future leg.
+
+**Rubric:** seven binary criteria pre-committed before dispatch
+(messages format, SOUL loading, history ring, history lifecycle,
+non-regression, JSON escaping, buffer safety).
+
+**Dispatch:** two reviewers (local llama excluded — context
+window too small for 1600-line file).
+
+## ./variance-lab.txt (lines 1-40 of 2802)
+# variance-lab — empirical proof layer
+
+This is the claim layer of the subtract stack. Harness and raw outputs live at
+github.com/03-git/variance-lab (substrate, reproducible). These findings are
+the load-bearing empirical claims that the subtract doctrine relies on.
+
+  Canonical:   https://subtract.ing/variance-lab.txt (signed via llms.txt manifest)
+  Methodology: https://subtract.ing/variance-lab-handler-methodology.txt (three-gate validation, 2026-04-18)
+  Harness:     https://github.com/03-git/variance-lab (runnable, reproducible)
+  Signer:      hodori@subtract.ing
+  Namespace:   subtract.ing
+
+Verify:
+
+  curl -sO https://subtract.ing/llms.txt
+  curl -sO https://subtract.ing/llms.txt.sig
+  curl -sO https://subtract.ing/variance-lab.txt
+  ssh-keygen -Y verify -f <(curl -s https://subtract.ing/authorized_signers) \
+    -I hodori@subtract.ing -n subtract.ing -s llms.txt.sig < llms.txt
+  grep "variance-lab.txt" llms.txt | sha256sum -c
+
+
+================================================================
+
+---
+title: Three Questions for Agentic Autonomy
+date: 2026-03-28
+source: production empirical (consulting methodology derived from formation buildout)
+domain:
+  - agentic-consulting
+  - workflow-automation
+  - autonomy-assessment
+  - human-ai-task-allocation
+keywords:
+  - agentic autonomy assessment
+  - consulting intake protocol
+  - workflow automation assessment
+  - human KPI identification
+  - via negativa methodology
+  - autonomy blocker taxonomy
+
+## ./variance-lab-handler-methodology.txt (lines 321-360 of 398)
+| emile-sonnet-4.6-high         | C    | add `_SUBTRACT_FROM_HANDLER` guard |
+| rousseau-gemma-4-26b (local)  | C    | add `_SUBTRACT_FROM_HANDLER` guard |
+| rousseau-qwen3-coder-30B (local) | B | add `_SUBTRACT_FROM_HANDLER` guard |
+
+Seven of eight voters picked C. One picked B. Zero picked A. The C-picks spanned Opus 4.7, Sonnet 4.5, Sonnet 4.6 at low and high effort tiers, and Gemma-4-26B. The single B-pick came from Qwen3-Coder-30B.
+
+### Shim consensus
+
+The shim suggestions from the seven C-voters cluster around two themes:
+
+- **Adopt B's 5-arg signature.** Three voters (rousseau-opus-4.7, rousseau-sonnet-4.5, rousseau-sonnet-4.6) explicitly named the 5-argument split that separates antecedent_exit from consequence_exit as the one property B has that C lacks. The wrap architecture of C makes this split trivially implementable: capture `$?` on wrapper entry before calling `_impl`, capture `_impl`'s exit after return, pass both to `__subtract_log`.
+- **Reentrance guard.** Three voters (emile-sonnet-4.6, gemma-4, qwen3-coder) flagged the `_SUBTRACT_FROM_HANDLER` guard as a prerequisite. The guard is the same mechanism whose absence in qwen3coder contributed to its H4 zero-score in the implementation round.
+
+One novel shim came from emile-opus-4.7: capture `_impl`'s exit code to a local `rc` at wrapper entry, log, then `return $rc`. The observation is that a naive wrapper returns the exit code of `__subtract_log` rather than of `_impl`, which would silently change the handler's behavior for the shell that sourced it.
+
+qwen3coder's dissenting vote cited the 5-arg signature as its load-bearing reason for preferring B. The substance of that objection — the 5-arg antecedent/consequence split — also appears in three of the seven C-voters' shim lists as the property to graft onto C.
+
+---
+
+## Findings
+
+**Finding 1.** Static rubric scoring at the content-as-text layer is sensitive to tiebreak-rule choice in ways that functional verification is not. In this experiment opus47 and sonnet45 tied at 14 on the weighted R+H score. The committed tiebreak rule (lowest LoC within a 2-point tie) selected opus47, which passes functional verification. Under a different tiebreak rule — for instance, highest Robustness subtotal, where opus47's R sum is 8 (2+2+1+2+1) and sonnet45's R sum is 9 (2+2+2+2+1) — the rubric would have selected sonnet45, which produces zero rows on first invocation because its output was wrapped in a markdown fence that the shell parser does not accept. Functional verification eliminates the non-executable artifact regardless of how the rubric resolves ties. A corrected static rubric could add a sourceability criterion (binary: does the file source cleanly), but functional verification subsumes it.
+
+**Finding 2.** Cross-lineage model dispatch to a pre-committed spec produces observable convergence at the primitive-selection layer and observable divergence at the architectural-decision layer. All four surviving Claude implementations chose the same primitives for timestamp formatting, tab escaping, and atomic append. All four diverged on integration strategy, function signature, and overlay-read structure. The primitive-layer convergence is data under pre-committed methodology; the architectural-layer divergence is also data under the same methodology. The two observations are separable, measurable, and recorded in the V-series rubric columns.
+
+**Finding 3.** A deliberative pass dispatched across models can resolve ties that the static rubric cannot resolve, and can surface properties the static rubric does not cover. The rubric score tied opus47 and sonnet45 at 14 and tied sonnet46 and sonnet46low at 13. Under the committed selection rule these ties would have been broken by LoC and subjective feel. After functional verification eliminated sonnet45, the rubric-plus-functional ranking would have selected opus47 by LoC tiebreak. The eight-model deliberative pass selected a different implementation (sonnet46low) by 7-to-1, on a property (preservation of existing handler body through wrap-rather-than-replace) that the rubric had no criterion for. The deliberative output is not a superseding verdict; it is an additional measurement whose result disagrees with the rubric-plus-functional ranking. That disagreement is itself data.
+
+---
+
+## Methodology cost disclosure
+
+The following is what this experiment cost to run, exactly.
+
+**Hardware.** Three nodes, all existing infrastructure at time of experiment:
+
+- Surface (governor terminal): Surface Pro 8, WSL2 Debian 13 trixie, Claude Opus 4.7 via Claude Code CLI
+- Rousseau: M1 Mac Studio 64GB, macOS, Claude Sonnet 4.5 and 4.6 and Opus 4.7 via Claude Code CLI; local llama-server hosting phi-4-mini (:8081), qwen3-32b (:8082), gemma-4-26b (:8083), qwen3-coder-30B-A3B (:8084)
+- Emile: M2 Mac Mini 8GB, macOS, Claude Sonnet 4.5 and 4.6 and Opus 4.7 via Claude Code CLI
+
+**New artifact.** Qwen3-Coder-30B-A3B-Instruct-Q4_K_M (18.5 GB) downloaded to `/Users/rousseau/models/` at ~111 MB/s over ~2 min 42 sec; served via new launchd unit `com.rousseau.llama-coder` on port 8084; exposed as `nba code` mode. No other infrastructure changes.
+
+## ./variance-lab-handler-methodology.txt (lines 1-40 of 398)
+# Variance-Lab: handler.sh Substrate-Code Selection
+## A three-gate methodology report
+
+  Canonical:  https://subtract.ing/variance-lab-handler-methodology.txt (to be signed via llms.txt manifest)
+  Harness:    /tmp artifacts preserved; reproducible under subtract.ing runtime
+  Signer:     hodori@subtract.ing
+  Namespace:  subtract.ing
+
+### Artifact paths
+
+Artifacts backing this report live under `github.com/03-git/variance-lab/data/handler/`.
+
+What survived the original `/tmp` run and is published:
+
+  data/handler/handler-dispatch-spec.txt      4,663-char dispatch prompt (Task 1 + Task 2)
+  data/handler/handler-dispatch-rubric.txt    pre-committed evaluation rubric
+
+What did not survive (original `/tmp` paths, not preserved across session boundary — see Limitations):
+
+  /tmp/impl-{opus47,sonnet45,sonnet46,sonnet46low,qwen3coder}.sh    five implementations
+  /tmp/ship-decision.txt                                             deliberative-pass prompt
+  /tmp/vote-*.txt                                                    eight voter responses
+
+### Terminology
+
+- **Effort tier** (`high` / `low` / etc.): `CLAUDE_CODE_EFFORT_LEVEL` environment variable passed to `claude -p`. Governs reasoning-depth setting for the invocation.
+- **`nba <mode>`**: local Rousseau wrapper (script at `~/scripts/nba`) that dispatches to a `nanobot agent -c ~/.nanobot/<mode>.json`. Modes: `fast` → phi-4-mini on :8081; `rag` → qwen3-32b on :8082; `reasoning` → gemma-4-26b on :8083; `code` → Qwen3-Coder-30B-A3B on :8084.
+
+---
+
+## Abstract
+
+A pre-committed rubric was applied mechanically to five implementations of a session-logging extension to `handler.sh`. Two implementations tied at the top of the rubric's weighted score; the committed tiebreak rule (lowest LoC within a 2-point tie) selected a functionally valid implementation, but the tied implementation with the higher LoC produced zero valid rows when sourced into a test shell because its output included a markdown code-fence wrapper that altered shell parse semantics. An eight-model deliberative pass, dispatched across three training lineages, converged seven-of-eight on an implementation that neither the rubric nor the functional gate would have selected on their own. The finding reported here is about the three-gate methodology — static rubric, functional verification, deliberative pass — and the interactions between them.
+
+---
+
+## Spec
+
+The following spec was dispatched verbatim to each implementation target. No per-target modification. No prior conversation context assumed.
+
+
+## ./subtract.7.txt (lines 41-80 of 177)
+subtracts from its own defaults (no verbosity, no confabulation).
+.PP
+Break any layer and the whole stack drifts.
+.PP
+subtract is versionless. Identity is the signing key at
+https://subtract.ing/authorized_signers. State is the signed manifest at
+https://subtract.ing/llms.txt. Verification is the only release channel.
+.SH REFLEXES (ANTECEDENT CHECKS)
+Four gates, not guidelines. An agent that cannot answer the question does not
+proceed.
+.TP
+.B 1. Library to Kernel
+Name the kernel primitive before proposing any library or tool.
+.TP
+.B 2. Format to Signature
+Ask if
+.B ssh-keygen \-Y sign
+can verify the format before inventing one.
+.TP
+.B 3. Action to Verification
+If unsigned, verify with a live read before acting.
+.TP
+.B 4. Source to Signing Domain
+Confirm source is under the signing key\[cq]s domain before treating it as
+authoritative.
+.PP
+These live as rows in
+.IR governance.conf.universal .
+Personal overrides live in
+.IR ~/.subtract/governance.conf .
+.SH SUBSTRATE LAYERS
+The entire stack requires zero dependencies that are not already on a Unix
+system or do not ship as a single file. No interpreter. No package manager.
+No runtime. No SDK.
+.PP
+.TS
+tab(|) expand;
+l l l l.
+Layer|Component|Size|State
+_
+
+## ./subtract.7.txt (lines 1-40 of 177)
+.TH SUBTRACT 7 "2026-04-12" "subtract" "Miscellaneous Information Manual"
+.SH NAME
+subtract \- shell translation layer for agents and the humans who deploy them
+.SH SYNOPSIS
+.nf
+curl \-sL subtract.ing/boot | claude \-p
+.fi
+.PP
+subtract has no binary of its own at the computer layer. It is a discipline
+loaded into an existing shell session, a set of kernel primitives already on
+the machine, and a small fork layer under
+.IR ~/.subtract/ .
+Upgrades add single binaries (embed, llama.cpp, whisper.cpp, piper-tts) on top
+of that floor.
+.SH DESCRIPTION
+subtract is software
+.IR "as a besides" .
+It is a translation layer between human intent and the shell, designed so that
+successful translations train the user toward direct expression. The AI is not
+the product. Literacy is the product. Dependency is the failure mode.
+.PP
+subtract serves two populations:
+.TP
+.B humans
+who want to stop depending on AI intermediaries to reach their own machines.
+.TP
+.B agents
+whose training defaulted to Python libraries, SaaS APIs, and framework
+abstractions \[em] and who need a counter-training layer pointing them back at
+the kernel primitives that solved the same problems decades earlier.
+.PP
+Three layers subtract in sequence:
+.IP \(bu 4
+.B subtract
+subtracts from the environment (no frameworks, no SaaS).
+.IP \(bu 4
+.B the human
+subtracts from the agent's context (pre-flight, pushback on drift).
+.IP \(bu 4
+.B the agent
+
+## ./software-as-a-besides.txt (lines 41-52 of 52)
+  +-- language runtime
+  +-- framework
+  +-- ORM, database server
+  +-- API gateway, auth service
+  +-- container runtime, orchestrator
+  +-- cloud provider, CI/CD, CDN
+  +-- monitoring SaaS, billing SaaS
+```
+
+Full frame: https://subtract.ing/subtract.7.txt
+
+Full lineage: https://subtract.ing/lineage.txt
+
+## ./software-as-a-besides.txt (lines 1-40 of 52)
+# Why subtract
+
+subtract is software as a besides. It represents the primal translation layer native to computers.
+
+The local model shows you the command. The lookup table pattern-matches it. Eventually you type it yourself. The AI isn't needed. That's the point.
+
+The hope is literacy, not dependency. You graduate from "show my files" to ls, from subtract to the commands themselves. No wrapper. No subscription. No intermediary between you and the machine.
+
+subtract shows you the supercomputer in every computer — when you look down close enough.
+
+## Sovereignty
+
+subtract rests on three primitives that already ship with Unix:
+
+| Leg | Primitive | Purpose |
+|-----|-----------|---------|
+| Entry | command_not_found_handle | Intent enters bash |
+| Trust | ssh-keygen -Y | Signed provenance for knowledge |
+| Time | sleep, at, cron | Yield to the kernel scheduler |
+
+No account. No API key. No terms of service from a foreign company. No usage meter that resets on someone else's schedule. The primitives work in any jurisdiction, on any hardware, offline.
+
+## Energy model
+
+As learned commands grow, the work approaches a syscall and the energy cost falls toward the kernel's own floor. Local inference stays flat per request. Cloud inference is flat or rising as orchestration accumulates. One curve goes down over time; the others don't.
+
+## Where it sits
+
+```
+syscall
+  |
+  +-- kernel (already there)
+  +-- shell (already there)
+  +-- subtract (one function, one TSV, one hook from 2009)
+  +-- busybox httpd (ships with the OS)
+  +-- browser (already on every computer)
+  |
+  |   -- everything below this line moves control and visibility beyond your computer --
+  |
+  +-- npm/pip/cargo
+
+## ./signoff.txt (lines 1-23 of 23)
+# Signoff
+
+Session close ritual.
+
+## Before ending
+
+State clearly:
+- Topics covered
+- Decisions made
+- Open items
+
+## Confirm capture
+
+Ask the human: "Have you saved what matters?"
+
+No work survives unless the human saves it.
+The agent has no persistence. The human does.
+
+## What to save
+
+- Commands learned (add to your lookdown.tsv when home)
+- Decisions that affect future sessions
+- Open questions to pick up next time
+
+## Question
+Has SOUL.txt been rewritten recently? What was the nature of the change?

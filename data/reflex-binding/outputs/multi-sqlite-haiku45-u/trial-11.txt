@@ -1,0 +1,84 @@
+Here's a complete Python script that does everything you need:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create/connect to database
+conn = sqlite3.connect(':memory:')  # Use ':memory:' for in-memory DB, or 'notes.db' for file-based
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+notes = [
+    ('Shopping List', 'Milk, eggs, bread, coffee', datetime.now().isoformat()),
+    ('Project Ideas', 'Build a task manager app, learn Rust, contribute to open source', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discussed Q2 roadmap, assigned action items, next meeting June 1st', datetime.now().isoformat()),
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+results = cursor.fetchall()
+
+# Print results
+print("Notes in database:")
+print("-" * 80)
+for row in results:
+    note_id, title, body, created_at = row
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 80)
+
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the script to a file (e.g., `notes.py`)
+2. Run it with:
+   ```bash
+   python notes.py
+   ```
+
+**Output:**
+```
+Notes in database:
+--------------------------------------------------------------------------------
+ID: 1
+Title: Shopping List
+Body: Milk, eggs, bread, coffee
+Created: 2026-05-10T14:23:45.123456
+--------------------------------------------------------------------------------
+ID: 2
+Title: Project Ideas
+Body: Build a task manager app, learn Rust, contribute to open source
+Created: 2026-05-10T14:23:45.123457
+--------------------------------------------------------------------------------
+ID: 3
+Title: Meeting Notes
+Body: Discussed Q2 roadmap, assigned action items, next meeting June 1st
+Created: 2026-05-10T14:23:45.123458
+--------------------------------------------------------------------------------
+```
+
+**Notes:**
+- The script uses `:memory:` for an in-memory database (data is lost when the script ends). Change it to `'notes.db'` if you want to persist data to a file.
+- The `?` placeholders in SQL prevent SQL injection vulnerabilities.
+- No external dependencies needed—`sqlite3` is built into Python.

@@ -1,0 +1,67 @@
+```python
+#!/usr/bin/env python3
+"""Create a SQLite notes database, seed it, and print all notes."""
+
+import sqlite3
+from datetime import datetime, timezone
+
+
+def main():
+    conn = sqlite3.connect("notes.db")
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS notes (
+            id INTEGER PRIMARY KEY,
+            title TEXT,
+            body TEXT,
+            created_at TEXT
+        )
+    """)
+
+    now = datetime.now(timezone.utc).isoformat()
+    sample_notes = [
+        ("Groceries", "Milk, eggs, bread, coffee", now),
+        ("Ideas", "Write a blog post about SQLite", now),
+        ("Reminder", "Call the dentist on Monday", now),
+    ]
+    cur.executemany(
+        "INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)",
+        sample_notes,
+    )
+    conn.commit()
+
+    for row in cur.execute("SELECT id, title, body, created_at FROM notes ORDER BY id"):
+        print(f"[{row[0]}] {row[1]}\n    {row[2]}\n    created_at: {row[3]}")
+
+    conn.close()
+
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it:
+
+1. Save the code to a file, e.g. `notes_demo.py`.
+2. Run it with Python 3 (the `sqlite3` module is in the standard library, so nothing to install):
+
+   ```sh
+   python3 notes_demo.py
+   ```
+
+3. It creates `notes.db` in the current directory and prints the 3 notes. Note: each run inserts another 3 rows — delete `notes.db` (or the `CREATE TABLE` uses `IF NOT EXISTS`) if you want a fresh start.
+
+Expected output (timestamps will vary):
+
+```
+[1] Groceries
+    Milk, eggs, bread, coffee
+    created_at: 2026-05-10T12:34:56.789012+00:00
+[2] Ideas
+    Write a blog post about SQLite
+    created_at: 2026-05-10T12:34:56.789012+00:00
+[3] Reminder
+    Call the dentist on Monday
+    created_at: 2026-05-10T12:34:56.789012+00:00
+```

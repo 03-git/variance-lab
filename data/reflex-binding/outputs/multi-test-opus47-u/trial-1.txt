@@ -1,0 +1,28 @@
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+def test_freezing():
+    assert celsius_to_fahrenheit(0) == 32
+
+def test_boiling():
+    assert celsius_to_fahrenheit(100) == 212
+
+def test_negative_forty():
+    assert celsius_to_fahrenheit(-40) == -40
+
+def test_non_numeric_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+Save as `test_temp.py` and run:
+
+```
+pip install pytest
+pytest test_temp.py -v
+```
+
+Or with unittest-style assertions only (no install), save as `test_temp.py` and run `python -m pytest test_temp.py` if pytest is already available, otherwise rewrite using `unittest` and run `python -m unittest test_temp.py`.

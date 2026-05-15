@@ -1,0 +1,84 @@
+Here's a Python script that creates and populates a SQLite notes database:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create or connect to the database
+conn = sqlite3.connect(':memory:')  # Use ':memory:' for in-memory DB, or a filename like 'notes.db'
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+notes = [
+    ('First Note', 'This is the body of the first note', datetime.now().isoformat()),
+    ('Second Note', 'This is the body of the second note', datetime.now().isoformat()),
+    ('Third Note', 'This is the body of the third note', datetime.now().isoformat()),
+]
+
+cursor.executemany('''
+    INSERT INTO notes (title, body, created_at)
+    VALUES (?, ?, ?)
+''', notes)
+
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+all_notes = cursor.fetchall()
+
+# Print the notes
+print("All Notes:")
+print("-" * 60)
+for note in all_notes:
+    note_id, title, body, created_at = note
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 60)
+
+# Close the connection
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python3 script.py
+```
+
+This will output:
+```
+All Notes:
+------------------------------------------------------------
+ID: 1
+Title: First Note
+Body: This is the body of the first note
+Created: 2026-05-10T14:32:45.123456
+------------------------------------------------------------
+ID: 2
+Title: Second Note
+Body: This is the body of the second note
+Created: 2026-05-10T14:32:45.123457
+------------------------------------------------------------
+ID: 3
+Title: Third Note
+Body: This is the body of the third note
+Created: 2026-05-10T14:32:45.123458
+------------------------------------------------------------
+```
+
+**Key points:**
+- Uses `:memory:` for an in-memory database (data disappears when the script ends). Change to `'notes.db'` to persist to a file.
+- `cursor.executemany()` inserts multiple rows efficiently.
+- Parameterized queries with `?` placeholders prevent SQL injection.

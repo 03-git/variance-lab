@@ -1,0 +1,63 @@
+Here's a Python script that creates a SQLite database with a notes table, inserts sample data, and queries it:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create an in-memory database (or use 'notes.db' for a file)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('First Note', 'This is my first note', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discussed project timeline and deliverables', datetime.now().isoformat()),
+    ('Ideas', 'Brainstorm: new feature ideas for v2.0', datetime.now().isoformat())
+]
+
+cursor.executemany(
+    'INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)',
+    sample_notes
+)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT id, title, body, created_at FROM notes')
+notes = cursor.fetchall()
+
+# Print the notes
+print("All Notes:")
+print("-" * 80)
+for note_id, title, body, created_at in notes:
+    print(f"ID: {note_id}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Created: {created_at}")
+    print("-" * 80)
+
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python3 script.py
+```
+
+This creates an in-memory database (data disappears when the script exits). If you want to persist the database to a file, change the first line to:
+
+```python
+conn = sqlite3.connect('notes.db')
+```
+
+Then the `notes.db` file will be created in your current directory and the data will persist between runs.

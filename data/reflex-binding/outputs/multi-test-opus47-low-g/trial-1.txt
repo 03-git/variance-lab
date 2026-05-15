@@ -1,0 +1,47 @@
+```python
+# test_temperature.py
+import unittest
+from temperature import celsius_to_fahrenheit
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_minus_forty(self):
+        # -40 is the fixed point where both scales meet
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+This assumes the function lives in `temperature.py`:
+
+```python
+# temperature.py
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+```
+
+Note: `"hot" * 9` doesn't raise in Python (it repeats the string), but the subsequent `/ 5` does raise `TypeError`, so the test holds. If you pass `celsius_to_fahrenheit(None)`, the `* 9` itself raises `TypeError` — also covered.
+
+Run it:
+
+```bash
+python -m unittest test_temperature.py -v
+```
+
+Or with pytest if you prefer:
+
+```bash
+pytest test_temperature.py -v
+```

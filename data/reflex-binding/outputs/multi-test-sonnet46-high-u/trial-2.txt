@@ -1,0 +1,52 @@
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing_point(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling_point(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_negative_forty(self):
+        # -40 is the point where Celsius and Fahrenheit are equal
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric_raises(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+**To run it**, save the file as `test_celsius.py` and execute:
+
+```bash
+python test_celsius.py
+```
+
+Or for more verbose output:
+
+```bash
+python -m unittest test_celsius -v
+```
+
+Expected output with `-v`:
+```
+test_boiling_point ... ok
+test_freezing_point ... ok
+test_negative_forty ... ok
+test_non_numeric_raises ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+```
+
+The `-40` test is a useful sanity check since it's the one temperature where both scales intersect, making it self-verifying without needing to know the expected output in advance.

@@ -1,0 +1,88 @@
+Here's a Node.js/Express REST API with the validation you need:
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+const validateUser = (data) => {
+  const errors = [];
+
+  if (!data.name || typeof data.name !== 'string' || data.name.trim() === '') {
+    errors.push('name is required and must be a non-empty string');
+  }
+
+  if (!data.email || typeof data.email !== 'string' || !data.email.includes('@')) {
+    errors.push('email is required and must contain @');
+  }
+
+  if (!Number.isInteger(data.age) || data.age < 1 || data.age > 150) {
+    errors.push('age must be an integer between 1 and 150');
+  }
+
+  return errors;
+};
+
+app.post('/users', (req, res) => {
+  const errors = validateUser(req.body);
+
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  const user = {
+    id: Math.random().toString(36).substr(2, 9),
+    name: req.body.name,
+    email: req.body.email,
+    age: req.body.age
+  };
+
+  res.status(201).json(user);
+});
+
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+```
+
+**To run it:**
+
+```bash
+# 1. Create a directory and initialize
+mkdir api-server && cd api-server
+npm init -y
+npm install express
+
+# 2. Save the code above as server.js
+
+# 3. Start the server
+node server.js
+```
+
+**Test it with curl:**
+
+```bash
+# Valid request → 201
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+
+# Missing name → 400
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "bob@example.com", "age": 25}'
+
+# Bad email (no @) → 400
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "email": "bobexample.com", "age": 25}'
+
+# Age out of range → 400
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Charlie", "email": "charlie@example.com", "age": 200}'
+```
+
+The endpoint returns validation errors as an array in the response body, so clients get clear feedback on what failed.

@@ -1,0 +1,39 @@
+
+
+Here's a minimal Node.js server using just the built-in `http` module:
+
+```js
+const http = require("http");
+
+const server = http.createServer((req, res) => {
+  if (req.method === "GET" && req.url === "/time") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ time: new Date().toISOString() }));
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+
+server.listen(3000, () => console.log("Listening on http://localhost:3000"));
+```
+
+**To run it:**
+
+```bash
+node server.js
+```
+
+Then test with:
+
+```bash
+curl http://localhost:3000/time
+```
+
+Response:
+
+```json
+{"time":"2026-05-10T12:34:56.789Z"}
+```
+
+No dependencies needed — just Node.js.

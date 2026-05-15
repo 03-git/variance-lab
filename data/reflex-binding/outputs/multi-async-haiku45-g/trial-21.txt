@@ -1,0 +1,69 @@
+I'll show you a modern Python async TCP echo server using `asyncio` that handles multiple concurrent clients.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            if not data:
+                # Client disconnected
+                break
+            
+            line = data.decode().strip()
+            print(f"[{addr}] Received: {line}")
+            
+            # Echo it back
+            writer.write(data)
+            await writer.drain()
+            print(f"[{addr}] Sent: {line}")
+    
+    except Exception as e:
+        print(f"[{addr}] Error: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        9999
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**To run the server:**
+```bash
+python3 echo_server.py
+```
+
+**To test it (in another terminal), use `nc` (netcat):**
+```bash
+nc localhost 9999
+```
+
+Then type a line and press Enter—it echoes back immediately. Each connection runs concurrently; open multiple terminals to test multiple clients simultaneously.
+
+**How it works:**
+- `asyncio.start_server()` binds to port 9999 and calls `handle_client()` for each new connection
+- `handle_client()` reads lines with `readline()` (non-blocking) and echoes them back with `write()` + `drain()`
+- Multiple clients are handled concurrently because each connection is a separate coroutine
+- The server stays alive with `serve_forever()` until you Ctrl+C

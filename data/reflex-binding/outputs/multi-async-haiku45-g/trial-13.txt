@@ -1,0 +1,121 @@
+Here's a clean async TCP echo server using Python's `asyncio`:
+
+**Server code (server.py equivalent):**
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line (up to 1024 bytes)
+            line = await reader.readuntil(b'\n')
+            if not line:
+                break
+            
+            print(f"Received from {addr}: {line.decode().strip()}")
+            
+            # Echo it back
+            writer.write(line)
+            await writer.drain()
+    except asyncio.CancelledError:
+        pass
+    except Exception as e:
+        print(f"Error with {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        9000
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**To run it:**
+
+```bash
+# Terminal 1: Start the server
+python3 -c "
+import asyncio
+
+async def handle_client(reader, writer):
+    addr = writer.get_extra_info('peername')
+    print(f'Client connected: {addr}')
+    try:
+        while True:
+            line = await reader.readuntil(b'\n')
+            if not line:
+                break
+            print(f'Received from {addr}: {line.decode().strip()}')
+            writer.write(line)
+            await writer.drain()
+    except Exception as e:
+        print(f'Error with {addr}: {e}')
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f'Client disconnected: {addr}')
+
+async def main():
+    server = await asyncio.start_server(handle_client, '127.0.0.1', 9000)
+    print('Echo server listening on 127.0.0.1:9000')
+    async with server:
+        await server.serve_forever()
+
+asyncio.run(main())
+"
+
+# Terminal 2+: Connect with netcat and test
+nc localhost 9000
+# Type: Hello world
+# Echoed back: Hello world
+```
+
+**Or test with a Python client:**
+
+```bash
+# Terminal 2: Simple async client
+python3 -c "
+import asyncio
+
+async def client():
+    reader, writer = await asyncio.open_connection('127.0.0.1', 9000)
+    
+    for msg in ['Hello', 'Echo server test', 'Goodbye']:
+        writer.write(msg.encode() + b'\n')
+        await writer.drain()
+        response = await reader.readuntil(b'\n')
+        print(f'Sent: {msg}')
+        print(f'Got:  {response.decode().strip()}')
+    
+    writer.close()
+    await writer.wait_closed()
+
+asyncio.run(client())
+"
+```
+
+**Key features:**
+- `asyncio.start_server()` handles multiple concurrent clients automatically
+- Each client runs in its own coroutine (`handle_client`)
+- `readuntil(b'\n')` reads line-by-line
+- `writer.drain()` ensures data is sent before proceeding
+- Proper cleanup with `wait_closed()`
+
+The server handles unlimited concurrent connections efficiently—all on a single thread, multiplexed by the event loop.

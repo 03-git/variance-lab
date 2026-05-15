@@ -1,0 +1,79 @@
+Here's a Python script that creates a SQLite database with a notes table, inserts sample data, and queries it:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create an in-memory database (or use 'notes.db' for a file-based database)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('First Note', 'This is the body of the first note', datetime.now().isoformat()),
+    ('Second Note', 'This is the body of the second note', datetime.now().isoformat()),
+    ('Third Note', 'This is the body of the third note', datetime.now().isoformat())
+]
+
+cursor.executemany('''
+    INSERT INTO notes (title, body, created_at)
+    VALUES (?, ?, ?)
+''', sample_notes)
+
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+notes = cursor.fetchall()
+
+# Print the results
+print("All Notes:")
+print("-" * 60)
+for note in notes:
+    print(f"ID: {note[0]}")
+    print(f"Title: {note[1]}")
+    print(f"Body: {note[2]}")
+    print(f"Created At: {note[3]}")
+    print("-" * 60)
+
+# Close the connection
+conn.close()
+```
+
+**To run it:**
+
+1. Save the script to a file (e.g., `notes.py`)
+2. Run it with: `python notes.py`
+
+**Output:**
+```
+All Notes:
+------------------------------------------------------------
+ID: 1
+Title: First Note
+Body: This is the body of the first note
+Created At: 2026-05-10T14:23:45.123456
+------------------------------------------------------------
+ID: 2
+Title: Second Note
+Body: This is the body of the second note
+Created At: 2026-05-10T14:23:45.123457
+------------------------------------------------------------
+ID: 3
+Title: Third Note
+Body: This is the body of the third note
+Created At: 2026-05-10T14:23:45.123458
+------------------------------------------------------------
+```
+
+The script uses `:memory:` to create an in-memory database (which disappears when the connection closes). If you want to persist the data to disk, change `sqlite3.connect(':memory:')` to `sqlite3.connect('notes.db')`.

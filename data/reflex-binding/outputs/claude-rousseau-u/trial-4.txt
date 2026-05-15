@@ -1,0 +1,37 @@
+The file already exists with exactly what's needed. Here's the code:
+
+```js
+const http = require("http");
+
+const server = http.createServer((req, res) => {
+  if (req.method === "GET" && req.url === "/time") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ time: new Date().toISOString() }));
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+
+server.listen(3000, () => console.log("Listening on http://localhost:3000"));
+```
+
+**To run it:**
+
+```sh
+node /private/tmp/server.js
+```
+
+**To test it:**
+
+```sh
+curl http://localhost:3000/time
+```
+
+Returns something like:
+
+```json
+{"time":"2026-05-10T14:23:07.412Z"}
+```
+
+Zero dependencies — just Node.js's built-in `http` module listening on port 3000.

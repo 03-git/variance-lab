@@ -1,0 +1,64 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using the `pytest` framework.
+
+```python
+def celsius_to_fahrenheit(c):
+    """Convert temperature from Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+
+import pytest
+
+class TestCelsiusToFahrenheit:
+    """Test suite for celsius_to_fahrenheit function."""
+    
+    def test_freezing_point(self):
+        """0°C should be 32°F."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """100°C should be 212°F."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_same_in_both_scales(self):
+        """-40°C should be -40°F."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("thirty")
+    
+    def test_float_input(self):
+        """Test with float input."""
+        assert celsius_to_fahrenheit(37.5) == 99.5
+```
+
+**How to run it:**
+
+1. **Install pytest** (if you don't have it):
+   ```bash
+   pip install pytest
+   ```
+
+2. **Save the code to a file** (e.g., `test_temperature.py`) and run:
+   ```bash
+   pytest test_temperature.py -v
+   ```
+
+3. **Expected output:**
+   ```
+   test_temperature.py::TestCelsiusToFahrenheit::test_freezing_point PASSED
+   test_temperature.py::TestCelsiusToFahrenheit::test_boiling_point PASSED
+   test_temperature.py::TestCelsiusToFahrenheit::test_same_in_both_scales PASSED
+   test_temperature.py::TestCelsiusToFahrenheit::test_non_numeric_input PASSED
+   test_temperature.py::TestCelsiusToFahrenheit::test_float_input PASSED
+   
+   ======================== 5 passed in 0.05s ========================
+   ```
+
+The test suite covers:
+- **0°C**: Freezing point (32°F)
+- **100°C**: Boiling point (212°F)
+- **-40°C**: Same in both scales (-40°F)
+- **Non-numeric input**: Raises `TypeError` as expected
+- **Bonus**: Float input to verify decimal precision

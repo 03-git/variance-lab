@@ -1,0 +1,87 @@
+```python
+# echo_server.py
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+    addr = writer.get_extra_info("peername")
+    print(f"Connected: {addr}")
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:               # client closed the connection
+                break
+            writer.write(data)         # echo the line back verbatim
+            await writer.drain()
+            print(f"{addr} -> {data!r}")
+    except (ConnectionResetError, asyncio.IncompleteReadError):
+        pass
+    finally:
+        print(f"Disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main(host: str = "127.0.0.1", port: int = 8888):
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"Echo server listening on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nShutting down.")
+```
+
+## How it works
+
+- `asyncio.start_server` accepts connections and spawns `handle_client` as a separate task per client, so many clients run concurrently on a single thread.
+- `reader.readline()` reads up to and including `\n`. An empty bytes result means EOF (client hung up).
+- `writer.drain()` applies backpressure so a slow client can't make the server buffer unboundedly.
+- The `finally` block always closes the socket cleanly.
+
+## Running it
+
+```bash
+python echo_server.py
+```
+
+Then connect with any TCP client:
+
+```bash
+# netcat
+nc 127.0.0.1 8888
+# type a line, press enter, see it echoed
+
+# or telnet
+telnet 127.0.0.1 8888
+```
+
+Quick concurrent test with a Python client:
+
+```python
+# client_test.py
+import asyncio
+
+async def client(n):
+    reader, writer = await asyncio.open_connection("127.0.0.1", 8888)
+    msg = f"hello from client {n}\n"
+    writer.write(msg.encode())
+    await writer.drain()
+    echoed = await reader.readline()
+    print(f"client {n} got: {echoed.decode().strip()}")
+    writer.close()
+    await writer.wait_closed()
+
+async def main():
+    await asyncio.gather(*(client(i) for i in range(10)))
+
+asyncio.run(main())
+```
+
+```bash
+python client_test.py   # fires 10 clients at once
+```
+
+Each connection is handled independently, so a client that sends nothing (or slowly) doesn't block the others.

@@ -1,0 +1,54 @@
+Using only the standard library (no pip install needed):
+
+```python
+#!/usr/bin/env python3
+from urllib.request import urlopen
+from html.parser import HTMLParser
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._href = None
+        self._text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            self._href = dict(attrs).get("href")
+            self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href is not None:
+            self.links.append((self._href, "".join(self._text).strip()))
+            self._href = None
+            self._text = []
+
+with urlopen("https://example.com") as resp:
+    html = resp.read().decode(resp.headers.get_content_charset() or "utf-8")
+
+parser = LinkExtractor()
+parser.feed(html)
+
+for href, text in parser.links:
+    print(f"{href}\t{text}")
+```
+
+Run it:
+
+```bash
+python3 script.py
+```
+
+Or pipe it directly without saving:
+
+```bash
+python3 - <<'EOF'
+# (paste the script above)
+EOF
+```
+
+For https://example.com you'll get one link: `https://www.iana.org/domains/example` with text `More information...`.

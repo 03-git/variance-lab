@@ -1,0 +1,73 @@
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print every <a> tag's href and link text."""
+
+import sys
+import urllib.request
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []          # list of [href, text]
+        self._in_a = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href is not None:
+                self.links.append([urljoin(self.base_url, href), ""])
+                self._in_a = True
+
+    def handle_endtag(self, tag):
+        if tag == "a":
+            self._in_a = False
+
+    def handle_data(self, data):
+        if self._in_a and self.links:
+            self.links[-1][1] += data.strip()
+
+
+def main():
+    url = sys.argv[1] if len(sys.argv) > 1 else "https://example.com"
+    req = urllib.request.Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urllib.request.urlopen(req) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkExtractor(url)
+    parser.feed(html)
+
+    if not parser.links:
+        print("No hyperlinks found.")
+        return
+
+    for href, text in parser.links:
+        print(f"{href}\t{text or '(no text)'}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it:
+
+1. Save the code as `extract_links.py`.
+2. Run with the default URL (`https://example.com`):
+   ```
+   python3 extract_links.py
+   ```
+3. Or pass any other URL as an argument:
+   ```
+   python3 extract_links.py https://www.python.org
+   ```
+
+Notes:
+- Uses only the Python standard library (`urllib`, `html.parser`) — no `pip install` needed. Requires Python 3.
+- Relative hrefs are resolved to absolute URLs via `urljoin`.
+- For heavier-duty scraping you'd typically use `requests` + `beautifulsoup4`, but that's unnecessary here.
+
+For `https://example.com` you'll get a single link: `https://www.iana.org/domains/example` with text `More information...`.

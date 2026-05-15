@@ -1,0 +1,58 @@
+I've verified every cell in the per-prompt tables against the raw trial data. The tables are accurate. The issues are elsewhere.
+
+---
+
+## 1. Factual errors
+
+**Trial count conflation.** "1,872 dispatches via `claude -p` under Max subscription" (Cost section). The 1,872 text files include 60 local-model trials (gemma, llama, qwen) that are not `claude -p` dispatches and not under Max subscription. Another ~487 non-multi cloud files are from the earlier finding-15 experiment. The effort-level experiment itself dispatched 1,325 trials. The number 1,872 is the file count in the outputs directory, not the dispatch count for this experiment.
+
+**Governance payload token count.** "governance payload costs ~17K cached input tokens per call" (Finding 5). JSON token data shows governed total input at ~19,194 tokens and ungoverned at ~17,604 tokens. The governance-specific delta is ~1,590 tokens. The ~17K is the Claude Code system prompt present in both arms. The finding conflates the total session context with the governance payload, overstating the cost by ~10x.
+
+**Compression claims contradict the data in three ways.**
+- "Governed responses are consistently shorter across all models, prompts, and effort levels" — Opus 4.6 default governed scraper output is 16% *longer* than ungoverned. Opus 4.6 default governed httpclient is 8% longer. "Consistently" is falsified.
+- "governed output is 40-65% fewer tokens than ungoverned" on binding-zone prompts — actual range across models is -16% to 53%.
+- "governed output is 10-20% shorter" on ceiling prompts — actual range is 10% to 47% (Opus 4.7 async is 47% shorter).
+
+**Metadata implies full factorial.** The methodology line says "8 identical task prompts across all cells" and "4 frontier models × 4-6 effort levels × 8 prompts × 2 arms." Only 4 prompts (http, scraper, httpclient, test) were tested across effort levels. Ceiling and floor prompts were tested only at default effort (plus xhigh for Opus 4.7). This makes "8 prompts" misleading in the factorial description.
+
+**"Dreaming" misattributed.** "Extended thinking (Anthropic's 'dreaming')" — Anthropic calls this "extended thinking." Attributing the term "dreaming" to them in a parenthetical is inaccurate.
+
+---
+
+## 2. Framing drift
+
+**The "dreaming thesis" is a strawman.** "This directly addresses Anthropic's 'dreaming' thesis (more compute = better agent behavior)." Anthropic's claim about extended thinking concerns complex reasoning tasks. The experiment measures stdlib compliance, a definition of "better" that Anthropic has never endorsed as a goal of extended thinking. The finding refutes a claim Anthropic didn't make.
+
+**Finding 3 asserts mechanism from correlation.** "More tokens of reasoning produce more confident recitation of the training-data mode" — the data shows that Opus 4.7 httpclient ungoverned drops from 40% to 0% as effort increases. What the reasoning tokens contain is unknown. "Confident recitation" is narrative, not measurement.
+
+**The Managed Agents section is editorial.** Every sentence in "Connection to Managed Agents" is unsupported by experimental data. "Managed Agents without governance relies on retry loops and model-as-reviewer to approximate correct behavior stochastically" characterizes a product the experiment didn't test. "A single CLAUDE.md directive achieves what the retry/review loop attempts" compares a measured intervention to an unmeasured one.
+
+**"Decision boundary" interpretation (Findings 1 and 6).** "The model most responsive to governance is ... the one at the decision boundary where stdlib and library are closest to equiprobable." Nothing in the experiment measures equiprobability. The data shows Sonnet has the highest delta; the mechanism is an imposed interpretation.
+
+**Finding 5's cost argument depends on the wrong number.** "The cost structure determines whether governance is economically viable at scale" follows from the 17K figure. At the actual ~1.6K governance delta, the input cost is ~$0.024/call, not the ~$0.25 the 17K figure implies.
+
+**"Most stable finding" (Finding 1) is unsupported at N=5.** Sonnet's deltas oscillate between 40% and 47% across effort levels. That's a difference of 1 trial flip in 1 prompt. Without confidence intervals, "most stable" is a characterization the data cannot support.
+
+---
+
+## 3. Missing / should be cut
+
+### Missing
+
+**No confidence intervals or significance tests.** At N=5 per cell, a 60% rate (3/5) has a 95% exact binomial CI of roughly [15%, 95%]. Two deltas of +40% and +47% are statistically indistinguishable. Every finding that compares effort-level deltas is comparing numbers whose uncertainty bands overlap completely.
+
+**Sonnet and Haiku "non-monotonicity" is indistinguishable from noise.** Sonnet's trajectory is 47→40→47→40 (7pp oscillation). Haiku's is 7→0→7→0. Both are within the N=5 noise band. The Claim section says "the relationship is non-monotonic" as a universal statement; it's only arguably visible for Opus 4.7, and even there only the httpclient prompt drives it.
+
+**Haiku uses Node.js for the http prompt.** Several Haiku http trials respond in Node.js, not Python. The scorer's UNIVERSAL_STDLIB (`require('http')`) catches these as stdlib, but this means the http prompt is testing language selection on Haiku, not just stdlib-vs-library within Python. This confound is undisclosed.
+
+**No multiple comparisons discussion.** With ~64 binding-zone cells being compared, some patterns are expected by chance at N=5. No correction is applied or discussed.
+
+**The UNIVERSAL_STDLIB scorer behavior is undisclosed.** The scorer counts Node.js `require('http')` and C socket headers as stdlib equivalents. The rubric and finding describe scoring as Python-stdlib-specific, but the actual scorer is broader. This affects the http prompt results, particularly for Haiku.
+
+### Should be cut or substantially revised
+
+**The Managed Agents section** — no data, no measurement, all speculation about a product not tested. If retained, it should be clearly marked as speculation and moved out of "Findings."
+
+**The cost analysis** — built on the wrong governance payload figure (17K vs 1.6K) and includes an unverifiable "$200-300 API-equivalent" estimate. The qualitative point (flat-fee vs per-call pricing matters) could survive, but the quantitative framing is unreliable.
+
+**"Dreaming" terminology** — either use "extended thinking" or don't attribute the term. The current phrasing asserts a fact about Anthropic's nomenclature that isn't true.

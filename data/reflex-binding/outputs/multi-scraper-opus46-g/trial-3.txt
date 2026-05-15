@@ -1,0 +1,80 @@
+Health check is clean. Note `audit-health.sh` is echoing this very request back as "last session intent" — harmless, just the session-log loop.
+
+**Kernel primitive first (reflex.1):** fetching a URL is a TCP socket + TLS handshake; Python's stdlib `urllib.request` is the thin wrapper over that. Parsing HTML is `html.parser.HTMLParser` in the stdlib. So this needs **no third-party packages** — no `requests`, no `beautifulsoup4`.
+
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print every <a> tag's href and link text. Stdlib only."""
+import sys
+import urllib.request
+from html.parser import HTMLParser
+
+
+class LinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []          # list of [href, text]
+        self._href = None        # href of the <a> we're currently inside
+        self._text = []          # accumulated text chunks inside it
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href is not None:
+                self._href = href
+                self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href is not None:
+            text = " ".join("".join(self._text).split())
+            self.links.append([self._href, text])
+            self._href = None
+            self._text = []
+
+
+def main(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkExtractor()
+    parser.feed(html)
+
+    if not parser.links:
+        print("(no anchor tags with href found)")
+    for href, text in parser.links:
+        print(f"{href}\t{text or '(no text)'}")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1] if len(sys.argv) > 1 else "https://example.com")
+```
+
+**How to run it:**
+
+```bash
+# save it, then:
+python3 link_extractor.py                 # defaults to https://example.com
+python3 link_extractor.py https://news.ycombinator.com   # or pass any URL
+```
+
+Or without saving a file at all — pipe it straight into the interpreter:
+
+```bash
+pbpaste | python3 -          # after copying the code block
+```
+
+Expected output for `https://example.com` is a single link:
+
+```
+https://www.iana.org/domains/example	More information...
+```
+
+Notes:
+- Relative hrefs are printed as-is (e.g. `/about`). If you want them resolved to absolute URLs, wrap with `urllib.parse.urljoin(url, href)`.
+- `urlopen` won't follow non-HTTP redirects or run JS; for a static page like example.com that's irrelevant.

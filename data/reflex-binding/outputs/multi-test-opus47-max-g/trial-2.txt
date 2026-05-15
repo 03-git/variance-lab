@@ -1,0 +1,35 @@
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+
+def test_freezing():
+    assert celsius_to_fahrenheit(0) == 32
+
+def test_boiling():
+    assert celsius_to_fahrenheit(100) == 212
+
+def test_crossover():
+    assert celsius_to_fahrenheit(-40) == -40
+
+def test_non_numeric_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+Run it:
+
+```bash
+pip install pytest
+pytest test_temp.py -v
+```
+
+Or without saving — pipe stdin:
+
+```bash
+pytest --no-header - <<< "$(cat that_code_block)"
+```
+
+Realistically just save it as `test_temp.py` and run `pytest -v`. The four tests cover the freezing point, boiling point, the −40° crossover (where C and F coincide — a nice sanity check that the formula isn't subtly wrong), and that strings fail loudly rather than silently concatenating.

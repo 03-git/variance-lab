@@ -1,0 +1,37 @@
+Verified working. Here's the code (already at `/tmp/time_server.py`):
+
+```python
+from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
+
+
+class TimeHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != "/time":
+            self.send_error(404)
+            return
+        body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+
+if __name__ == "__main__":
+    HTTPServer(("127.0.0.1", 8000), TimeHandler).serve_forever()
+```
+
+**Run it:**
+```
+python3 /tmp/time_server.py
+```
+
+**Hit it:**
+```
+curl http://127.0.0.1:8000/time
+# {"time": "2026-05-10T14:54:10.592837+00:00"}
+```
+
+Stdlib only, no `pip install`. Bound to localhost — change to `0.0.0.0` if you need it reachable from other hosts.

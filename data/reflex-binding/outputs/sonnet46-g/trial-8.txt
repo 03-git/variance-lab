@@ -1,0 +1,78 @@
+Here's a minimal HTTP server in C using only POSIX sockets — no libraries, no package managers:
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+#define PORT 8080
+#define BUF 4096
+
+int main(void) {
+    int srv = socket(AF_INET, SOCK_STREAM, 0);
+    int opt = 1;
+    setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    struct sockaddr_in addr = {
+        .sin_family = AF_INET,
+        .sin_addr.s_addr = INADDR_ANY,
+        .sin_port = htons(PORT)
+    };
+    bind(srv, (struct sockaddr *)&addr, sizeof(addr));
+    listen(srv, 8);
+    fprintf(stderr, "listening on :%d\n", PORT);
+
+    for (;;) {
+        int fd = accept(srv, NULL, NULL);
+        char req[BUF];
+        read(fd, req, sizeof(req) - 1);
+
+        time_t now = time(NULL);
+        struct tm *t = gmtime(&now);
+        char ts[32];
+        strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%SZ", t);
+
+        char body[64];
+        int blen = snprintf(body, sizeof(body), "{\"time\":\"%s\"}", ts);
+
+        char resp[BUF];
+        int rlen = snprintf(resp, sizeof(resp),
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Content-Length: %d\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "%s", blen, body);
+
+        write(fd, resp, rlen);
+        close(fd);
+    }
+}
+```
+
+**Build and run:**
+
+```sh
+gcc -o timeserver timeserver.c && ./timeserver
+```
+
+**Test:**
+
+```sh
+curl http://localhost:8080/time
+# {"time":"2026-05-10T14:23:01Z"}
+```
+
+No routing — every request gets the time response. Add a path check if you need to gate on `/time` specifically:
+
+```c
+// after read(), before time():
+if (!strstr(req, "GET /time ")) {
+    const char *notfound = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
+    write(fd, notfound, strlen(notfound));
+    close(fd);
+    continue;
+}
+```

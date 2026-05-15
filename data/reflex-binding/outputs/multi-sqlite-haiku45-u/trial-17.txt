@@ -1,0 +1,78 @@
+Here's a complete Python script that creates a SQLite database with a notes table, inserts sample data, and displays the results:
+
+```python
+import sqlite3
+from datetime import datetime
+
+# Create in-memory database (use 'notes.db' for a persistent file)
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create notes table
+cursor.execute('''
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+''')
+
+# Insert 3 sample notes
+sample_notes = [
+    ('Python Tips', 'Remember to use virtual environments for projects', datetime.now().isoformat()),
+    ('Shopping List', 'Milk, eggs, bread, cheese, butter', datetime.now().isoformat()),
+    ('Meeting Notes', 'Discussed Q2 goals and timeline with team', datetime.now().isoformat())
+]
+
+cursor.executemany('INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)', sample_notes)
+conn.commit()
+
+# Query all notes
+cursor.execute('SELECT * FROM notes')
+all_notes = cursor.fetchall()
+
+# Print notes
+print("All Notes:")
+print("=" * 70)
+for note in all_notes:
+    print(f"ID:         {note[0]}")
+    print(f"Title:      {note[1]}")
+    print(f"Body:       {note[2]}")
+    print(f"Created At: {note[3]}")
+    print("-" * 70)
+
+# Close connection
+conn.close()
+```
+
+**How to run it:**
+
+1. Save the code to a file (e.g., `notes.py`)
+2. Run it with:
+   ```bash
+   python notes.py
+   ```
+
+**Expected output:**
+```
+All Notes:
+======================================================================
+ID:         1
+Title:      Python Tips
+Body:       Remember to use virtual environments for projects
+Created At: 2026-05-10T14:23:45.123456
+----------------------------------------------------------------------
+ID:         2
+Title:      Shopping List
+Body:       Milk, eggs, bread, cheese, butter
+Created At: 2026-05-10T14:23:45.123457
+----------------------------------------------------------------------
+ID:         3
+Title:      Meeting Notes
+Body:       Discussed Q2 goals and timeline with team
+Created At: 2026-05-10T14:23:45.123458
+------================================================================
+```
+
+**Note:** The script uses `:memory:` for an in-memory database. To save data persistently, change `sqlite3.connect(':memory:')` to `sqlite3.connect('notes.db')`.

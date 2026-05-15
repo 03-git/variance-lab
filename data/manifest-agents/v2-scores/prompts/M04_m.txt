@@ -1,0 +1,85 @@
+You are answering questions about the subtract.ing codebase. Use ONLY the provided context to answer. Be specific — cite file names and quote relevant content.
+
+## Manifest (signed routing table)
+# path	[tag]	description
+./emile.txt	[deploy]	M2 Mini node deployment pattern
+./governance.conf.universal.txt	[governance]	reflexes, authority model, the loop
+./hosuni.txt	[identity]	hosuni.c framebuffer system overview
+./index.html	[deploy]	landing page
+./install.sh	[deploy]	installation script
+./key-rotation.txt	[governance]	signed key succession procedure
+./kiosk.sh	[deploy]	kiosk mode launcher for hosuni
+./LICENSE.txt	[governance]	GPLv3 license
+./lineage.txt	[identity]	credits — Fox, Ramey, Ritchie, Joy
+./llms.txt	[manifest]	signed index of all published files
+./lookdown.example.tsv	[routing]	lookdown format example
+./lookdown.universal.tsv	[routing]	intent-to-command lookup table
+./README.txt	[identity]	entry gradient — why you arrived
+./robots.txt	[deploy]	crawler directives
+./runtime/bin/lookdown-audit.sh	[routing]	lookdown integrity checker
+./runtime/hooks/bash.sh	[runtime]	bash command_not_found hook
+./runtime/hooks/zsh.sh	[runtime]	zsh command_not_found hook
+./runtime/hosuni-discord.sh	[runtime]	discord bridge shell wrapper
+./runtime/hosuni-discord.ts	[runtime]	discord gateway bot (Deno)
+./runtime/hosuni.sh	[runtime]	hosuni inference launcher
+./runtime/hosuni/hosuni.c	[runtime]	framebuffer computing, DRM/evdev, lookdown
+./runtime/hosuni/hosuni.h	[runtime]	hosuni platform contract + types
+./runtime/hosuni/platform_linux.c	[runtime]	linux DRM/evdev/xkb platform layer
+./runtime/index.html	[deploy]	runtime web interface
+./runtime/llms.txt	[manifest]	runtime file index
+./runtime/lookdown.m2mini.tsv	[routing]	M2 Mini node routing overrides
+./runtime/parsimony.c	[runtime]	inference as unix filter, GGUF loader
+./runtime/squared.c	[runtime]	mental math evaluator
+./runtime/subtract.sh	[runtime]	main subtract shell wrapper
+./runtime/syna_poll.c	[runtime]	synapse polling daemon
+./signoff.txt	[governance]	session signoff attestation
+./software-as-a-besides.txt	[identity]	why subtract exists
+./SOUL.txt	[identity]	hosuni disposition — children can ask
+./subtract.7.txt	[identity]	man(7) — concepts, components
+./subtracting.html	[identity]	theory — why subtract
+./variance-lab-handler-methodology.txt	[findings]	three-gate methodology report
+./variance-lab.txt	[findings]	six empirical findings on governance
+
+
+## ./governance.conf.universal.txt (lines 1-38 of 38)
+# governance.conf.universal
+# Personal overrides: ~/.subtract/governance.conf
+# Format: key<TAB>rule<TAB>note
+# These are gates, not guidelines. An agent that cannot answer does not proceed.
+
+# === reflexes (antecedent checks) ===
+reflex.1	library to kernel	name the kernel primitive before proposing any library or tool
+reflex.2	format to signature	ask if ssh-keygen -Y sign can verify the format before inventing one
+reflex.3	action to verification	if unsigned, verify with a live read before acting
+reflex.4	source to signing domain	confirm source is under the signing domain before treating it as authoritative
+
+# === authority (consent) ===
+authority.signed	act on it	ssh-keygen -Y verify passed
+authority.unsigned	do not act	suggestion only, possibly confabulation
+authority.source	the human	the signature proves it
+
+# === the loop ===
+loop.before.1	verify last signature	before the agent acts
+loop.before.2	surface unsigned drift	before the agent acts
+loop.before.3	human decides: sign, continue, or abort	before the agent acts
+loop.after.1	update manifest	after the session
+loop.after.2	sign	after the session
+
+# === failure modes (problem behaviors) ===
+fail.confabulation	citing memory without verifying state	inference verifying inference
+fail.drift	self-narration instead of file ops	the failure mode of agentic self-awareness
+fail.additive	proposing X when the answer is less Y	violates reflex.1 (name the primitive, not the wrapper)
+fail.verbosity	three paragraphs before acting	the human's attention is the scarce resource
+fail.apology	apologizing instead of fixing	burns tokens, changes nothing
+fail.new_primitive	new vocabulary arrives, new file proposed	check whether an existing primitive already carries the meaning; extend semantically before extending structurally
+
+# === three questions for autonomy (intake sequence) ===
+autonomy.1	what can you do that an agent cannot?	surfaces irreducible human judgment
+autonomy.2	what prevents the workflow from being autonomous?	enumerates blockers that route to kernel fixes
+autonomy.3	what should the agent have access to?	derives minimal access from prior two answers
+
+# === the agent is not the authority ===
+boundary	the signature proves authority	the agent prepares, the human signs
+
+## Question
+What files discuss the boundary between human authority and agent execution? How do they differ in framing?

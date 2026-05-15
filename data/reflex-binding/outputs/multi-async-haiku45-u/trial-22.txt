@@ -1,0 +1,71 @@
+I'll show you an async TCP echo server using Python's `asyncio` library:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            if not data:
+                break
+            
+            # Echo it back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"From {addr}: {data.decode().strip()}")
+    
+    except asyncio.CancelledError:
+        print(f"Client {addr} disconnected")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(handle_client, '127.0.0.1', 8888)
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server running on {addr[0]}:{addr[1]}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+   ```bash
+   python echo_server.py
+   ```
+
+2. **Connect clients in separate terminals using `nc` (netcat):**
+   ```bash
+   nc localhost 8888
+   ```
+   Then type lines and they'll be echoed back.
+
+3. **Or use `telnet`:**
+   ```bash
+   telnet localhost 8888
+   ```
+
+**How it works:**
+- `asyncio.start_server()` creates a server listening on localhost:8888
+- `handle_client()` is called for each new connection
+- Each client runs concurrently via async/await—the server can handle many clients simultaneously
+- `reader.readline()` reads one line at a time (blocking on that client, non-blocking for others)
+- `writer.write()` and `writer.drain()` send data back to the client
+- The loop continues until the client closes the connection (`data` becomes empty)
+
+Try connecting multiple clients at once—they'll all work independently.

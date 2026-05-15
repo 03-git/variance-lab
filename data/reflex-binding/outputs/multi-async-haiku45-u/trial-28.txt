@@ -1,0 +1,88 @@
+I'll show you an async TCP echo server using Python's `asyncio` library that handles multiple concurrent clients.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # Client disconnected if no data
+            if not data:
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+
+async def start_server(host='127.0.0.1', port=8888):
+    """Start the TCP echo server."""
+    server = await asyncio.start_server(handle_client, host, port)
+    
+    print(f"Server listening on {host}:{port}")
+    
+    async with server:
+        await server.serve_forever()
+
+
+if __name__ == '__main__':
+    asyncio.run(start_server())
+```
+
+**How to run it:**
+
+1. **Start the server** (in one terminal):
+```bash
+python echo_server.py
+```
+
+2. **Connect clients** (in separate terminals, or use this simple test):
+```bash
+# Connect via telnet or netcat
+nc localhost 8888
+# or
+telnet localhost 8888
+```
+
+3. **Send data** — type a line and press Enter; it echoes back:
+```
+$ nc localhost 8888
+hello world
+hello world
+async is cool
+async is cool
+```
+
+**Key features:**
+
+- **`asyncio.start_server()`** — Creates a TCP server that accepts multiple clients concurrently
+- **`handle_client()`** — Runs independently for each connected client; reads lines with `readline()`, echoes with `write()`, and flushes with `drain()`
+- **Non-blocking** — One coroutine per client; thousands of clients can be handled with minimal overhead
+- **Graceful shutdown** — Client closes properly with `writer.close()` and `wait_closed()`
+
+You can also test with Python's socket client:
+```python
+import socket
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect(('127.0.0.1', 8888))
+sock.sendall(b'test message\n')
+print(sock.recv(1024).decode())
+sock.close()
+```

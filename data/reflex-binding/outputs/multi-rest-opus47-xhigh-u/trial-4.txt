@@ -1,0 +1,80 @@
+Here's a minimal Flask implementation.
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+
+def validate_user(data):
+    errors = {}
+
+    if not isinstance(data, dict):
+        return {"_": "request body must be a JSON object"}
+
+    name = data.get("name")
+    if name is None:
+        errors["name"] = "required"
+    elif not isinstance(name, str):
+        errors["name"] = "must be a string"
+    elif not name.strip():
+        errors["name"] = "must not be empty"
+
+    email = data.get("email")
+    if email is None:
+        errors["email"] = "required"
+    elif not isinstance(email, str):
+        errors["email"] = "must be a string"
+    elif "@" not in email:
+        errors["email"] = "must contain @"
+
+    age = data.get("age")
+    if age is None:
+        errors["age"] = "required"
+    elif isinstance(age, bool) or not isinstance(age, int):
+        errors["age"] = "must be an integer"
+    elif age < 1 or age > 150:
+        errors["age"] = "must be between 1 and 150"
+
+    return errors
+
+
+@app.route("/users", methods=["POST"])
+def create_user():
+    data = request.get_json(silent=True)
+    errors = validate_user(data)
+    if errors:
+        return jsonify({"error": "invalid input", "details": errors}), 400
+
+    user = {"name": data["name"], "email": data["email"], "age": data["age"]}
+    return jsonify(user), 201
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+```
+
+## How to run
+
+```bash
+pip install flask
+python app.py
+```
+
+## Try it
+
+Success (201):
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Ada","email":"ada@example.com","age":36}'
+```
+
+Validation failure (400):
+```bash
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"","email":"nope","age":200}'
+```
+
+Notes on the validation: `isinstance(age, bool)` is checked first because `bool` is a subclass of `int` in Python, so `True` would otherwise pass as age `1`. `request.get_json(silent=True)` returns `None` on malformed JSON instead of raising, which the `isinstance(data, dict)` check then catches.

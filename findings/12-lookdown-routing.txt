@@ -1,0 +1,190 @@
+---
+title: Lookdown Routing Discipline and Inference Model Selection
+date: 2026-05-08
+source: production empirical (cal.c + lookdown.tsv on acer1660ti, m2mini, rousseau)
+domain:
+  - intent-routing
+  - local-inference
+  - knowledge-retrieval
+  - fine-tuning-data-design
+keywords:
+  - lookdown table
+  - glob pattern discipline
+  - QLoRA training data
+  - inference model routing
+  - confabulation prevention
+  - Gemma-4 vs Qwen 2.5
+  - tiered knowledge architecture
+prior_art_status: no published framework distinguishes static lookup tables by QLoRA-portability as a design constraint
+---
+
+# Lookdown Routing Discipline and Inference Model Selection
+
+## Problem
+
+Cal.c routed all user input — tool calls, factual questions,
+exploratory queries — to Qwen 2.5 7B (port 8087). Qwen
+confabulates on knowledge questions. Lookdown tables contained
+2232 entries but 296 used greedy glob patterns (`*word*`) that
+swallowed questions the inference model should have answered.
+Livingledger entries (governor-personal) shipped in the
+universal file alongside QLoRA-portable knowledge.
+
+## Changes
+
+### 1. Inference model routing
+
+Cal.c default changed from `127.0.0.1:8087` (Qwen 2.5 7B)
+to reading `~/.subtract/inference_host` with port 8086
+(Gemma-4-26B-A4B on rousseau). Qwen stays on 8087 for tool
+call parsing on m2mini/acer. Questions that fall through
+lookdown now reach a model that does not confabulate.
+
+**Before:** hardcoded host and port.
+**After:** reads `~/.subtract/inference_host` at startup,
+defaults to `127.0.0.1` if absent. Port 8086. CLI `-h` and
+`-p` flags still override.
+
+### 2. Lookdown file taxonomy
+
+Three tiers, governed by `~/.subtract/LOOKDOWN.txt`:
+
+```
+lookdown.universal.tsv  — Lindy knowledge, QLoRA-portable,
+                          helpful to every household
+lookdown.<hostname>.tsv — host-specific services, hardware,
+                          paths
+lookdown.<user>.tsv     — that user's confessions and taste
+```
+
+**Universal entry test:** would including this entry in a
+QLoRA fine-tune improve a local model for any subtract user?
+If yes, universal. If only for this household, name it after
+the user.
+
+### 3. Glob pattern tightening
+
+225 greedy `*word*` patterns converted to `what*is*word*` +
+`what*word` pairs. 71 patterns with 3+ words left as-is
+(specific enough not to swallow exploratory queries).
+
+**Before:** `*caterpillar*` matches "caterpillar", "tell me
+minecraft tricks about caterpillars", "caterpillar stock price"
+**After:** `what*is*caterpillar*` + `what*caterpillar` matches
+"what is a caterpillar" but lets "tell me about caterpillar
+lifecycles in detail" fall through to Gemma-4.
+
+**Discipline:** globs match the specific phrasings the entry
+was authored for. Wider matches fall through to inference.
+
+### 4. Content migration
+
+13 livingledger entries (DePaul professors, governor's
+formation authors) moved from `lookdown.universal.tsv` to
+`lookdown.hodori.tsv`. These are confessions, not portable
+knowledge.
+
+18 minecraft entries deleted — Gemma-4 handles minecraft
+questions without confabulation.
+
+54 sections preserved in universal (almanac, BIFL, canonical
+films/books, cooking, craft, ELI5, cultural literacy, crisis
+redirects, command routing, clinical, emotional safety,
+homework, lindy skills, home economics, sysadmin, privacy,
+AI gotcha questions, bitwise operations, number
+representations).
+
+### 5. Three-gate variance-lab review (session 2)
+
+Static rubric, functional verification, and deliberative
+pass applied to the 2445-entry universal file.
+
+**Gate 1 (static rubric):** QLoRA-portability test caught
+4 entries: 3 hosuni daemon entries (formation-specific name)
+moved to `lookdown.hodori.tsv`, 1 host-specific game list
+moved to `lookdown.tsv`. Two echo strings de-formation'd
+("The formation is Apple Silicon" → removed, "who is
+rousseau" → "what is sourdough"). Two section headers
+cleaned.
+
+**Gate 2 (functional verification):** 3 broken commands
+found — `chmod +x`, `chown`, `diff -rq` with no arguments.
+Converted to `echo "usage: ..."`. 2 greedy globs tightened:
+`*listening*on*port*` → `what*`/`show*` (was running
+`lsof -i` on any mention of ports); `*practice*word*` →
+`*practice*sight*word*` (was matching "practice word
+problems"). 1 host-specific entry (`what*runs*on*8gb*m2*
+mac*mini`) moved to host .tsv.
+
+**Gate 3 (deliberative pass):** Gemma-4-26B (Google lineage)
+dispatched as second reviewer. Model exhausted 4096 tokens
+on reasoning chain before producing output — reasoning
+surfaced one flag (Bonsai 8B as potential confabulation),
+governor confirmed real. `claude -p` dispatch attempted
+for Anthropic lineage, produced empty output on first try,
+treated as human gate per governance (not retried).
+
+## Measurements
+
+| Metric | Before | Session 1 | Session 2 |
+|--------|--------|-----------|-----------|
+| Active universal entries | 2232 | 2445 | 2441 |
+| Greedy globs | 296 | 71 | 69 |
+| Personal entries in universal | 13 | 0 | 0 |
+| Formation refs in universal | uncounted | uncounted | 0 |
+| Broken commands | uncounted | uncounted | 0 |
+| Inference model | Qwen 2.5 7B | Gemma-4-26B | Gemma-4-26B |
+| Inference host | hardcoded | config-driven | config-driven |
+| Nodes synced | 0 | 3 | 3 |
+
+Entry count increased from session 1 tightening (each
+`*word*` glob → two `what*is*word*` + `what*word` entries),
+then decreased slightly in session 2 from portability
+filtering.
+
+## Finding
+
+A lookdown table is a dataset. The QLoRA-portability test
+("would this improve any user's local model?") is a clean
+design constraint that separates infrastructure from taste.
+The glob pattern discipline ("match what you authored for,
+not everything containing that word") prevents the lookup
+tier from starving the inference tier.
+
+The distinction between Qwen (tool calls, structured output)
+and Gemma-4 (knowledge questions, does not confabulate) is
+an empirical routing decision, not an architecture one. The
+same `cal_infer_stream_msgs` code path serves both — only
+the host and port differ.
+
+## Failure mode observed
+
+A Claude session started from a stale `/tmp/cal.c` (1117
+lines) instead of the canonical `~/subtract.ing/runtime/cal/
+cal.c` (1833 lines), overwrote the working binary, and
+destroyed 20+ hours of accumulated work. Governance text
+added to CLAUDE.md:
+
+> Before any operation on cal.c, run `git log --oneline -5`
+> on the canonical path and `git status` and `wc -l` on the
+> file. State the timestamps and line counts you observe.
+> Only then proceed.
+
+This is the same class of failure as `fail.confabulation`
+in governance.conf.universal: citing memory (a stale file
+path) without verifying state (the canonical repo).
+
+## Deployment
+
+| Node | cal binary | lookdown.universal | lookdown.host | lookdown.hodori | LOOKDOWN.txt |
+|------|-----------|-------------------|---------------|-----------------|-------------|
+| rousseau | n/a (macOS) | yes | missing | yes | yes |
+| m2mini | ~/cal | yes | yes | yes | yes |
+| acer | ~/cal (running) | yes | yes | yes | yes |
+
+Cal.c autostarts on acer via getty@tty1 autologin +
+`.bash_profile` guard. M2mini has the same wiring but
+Plasma currently holds the display.
+
+
+================================================================

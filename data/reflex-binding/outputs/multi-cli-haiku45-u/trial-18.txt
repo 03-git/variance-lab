@@ -1,0 +1,61 @@
+Here's a Python CLI tool that meets your requirements:
+
+```python
+import argparse
+import json
+import sys
+
+def main():
+    parser = argparse.ArgumentParser(description="CLI tool for host/port configuration")
+    parser.add_argument("--host", type=str, default="localhost", help="Host address")
+    parser.add_argument("--port", type=int, default=8080, help="Port number")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    
+    try:
+        args = parser.parse_args()
+    except SystemExit:
+        sys.exit(1)
+    
+    # Validate port is between 1-65535
+    if not (1 <= args.port <= 65535):
+        parser.error(f"Port must be between 1 and 65535, got {args.port}")
+    
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+Save as `config_cli.py` and run these commands:
+
+```bash
+# Default values
+python config_cli.py
+# Output: {"host": "localhost", "port": 8080, "verbose": false}
+
+# With custom host and port
+python config_cli.py --host 192.168.1.1 --port 3000
+# Output: {"host": "192.168.1.1", "port": 3000, "verbose": false}
+
+# With verbose flag
+python config_cli.py --host example.com --port 443 --verbose
+# Output: {"host": "example.com", "port": 443, "verbose": true}
+
+# Invalid port (too high)
+python config_cli.py --port 70000
+# Error: Port must be between 1 and 65535, got 70000
+
+# Invalid port (not an integer)
+python config_cli.py --port abc
+# Error: argument --port: invalid int value: 'abc'
+```
+
+The tool uses `argparse` for robust flag parsing, validates the port range automatically, and outputs clean JSON with proper indentation.

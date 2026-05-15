@@ -1,0 +1,71 @@
+I'll show you a comprehensive Python test suite for the celsius_to_fahrenheit function using pytest.
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    def test_freezing_point(self):
+        """0°C should equal 32°F."""
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        """100°C should equal 212°F."""
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_absolute_equivalence(self):
+        """-40°C should equal -40°F."""
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        """Non-numeric input should raise TypeError."""
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("zero")
+
+# Alternative: using simple functions instead of a class
+def test_freezing_point():
+    assert celsius_to_fahrenheit(0) == 32
+
+def test_boiling_point():
+    assert celsius_to_fahrenheit(100) == 212
+
+def test_absolute_equivalence():
+    assert celsius_to_fahrenheit(-40) == -40
+
+def test_non_numeric_input():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("zero")
+```
+
+**How to run it:**
+
+```bash
+# Install pytest if you don't have it
+pip install pytest
+
+# Run all tests
+pytest test_file.py -v
+
+# Run a specific test
+pytest test_file.py::TestCelsiusToFahrenheit::test_freezing_point -v
+
+# Run with more details on failures
+pytest test_file.py -vv
+```
+
+**Expected output:**
+```
+test_freezing_point PASSED
+test_boiling_point PASSED
+test_absolute_equivalence PASSED
+test_non_numeric_input PASSED
+```
+
+The test suite covers:
+- **0°C → 32°F** (freezing point of water)
+- **100°C → 212°F** (boiling point of water)
+- **-40°C → -40°F** (the special point where both scales intersect)
+- **Non-numeric input** (raises TypeError as expected when multiplying string by a number)

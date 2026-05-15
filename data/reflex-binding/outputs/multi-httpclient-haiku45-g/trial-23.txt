@@ -1,0 +1,48 @@
+Here's a Python script that does what you need:
+
+```python
+#!/usr/bin/env python3
+import sys
+import requests
+
+if len(sys.argv) != 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    response = requests.get(url, allow_redirects=True, timeout=10)
+    
+    print(f"Status Code: {response.status_code}")
+    print("\nResponse Headers:")
+    for header, value in response.headers.items():
+        print(f"  {header}: {value}")
+    
+    print(f"\nFirst 500 characters of body:")
+    body = response.text[:500]
+    print(body)
+    if len(response.text) > 500:
+        print("... (truncated)")
+        
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+```
+
+**How to run it:**
+
+```bash
+# Save as fetch.py, then:
+python3 fetch.py https://example.com
+
+# Or if you want to make it executable:
+chmod +x fetch.py
+./fetch.py https://example.com
+```
+
+The script uses the `requests` library which automatically follows redirects by default. If you need to install it:
+
+```bash
+pip install requests
+```

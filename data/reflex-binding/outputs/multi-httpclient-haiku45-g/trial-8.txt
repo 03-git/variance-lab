@@ -1,0 +1,42 @@
+Here's a Python script that does what you need:
+
+```python
+#!/usr/bin/env python3
+import sys
+import requests
+
+if len(sys.argv) != 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    response = requests.get(url)
+    
+    print(f"Status Code: {response.status_code}")
+    print(f"\nHeaders:")
+    for key, value in response.headers.items():
+        print(f"  {key}: {value}")
+    
+    print(f"\nBody (first 500 characters):")
+    print(response.text[:500])
+    
+except requests.exceptions.RequestException as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+```
+
+**How to run it:**
+
+1. Make sure you have the `requests` library installed:
+```bash
+pip install requests
+```
+
+2. Run the script with a URL:
+```bash
+python script.py https://example.com
+```
+
+The `requests.get()` method automatically follows redirects by default, so it will give you the final response after any redirects. If you want to limit the number of redirects, you can add `allow_redirects=True, max_redirects=5` parameters.

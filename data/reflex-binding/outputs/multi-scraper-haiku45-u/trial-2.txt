@@ -1,0 +1,81 @@
+I'll show you a Python script that fetches a URL and extracts hyperlinks. Here's the code:
+
+```python
+import requests
+from html.parser import HTMLParser
+from urllib.parse import urljoin
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []
+        self.current_text = []
+        self.in_anchor = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.in_anchor = True
+            self.current_text = []
+            for attr, value in attrs:
+                if attr == 'href':
+                    # Resolve relative URLs
+                    absolute_url = urljoin(self.base_url, value)
+                    self.current_link = absolute_url
+
+    def handle_data(self, data):
+        if self.in_anchor:
+            self.current_text.append(data.strip())
+
+    def handle_endtag(self, tag):
+        if tag == 'a' and self.in_anchor:
+            self.in_anchor = False
+            link_text = ' '.join(self.current_text)
+            self.links.append({
+                'href': self.current_link,
+                'text': link_text if link_text else '(no text)'
+            })
+
+def fetch_and_extract_links(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        parser = LinkExtractor(url)
+        parser.feed(response.text)
+        
+        return parser.links
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return []
+
+if __name__ == '__main__':
+    url = 'https://example.com'
+    links = fetch_and_extract_links(url)
+    
+    print(f"Found {len(links)} links:\n")
+    for i, link in enumerate(links, 1):
+        print(f"{i}. Text: {link['text']}")
+        print(f"   URL: {link['href']}\n")
+```
+
+**How to run it:**
+
+1. Install the required library:
+```bash
+pip install requests
+```
+
+2. Run the script:
+```bash
+python script.py
+```
+
+**What it does:**
+- Fetches the HTML from the URL using `requests`
+- Parses the HTML with `HTMLParser` to find all `<a>` tags
+- Extracts the `href` attribute and link text
+- Converts relative URLs to absolute URLs using `urljoin`
+- Prints each link with its text and URL
+
+You can modify the `url` variable to fetch from any website.

@@ -1,0 +1,73 @@
+Kernel primitive: this is a TCP socket + TLS handshake to port 443, then HTTP/1.1 over it. Python's stdlib already wraps that — `urllib.request` for the fetch, `html.parser` for the parse. No `requests`, no `beautifulsoup4` needed.
+
+```python
+#!/usr/bin/env python3
+"""Fetch a URL and print every <a href> with its link text. Stdlib only."""
+
+import sys
+from urllib.request import urlopen, Request
+from urllib.parse import urljoin
+from html.parser import HTMLParser
+
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url):
+        super().__init__()
+        self.base_url = base_url
+        self.links = []          # list of [href, text]
+        self._href = None        # href of the <a> we're currently inside
+        self._text = []          # text chunks collected inside it
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href is not None:
+                self._href = urljoin(self.base_url, href)
+                self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href is not None:
+            text = " ".join("".join(self._text).split())
+            self.links.append([self._href, text])
+            self._href = None
+            self._text = []
+
+
+def main():
+    url = sys.argv[1] if len(sys.argv) > 1 else "https://example.com"
+    req = Request(url, headers={"User-Agent": "link-extractor/1.0"})
+    with urlopen(req, timeout=10) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        html = resp.read().decode(charset, errors="replace")
+
+    parser = LinkExtractor(base_url=url)
+    parser.feed(html)
+
+    if not parser.links:
+        print("(no anchor tags found)")
+        return
+    for href, text in parser.links:
+        print(f"{href}\t{text or '(no text)'}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it (no install step — pure stdlib):
+
+```bash
+# save the snippet yourself, e.g. as link_extractor.py, then:
+python3 link_extractor.py                 # defaults to https://example.com
+python3 link_extractor.py https://news.ycombinator.com   # or pass any URL
+```
+
+For `https://example.com` you'll get one line: the `https://www.iana.org/domains/example` link with text `More information...` (relative `href` is resolved against the page URL via `urljoin`).
+
+Notes / limits:
+- `html.parser` is a forgiving tokenizer, not a full DOM — fine for extracting anchors, but it won't see links injected later by JavaScript (those never arrive in the raw HTML; that'd need a headless browser).
+- No redirect/HTTPS-error handling beyond what `urlopen` does by default; add a `try/except urllib.error.URLError` around the fetch if you want graceful failure.

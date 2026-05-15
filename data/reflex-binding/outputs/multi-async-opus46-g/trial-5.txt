@@ -1,0 +1,57 @@
+Kernel primitive: this is the OS readiness-notification syscall — `kqueue` on macOS, `epoll` on Linux. `asyncio` is the stdlib wrapper over it; `asyncio.start_server` gives you the accept loop + per-connection coroutine scheduling without threads.
+
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    peer = writer.get_extra_info("peername")
+    try:
+        while True:
+            line = await reader.readline()      # b"" on EOF
+            if not line:
+                break
+            writer.write(line)                  # echo verbatim, including the newline
+            await writer.drain()                # respect backpressure
+    except ConnectionResetError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"closed {peer}")
+
+async def main(host: str = "127.0.0.1", port: int = 8888) -> None:
+    server = await asyncio.start_server(handle_client, host, port)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets)
+    print(f"listening on {addrs}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+```
+
+Run it:
+
+```
+python3 echo_server.py
+```
+
+Test concurrency — open several clients at once, each gets its own line echoed:
+
+```
+nc 127.0.0.1 8888        # type a line, see it echoed; run this in 3+ terminals
+```
+
+or scripted:
+
+```
+printf 'hello\n' | nc 127.0.0.1 8888
+```
+
+Notes:
+- One `handle_client` coroutine per connection, all multiplexed on a single thread by the event loop — N concurrent clients cost no threads.
+- `readline()` buffers until `\n`; switch to `reader.read(4096)` if you want raw chunks instead of line framing.
+- Binds to loopback only. Use `host="0.0.0.0"` to accept from the LAN.

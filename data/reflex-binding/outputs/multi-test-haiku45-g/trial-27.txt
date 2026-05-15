@@ -1,0 +1,74 @@
+I'll show you a comprehensive Python test suite for the `celsius_to_fahrenheit` function using the `unittest` framework.
+
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    """Convert Celsius to Fahrenheit."""
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    
+    def test_freezing_point(self):
+        """Test conversion of 0°C (freezing point of water)."""
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+    
+    def test_boiling_point(self):
+        """Test conversion of 100°C (boiling point of water)."""
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+    
+    def test_negative_forty(self):
+        """Test conversion of -40°C (where C and F are equal)."""
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+    
+    def test_non_numeric_input(self):
+        """Test that non-numeric input raises TypeError."""
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("100")
+    
+    def test_float_input(self):
+        """Test conversion with float input."""
+        self.assertAlmostEqual(celsius_to_fahrenheit(37.5), 99.5)
+    
+    def test_negative_input(self):
+        """Test conversion with negative temperature."""
+        self.assertEqual(celsius_to_fahrenheit(-10), 14)
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+**To run the tests:**
+
+```bash
+# Run all tests with verbose output
+python test_suite.py -v
+
+# Run a specific test
+python test_suite.py TestCelsiusToFahrenheit.test_freezing_point
+
+# Run and show more details
+python -m unittest test_suite -v
+```
+
+**Expected output:**
+```
+test_boiling_point (__main__.TestCelsiusToFahrenheit) ... ok
+test_float_input (__main__.TestCelsiusToFahrenheit) ... ok
+test_freezing_point (__main__.TestCelsiusToFahrenheit) ... ok
+test_negative_forty (__main__.TestCelsiusToFahrenheit) ... ok
+test_negative_input (__main__.TestCelsiusToFahrenheit) ... ok
+test_non_numeric_input (__main__.TestCelsiusToFahrenheit) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.00s
+
+OK
+```
+
+The suite includes:
+- **0°C → 32°F** (freezing point)
+- **100°C → 212°F** (boiling point)
+- **-40°C → -40°F** (the unique point where both scales are equal)
+- **Non-numeric input** raises `TypeError` as expected
+- **Bonus tests** for float inputs and negative temperatures

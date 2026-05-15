@@ -1,0 +1,102 @@
+Here's a Python script that does what you need:
+
+```python
+#!/usr/bin/env python3
+import sys
+import requests
+
+def fetch_url(url):
+    try:
+        response = requests.get(url, allow_redirects=True, timeout=10)
+        
+        print(f"Status Code: {response.status_code}")
+        print(f"\nHeaders:")
+        for key, value in response.headers.items():
+            print(f"  {key}: {value}")
+        
+        # Get first 500 characters of body
+        body_preview = response.text[:500]
+        print(f"\nBody (first 500 characters):")
+        print(body_preview)
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python script.py <URL>", file=sys.stderr)
+        sys.exit(1)
+    
+    url = sys.argv[1]
+    fetch_url(url)
+```
+
+**How to run it:**
+
+```bash
+# Make it executable (optional)
+chmod +x script.py
+
+# Run it
+python3 script.py "https://example.com"
+```
+
+**Example output:**
+```
+Status Code: 200
+
+Headers:
+  Content-Type: text/html; charset=UTF-8
+  Content-Length: 1234
+  ...
+
+Body (first 500 characters):
+<!doctype html>
+<html>
+<head>
+    <title>Example Domain</title>
+    ...
+```
+
+**Note:** This uses the `requests` library. If it's not installed, install it with:
+```bash
+pip install requests
+```
+
+If you prefer a version using only built-in libraries (no external dependencies), here's one using `urllib`:
+
+```python
+#!/usr/bin/env python3
+import sys
+import urllib.request
+import urllib.error
+
+def fetch_url(url):
+    try:
+        with urllib.request.urlopen(url, timeout=10) as response:
+            status = response.status
+            headers = response.headers
+            body = response.read().decode('utf-8', errors='ignore')
+            
+            print(f"Status Code: {status}")
+            print(f"\nHeaders:")
+            for key, value in headers.items():
+                print(f"  {key}: {value}")
+            
+            print(f"\nBody (first 500 characters):")
+            print(body[:500])
+            
+    except urllib.error.URLError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python script.py <URL>", file=sys.stderr)
+        sys.exit(1)
+    
+    fetch_url(sys.argv[1])
+```
+
+Both versions handle redirects automatically—`requests` by default, and `urllib.request.urlopen` by default. The `requests` version is simpler and more readable; the `urllib` version requires no external dependencies.

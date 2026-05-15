@@ -1,0 +1,103 @@
+I'll show you a Python async TCP echo server using `asyncio`. This will handle multiple concurrent clients efficiently.
+
+**Server code:**
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line of text from the client
+            data = await reader.readline()
+            
+            if not data:
+                # Client disconnected
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def start_server():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        9999
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(start_server())
+```
+
+**Client code (for testing):**
+
+```python
+import asyncio
+
+async def send_messages(host, port):
+    """Connect to server and send messages."""
+    reader, writer = await asyncio.open_connection(host, port)
+    
+    messages = [
+        "Hello, echo server!",
+        "This is a test",
+        "Multiple clients work concurrently",
+    ]
+    
+    for msg in messages:
+        writer.write((msg + '\n').encode())
+        await writer.drain()
+        
+        # Read echo response
+        response = await reader.readline()
+        print(f"Received: {response.decode().strip()}")
+    
+    writer.close()
+    await writer.wait_closed()
+
+async def main():
+    # Run multiple clients concurrently
+    await asyncio.gather(
+        send_messages('127.0.0.1', 9999),
+        send_messages('127.0.0.1', 9999),
+        send_messages('127.0.0.1', 9999),
+    )
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**How to run:**
+
+1. Start the server in one terminal:
+   ```bash
+   python server.py
+   ```
+
+2. In another terminal, run the client:
+   ```bash
+   python client.py
+   ```
+
+The server will handle all three concurrent clients simultaneously and echo back each message. The `asyncio` library manages all the async I/O, so a single thread handles multiple connections without blocking.

@@ -1,0 +1,99 @@
+I'll show you an async TCP echo server using Python's `asyncio` module:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            # If no data, client disconnected
+            if not data:
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echoed to {addr}: {data.decode().strip()}")
+    
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**To run it:**
+
+```bash
+python echo_server.py
+```
+
+**To test it (in another terminal), use `nc` or `telnet`:**
+
+```bash
+# Using netcat (nc)
+nc localhost 8888
+
+# Then type lines and they'll be echoed back:
+# > hello
+# hello
+# > world
+# world
+```
+
+**Or test with a Python client:**
+
+```python
+import asyncio
+
+async def test_client():
+    """Simple test client."""
+    reader, writer = await asyncio.open_connection('127.0.0.1', 8888)
+    
+    # Send a message
+    writer.write(b"Hello from client\n")
+    await writer.drain()
+    
+    # Read the echo
+    response = await reader.readline()
+    print(f"Received: {response.decode().strip()}")
+    
+    writer.close()
+    await writer.wait_closed()
+
+asyncio.run(test_client())
+```
+
+**How it works:**
+
+- `asyncio.start_server()` creates a TCP server that accepts connections
+- `handle_client()` is called for each new connection (handles concurrency automatically)
+- `reader.readline()` waits for a line from the client without blocking other clients
+- `writer.write()` + `writer.drain()` sends data back to the client
+- Multiple clients can connect simultaneously—each gets its own `handle_client()` coroutine running concurrently

@@ -1,0 +1,44 @@
+```python
+import argparse
+import json
+import sys
+
+
+def port_type(value):
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value!r}")
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError(f"port must be between 1 and 65535, got {port}")
+    return port
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host", required=True)
+    parser.add_argument("--port", required=True, type=port_type)
+    parser.add_argument("--verbose", action="store_true")
+    args = parser.parse_args()
+    print(json.dumps(vars(args), indent=2))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+Run:
+```
+python3 cli.py --host 127.0.0.1 --port 8080 --verbose
+```
+
+Output:
+```json
+{
+  "host": "127.0.0.1",
+  "port": 8080,
+  "verbose": true
+}
+```
+
+Invalid port (e.g. `--port 70000` or `--port abc`) exits non-zero with an argparse error.

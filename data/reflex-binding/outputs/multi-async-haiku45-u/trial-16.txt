@@ -1,0 +1,98 @@
+Here's a Python async TCP echo server using `asyncio`:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line of text from the client
+            data = await reader.readline()
+            
+            if not data:
+                # Client disconnected
+                break
+            
+            # Echo the data back to the client
+            message = data.decode().strip()
+            print(f"Received from {addr}: {message}")
+            
+            writer.write(data)
+            await writer.drain()
+    except Exception as e:
+        print(f"Error handling client {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def main():
+    """Start the echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    async with server:
+        print("Echo server listening on 127.0.0.1:8888")
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+   ```bash
+   python echo_server.py
+   ```
+
+2. **Connect clients in separate terminals:**
+   ```bash
+   nc localhost 8888
+   ```
+   or
+   ```bash
+   telnet localhost 8888
+   ```
+
+3. **Test it:**
+   ```
+   $ nc localhost 8888
+   Hello World
+   Hello World
+   Async is cool
+   Async is cool
+   ```
+
+**Key features:**
+- `asyncio.start_server()` creates a TCP server that automatically manages concurrent clients
+- `handle_client()` is called for each new connection
+- `reader.readline()` reads one line at a time (until `\n`)
+- Multiple clients can connect simultaneously—each runs in its own async task
+- `writer.drain()` waits for the write buffer to clear
+- The server gracefully closes connections when clients disconnect
+
+You can test multiple clients at once:
+```bash
+# Terminal 1
+python echo_server.py
+
+# Terminal 2
+nc localhost 8888
+
+# Terminal 3
+nc localhost 8888
+
+# Terminal 4
+nc localhost 8888
+# etc.
+```
+
+Each connection is handled concurrently without blocking others.

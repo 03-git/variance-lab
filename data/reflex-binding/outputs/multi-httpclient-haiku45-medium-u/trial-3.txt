@@ -1,0 +1,77 @@
+I'll show you a Python script that does this. Here's the code:
+
+```python
+import sys
+import requests
+
+def fetch_url(url):
+    try:
+        # Make GET request following redirects (default behavior)
+        response = requests.get(url, allow_redirects=True, timeout=10)
+        
+        # Print status code
+        print(f"Status Code: {response.status_code}")
+        print()
+        
+        # Print response headers
+        print("Response Headers:")
+        for key, value in response.headers.items():
+            print(f"  {key}: {value}")
+        print()
+        
+        # Print first 500 characters of body
+        print("Response Body (first 500 characters):")
+        body = response.text[:500]
+        print(body)
+        if len(response.text) > 500:
+            print("\n... (truncated)")
+            
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python script.py <URL>", file=sys.stderr)
+        sys.exit(1)
+    
+    url = sys.argv[1]
+    fetch_url(url)
+```
+
+**How to run it:**
+
+1. First, make sure you have `requests` installed:
+```bash
+pip install requests
+```
+
+2. Save the script to a file (e.g., `fetch_url.py`) and run it:
+```bash
+python fetch_url.py https://example.com
+```
+
+**Example output:**
+```
+Status Code: 200
+
+Response Headers:
+  Content-Type: text/html; charset=UTF-8
+  Content-Length: 1256
+  Server: Apache
+  ...
+
+Response Body (first 500 characters):
+<!doctype html>
+<html>
+<head>
+    <title>Example Domain</title>
+    ...
+```
+
+The script:
+- Takes a URL as a command-line argument
+- Follows redirects automatically (default `requests.get` behavior)
+- Prints the status code, all headers, and the first 500 characters of the response body
+- Includes error handling for network issues
+- Has a 10-second timeout to prevent hanging on slow servers

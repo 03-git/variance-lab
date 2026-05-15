@@ -1,0 +1,41 @@
+```python
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+
+    def test_freezing(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212)
+
+    def test_negative_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Save as `test_temp.py` and run with:
+
+```
+python test_temp.py -v
+```
+
+Or without a file, paste into a shell one-liner:
+
+```
+python -m unittest -v <(cat <<'EOF'
+... paste code here ...
+EOF
+)
+```
+
+The `-40` case is the classic self-check: Celsius and Fahrenheit coincide at that value, so `celsius_to_fahrenheit(-40) == -40` is the identity test. The non-numeric test expects `TypeError`, which Python raises naturally from `"hot" * 9/5` — no explicit guard needed in the function.

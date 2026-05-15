@@ -1,0 +1,23 @@
+
+
+```python
+import sys
+import urllib.request
+
+url = sys.argv[1]
+resp = urllib.request.urlopen(url)
+print(f"Status: {resp.status}")
+print("\nHeaders:")
+for k, v in resp.getheaders():
+    print(f"  {k}: {v}")
+body = resp.read().decode("utf-8", errors="replace")
+print(f"\nBody (first 500 chars):\n{body[:500]}")
+```
+
+Run it with:
+
+```
+python script.py https://example.com
+```
+
+`urllib.request.urlopen` follows redirects by default. No external dependencies needed.

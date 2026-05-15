@@ -1,0 +1,50 @@
+```python
+import argparse
+import json
+import sys
+
+
+def port_type(value):
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"port must be an integer, got {value!r}")
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError(f"port must be between 1 and 65535, got {port}")
+    return port
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Print parsed config as JSON.")
+    parser.add_argument("--host", required=True, help="Host address")
+    parser.add_argument("--port", required=True, type=port_type, help="Port (1-65535)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    args = parser.parse_args()
+
+    config = {"host": args.host, "port": args.port, "verbose": args.verbose}
+    json.dump(config, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run:
+
+```
+python config_cli.py --host localhost --port 8080
+python config_cli.py --host 0.0.0.0 --port 443 --verbose
+```
+
+Example output for the second command:
+
+```json
+{
+  "host": "0.0.0.0",
+  "port": 443,
+  "verbose": true
+}
+```
+
+Invalid ports (`0`, `70000`, `abc`) exit non-zero with an argparse error message.

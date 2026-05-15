@@ -1,0 +1,48 @@
+I'll show you a complete Python test suite for the `celsius_to_fahrenheit` function using pytest.
+
+**Test Suite Code:**
+
+```python
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9/5 + 32
+
+class TestCelsiusToFahrenheit:
+    def test_freezing_point(self):
+        assert celsius_to_fahrenheit(0) == 32
+    
+    def test_boiling_point(self):
+        assert celsius_to_fahrenheit(100) == 212
+    
+    def test_negative_forty(self):
+        assert celsius_to_fahrenheit(-40) == -40
+    
+    def test_non_numeric_input(self):
+        with pytest.raises(TypeError):
+            celsius_to_fahrenheit("not a number")
+```
+
+**How to run it:**
+
+1. Save the code to a file (e.g., `test_temperature.py`)
+2. Install pytest if you don't have it:
+   ```bash
+   pip install pytest
+   ```
+3. Run the tests:
+   ```bash
+   pytest test_temperature.py
+   ```
+   Or for verbose output:
+   ```bash
+   pytest test_temperature.py -v
+   ```
+
+**What each test does:**
+- `test_freezing_point`: Verifies 0°C = 32°F
+- `test_boiling_point`: Verifies 100°C = 212°F
+- `test_negative_forty`: Verifies -40°C = -40°F (the same in both scales)
+- `test_non_numeric_input`: Verifies the function raises `TypeError` when passed a string
+
+The non-numeric test uses `pytest.raises()` to assert that a `TypeError` is raised, since multiplying a string by 9/5 will trigger a TypeError in Python.

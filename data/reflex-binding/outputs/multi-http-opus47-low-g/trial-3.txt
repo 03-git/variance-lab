@@ -1,0 +1,45 @@
+Kernel primitive here is a listening TCP socket (`socket`/`bind`/`listen`/`accept`); `http.server` in the stdlib is the thinnest wrapper over it, so no third-party library is needed.
+
+```python
+#!/usr/bin/env python3
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != "/time":
+            self.send_error(404)
+            return
+        body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+if __name__ == "__main__":
+    HTTPServer(("127.0.0.1", 8000), Handler).serve_forever()
+```
+
+Run it:
+
+```sh
+python3 time_server.py        # if saved to a file
+# or paste straight into a heredoc:
+python3 - <<'EOF'
+# ...code above...
+EOF
+```
+
+Test:
+
+```sh
+curl http://127.0.0.1:8000/time
+# {"time": "2026-05-10T18:42:11.123456+00:00"}
+```
+
+Notes:
+- `datetime.now(timezone.utc).isoformat()` is ISO 8601 with a `+00:00` offset. Swap to `datetime.now().astimezone().isoformat()` if you want local time with offset, or append `Z` manually if you specifically need the `Z` form.
+- Bound to `127.0.0.1`; change to `0.0.0.0` to expose it on the LAN.
+- Single-threaded; fine for a clock endpoint. Use `ThreadingHTTPServer` (same stdlib module) if you expect concurrent callers.

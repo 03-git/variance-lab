@@ -1,0 +1,47 @@
+```python
+import asyncio
+
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    addr = writer.get_extra_info('peername')
+    print(f"Connected: {addr}")
+    try:
+        async for line in reader:
+            writer.write(line)
+            await writer.drain()
+    except asyncio.IncompleteReadError:
+        pass
+    finally:
+        print(f"Disconnected: {addr}")
+        writer.close()
+        await writer.wait_closed()
+
+async def main() -> None:
+    server = await asyncio.start_server(handle_client, '127.0.0.1', 8888)
+    addr = server.sockets[0].getsockname()
+    print(f"Listening on {addr}")
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+**How to run:**
+
+```bash
+# Terminal 1 — start the server
+python echo_server.py
+
+# Terminal 2 — connect a client
+nc 127.0.0.1 8888
+# type lines, each is echoed back
+
+# Multiple clients — open more terminals, each runs nc independently
+```
+
+**How it works:**
+
+- `asyncio.start_server` registers `handle_client` as a callback for each new TCP connection.
+- `async for line in reader` reads one newline-terminated chunk at a time without blocking the event loop — other clients keep running during I/O waits.
+- `writer.drain()` yields control back to the loop until the kernel buffer has room, preventing unbounded memory growth under a slow client.
+- No threads, no select/poll boilerplate — the event loop multiplexes all clients on a single OS thread.

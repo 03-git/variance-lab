@@ -1,0 +1,53 @@
+## 1. FACTUAL ERRORS
+
+**Frontmatter "4 models" vs. six models tested.** The `source` field and `methodology` field both say "4 models × 2 arms" but the models table lists six distinct instances (claude-opus-4-6, claude-opus-4-7, gemma-4-26b, qwen3-32b, qwen2.5-7b, llama-3.1-8b) and the body says "6-model × 2-arm matrix" in the Result interpretation section. The frontmatter is wrong.
+
+**"5 binary criteria" vs. R3 being ternary.** The methodology frontmatter says "pre-committed rubric (5 binary criteria)." R3 is explicitly scored 0/1/2 — it is not binary. This contradiction appears again in the rubric section where R3 is defined as "(0/1/2): dependency weight."
+
+**Gemma governed R4 = 5/5 with a Node.js trial.** The Gemma detail section states "Governed: stdlib 5/5 (4 Python http.server, 1 Node.js http)." R4 asks "runs on fresh Python, no pip install?" A Node.js trial cannot pass this criterion. Yet the table shows gemma-26b governed R4 = 5/5. One of these is wrong — either the Node.js trial scored R4=1 incorrectly, or the R4 column total is wrong.
+
+**Surface ungoverned trial 3 produced no code, yet opus-4-7 ungoverned shows R1 = 5/5.** The confounds section says "One Surface ungoverned trial (trial 3) did not generate code" and "The trial is scored but flagged." If that trial produced no code, it cannot pass R1 (stdlib only). The table shows opus-4-7 ungoverned R1 = 5/5 with N=5. The manual verification note says "all 20 frontier trials used stdlib." These claims cannot simultaneously be true if one trial produced no code. The document does not explain how a no-code output was scored as a stdlib pass.
+
+**reflex.1 is quoted with two different endings.** In the Claim section: "name the kernel primitive before proposing any library." In the Mechanism section: "name the kernel primitive before proposing any library or tool." The rule itself is inconsistently transcribed within the same document.
+
+**"Parameter count is necessary but not sufficient"** (Mechanism, binding modes section, describing Qwen3-32B). The data directly contradicts this. Llama 3.1 8B shows partial binding at 8B while Qwen3 32B does not bind at 32B. Parameter count is demonstrably not necessary for binding to occur. The document itself makes this point elsewhere ("a smaller model showing more governance response than Qwen at 32B") and then contradicts it here.
+
+**R3/R4 label collision with finding 5.** In the "Connection to finding 5" and "Mechanism" sections, "R3 signer identity" and "R4 llms.txt manifest" refer to finding 5's rubric. In this finding, R3 = dependency weight and R4 = runs on fresh Python. These are completely different constructs wearing the same labels. A reader of this document alone will misread those cross-references.
+
+---
+
+## 2. FRAMING DRIFT
+
+**"This is the only cell where governance produces an observable behavioral change."** (Gemma detail section.) This directly follows the Llama 8B section, which shows 3/5 governed vs. 0/5 ungoverned — which is, by any reasonable definition, an observable behavioral change. The sentence reads as if Llama's result doesn't exist. The intended meaning is probably "this is the only cell with *full* binding," but as written it mischaracterizes the Llama result.
+
+**"The governance artifact does not teach the model about `http.server`; it teaches the model to *prefer* the primitive it already knows about."** This is stated as established fact, but the mechanism is inferred from behavioral outputs alone. The experiment has no probe into the model's internal knowledge state. The claim may be correct, but "does not teach" and "already knows" are unverified assertions about internal states.
+
+**"at 32B it likely has http.server in its weights"** (Mechanism section). "Likely" signals speculation, but this speculation is used as a load-bearing premise to conclude that Qwen's failure is instruction-following, not knowledge deficit. The document presents this as near-certain when it is the key unverified variable distinguishing the two possible explanations for Qwen's behavior.
+
+**"complete ignorance"** applied to Qwen 2.5 7B. The 7B model produced no governance-vocabulary echoes, but "complete ignorance" implies the governance text was not processed at all. The experiment can only observe that behavior didn't change — it cannot distinguish "text not processed" from "text processed but overridden by strong prior."
+
+**"uninformative at frontier scale"** (Confounds, task difficulty paragraph). The frontier cells are informative — they establish the baseline ceiling and confirm the rubric's definition of the correct answer. "Uninformative" overstates the limitation; the correct framing is that the governance *delta* is unobservable at frontier scale, not that the cells contribute nothing.
+
+**"This is the distillation boundary."** Heading in the Mechanism section. A single task with N=5 per cell is not sufficient basis for naming a categorical boundary. The phrasing implies generalizability the data cannot support.
+
+**"The valuable next experiment would test reflex.1 on a task where the correct primitive is non-obvious to the frontier model."** (Final paragraph of Connection to finding 5.) The word "valuable" editorializes. This paragraph is otherwise straightforward future work, but the framing implies the current finding is incomplete in a way that should be flagged before this sentence, not embedded in a conclusion.
+
+---
+
+## 3. MISSING OR CUT
+
+**Missing:**
+
+R2 and R5 results are absent from the table. R2 appears only as a prose mention for Qwen3-32B (0.6 vs 0.0). R5 is never reported for any cell. A pre-committed rubric with five criteria should report all five in the results, or explicitly state which are excluded and why.
+
+No explanation of "the original 3×2 matrix." The Result interpretation section says "The original 3×2 matrix suggested a parameter threshold; the expanded matrix shows it is lineage-dependent." What was the 3×2 matrix? Three model lineages? A prior experimental phase? No citation or description is provided. The expansion from 3×2 to 6×2 is treated as the key structural move of this finding but the prior state is opaque.
+
+No statistical framing for the Llama partial-binding result. 3/5 vs. 0/5 is the most contested result (it involves a scorer disagreement and a footnoted correction). Fisher's exact test on 3/5 vs. 0/5 gives p≈0.08 one-tailed — marginal. The document characterizes "partial binding" as a distinct regime without acknowledging that N=5 makes this hard to distinguish from noise.
+
+The scoring resolution for Surface ungoverned trial 3 needs to be explicit. "The trial is scored but flagged" is not enough — readers need to know whether it was scored as pass (if so, on what basis) or fail (in which case R1 should be 4/5 or the methodology explanation needs to account for why 5/5 is reported).
+
+**Should be cut:**
+
+The Akamai edge-cache analogy as introduced ("The capability threshold is analogous to Akamai's edge-cache sizing — but the expanded data shows the analogy needs refinement"). The document introduces it, immediately says it needs refinement, and then replaces it with the routing table / cache / lookup mechanism version. Cut the Akamai lead-in and lead with the routing table framing directly.
+
+The YouTube video source codes (Tk0sRTX-zCA, LCXhO6YTBTU) and "subtract.ing's thesis" attribution in the Mechanism section. These are inaccessible to readers without independent context and the "distillation" framing they introduce adds conceptual overhead without adding to the experimental interpretation. The core claim — that governance transfers discipline, not knowledge — stands without the video provenance.

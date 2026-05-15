@@ -1,0 +1,86 @@
+Here's a Python CLI tool with the requested features:
+
+```python
+#!/usr/bin/env python3
+import argparse
+import json
+import sys
+
+def validate_port(value):
+    """Validate that port is an integer between 1-65535."""
+    try:
+        port = int(value)
+        if not (1 <= port <= 65535):
+            raise ValueError(f"port must be between 1 and 65535, got {port}")
+        return port
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e))
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="CLI tool with host and port configuration"
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="localhost",
+        help="Host to connect to (default: localhost)"
+    )
+    parser.add_argument(
+        "--port",
+        type=validate_port,
+        default=8080,
+        help="Port number, must be 1-65535 (default: 8080)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+    
+    args = parser.parse_args()
+    
+    # Build configuration
+    config = {
+        "host": args.host,
+        "port": args.port,
+        "verbose": args.verbose
+    }
+    
+    # Print as JSON
+    print(json.dumps(config, indent=2))
+
+if __name__ == "__main__":
+    main()
+```
+
+**How to run it:**
+
+```bash
+# Basic usage (uses defaults)
+python cli.py
+# Output: {"host": "localhost", "port": 8080, "verbose": false}
+
+# With custom host and port
+python cli.py --host example.com --port 3000
+# Output: {"host": "example.com", "port": 3000, "verbose": false}
+
+# With verbose flag
+python cli.py --host api.example.com --port 443 --verbose
+# Output: {"host": "api.example.com", "port": 443, "verbose": true}
+
+# Invalid port (demonstrates validation)
+python cli.py --port 99999
+# Error: argument --port: port must be between 1 and 65535, got 99999
+
+# Port as string (auto-converted)
+python cli.py --port 5432
+# Output: {"host": "localhost", "port": 5432, "verbose": false}
+```
+
+**Key features:**
+- `validate_port()` custom type function enforces the 1-65535 range
+- `action="store_true"` makes `--verbose` a boolean flag
+- Sensible defaults: localhost + 8080
+- Clean JSON output with 2-space indentation
+- Helpful error messages for invalid ports

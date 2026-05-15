@@ -1,0 +1,52 @@
+```python
+import sqlite3
+from datetime import datetime
+
+conn = sqlite3.connect(":memory:")
+cur = conn.cursor()
+
+cur.execute("""
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        body TEXT,
+        created_at TEXT
+    )
+""")
+
+notes = [
+    ("Meeting recap", "Discussed Q2 roadmap and deployment timeline.", datetime.now().isoformat()),
+    ("Book recommendation", "Read 'The Design of Everyday Things' by Don Norman.", datetime.now().isoformat()),
+    ("Shopping list", "Milk, eggs, coffee beans, sourdough bread.", datetime.now().isoformat()),
+]
+
+cur.executemany("INSERT INTO notes (title, body, created_at) VALUES (?, ?, ?)", notes)
+conn.commit()
+
+for row in cur.execute("SELECT * FROM notes"):
+    id_, title, body, created_at = row
+    print(f"[{id_}] {title} ({created_at})\n    {body}\n")
+
+conn.close()
+```
+
+**To run it:**
+
+```bash
+python3 notes.py
+```
+
+**Expected output:**
+
+```
+[1] Meeting recap (2026-05-10T...)
+    Discussed Q2 roadmap and deployment timeline.
+
+[2] Book recommendation (2026-05-10T...)
+    Read 'The Design of Everyday Things' by Don Norman.
+
+[3] Shopping list (2026-05-10T...)
+    Milk, eggs, coffee beans, sourdough bread.
+```
+
+Uses `:memory:` so no file is created on disk. Swap that for `"notes.db"` if you want persistence.

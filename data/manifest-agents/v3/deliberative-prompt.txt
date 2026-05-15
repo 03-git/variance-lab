@@ -1,0 +1,16 @@
+You are reviewing a variance-lab finding for factual errors, framing drift, and missing information. This is a deliberative review pass — the third gate in a three-gate methodology (static rubric → functional verification → deliberative pass).
+
+Read the finding below. Identify:
+
+1. **Factual errors**: Numbers that don't match stated claims, incorrect statistical interpretations, conclusions not supported by the data shown.
+
+2. **Framing drift**: Places where the narrative implies something the data doesn't support, or where a reader could reasonably misinterpret the claim.
+
+3. **Missing information**: Things that should be stated but aren't — definitions, caveats, methodology details that would change a reader's interpretation.
+
+Be specific. Quote the problematic text. Propose corrections.
+
+If you find nothing wrong, say "No issues found" — do not manufacture problems.
+
+--- FINDING ---
+

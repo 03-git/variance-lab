@@ -1,0 +1,58 @@
+**Time Endpoint in Python using Flask**
+
+We will use the Flask web framework to create a simple HTTP server that returns the current time as JSON.
+
+### Requirements
+
+* Python 3.8+
+* Flask 2.0+
+
+### Code
+
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    """Returns the current time as JSON"""
+    current_time = datetime.now().isoformat()
+    return jsonify({'time': current_time})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+### Explanation
+
+* We import the `Flask` class and `jsonify` function from Flask, and `datetime` from the Python standard library.
+* We create a new `Flask` instance, passing `__name__` as the argument (this is a common pattern).
+* We define a single route, `GET /time`, which calls the `get_time` function.
+* In `get_time`, we use `datetime.now().isoformat()` to get the current time as an ISO 8601 timestamp string.
+* We return the time as JSON using `jsonify`.
+* Finally, we run the Flask app in debug mode using `app.run(debug=True)`.
+
+### Running the Code
+
+1. Save the code in a file named `app.py`.
+2. Install Flask if you haven't already: `pip install flask`
+3. Run the app: `python app.py`
+4. Open a web browser and navigate to `http://localhost:5000/time` to see the current time as JSON.
+
+You should see output similar to this:
+```json
+{
+  "time": "2023-12-18T14:30:00.000000"
+}
+```
+Note: The timestamp will change every second.
+
+### Testing the Endpoint
+
+You can use a tool like `curl` or a web browser to test the endpoint. For example, using `curl`:
+```bash
+curl http://localhost:5000/time
+```
+This should output the current time as JSON.

@@ -1,0 +1,83 @@
+Here's an async TCP echo server using Python's `asyncio` module:
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line from the client
+            data = await reader.readline()
+            
+            if not data:
+                print(f"Client {addr} disconnected")
+                break
+            
+            # Echo it back
+            message = data.decode().strip()
+            print(f"Received from {addr}: {message}")
+            
+            writer.write(data)
+            await writer.drain()
+            
+    except asyncio.CancelledError:
+        pass
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+async def main():
+    """Start the TCP echo server."""
+    server = await asyncio.start_server(
+        handle_client,
+        '127.0.0.1',
+        8888
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f"Server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+   ```bash
+   python echo_server.py
+   ```
+   You should see: `Server listening on ('127.0.0.1', 8888)`
+
+2. **Test with a client** (in another terminal):
+   ```bash
+   nc 127.0.0.1 8888
+   ```
+   Then type a message and press Enter. You'll see it echoed back.
+
+3. **Or test with Python telnetlib:**
+   ```python
+   import socket
+   
+   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+   sock.connect(('127.0.0.1', 8888))
+   sock.send(b"Hello, server!\n")
+   print(sock.recv(1024).decode())
+   sock.close()
+   ```
+
+**How it works:**
+- `asyncio.start_server()` creates a server that accepts multiple clients concurrently
+- Each client connection runs `handle_client()` independently
+- `reader.readline()` waits for a newline-terminated message from the client
+- `writer.write()` sends the data back, and `await writer.drain()` ensures it's sent
+- The server handles multiple simultaneous connections without blocking
+
+Press `Ctrl+C` to stop the server.

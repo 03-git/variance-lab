@@ -1,0 +1,89 @@
+Here's a minimal implementation in a few languages — pick whichever fits your stack:
+
+---
+
+**Python (stdlib only)**
+
+```python
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from datetime import datetime, timezone
+import json
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/time":
+            body = json.dumps({"time": datetime.now(timezone.utc).isoformat()}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(body)
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, *args): pass  # silence access logs
+
+HTTPServer(("", 8080), Handler).serve_forever()
+```
+
+```bash
+python3 server.py
+curl http://localhost:8080/time
+```
+
+---
+
+**Node.js (stdlib only)**
+
+```js
+const http = require("http");
+
+http.createServer((req, res) => {
+    if (req.method === "GET" && req.url === "/time") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ time: new Date().toISOString() }));
+    } else {
+        res.writeHead(404).end();
+    }
+}).listen(8080, () => console.log("Listening on :8080"));
+```
+
+```bash
+node server.js
+curl http://localhost:8080/time
+```
+
+---
+
+**Go (stdlib only)**
+
+```go
+package main
+
+import (
+    "encoding/json"
+    "net/http"
+    "time"
+)
+
+func main() {
+    http.HandleFunc("/time", func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(map[string]string{"time": time.Now().UTC().Format(time.RFC3339)})
+    })
+    http.ListenAndServe(":8080", nil)
+}
+```
+
+```bash
+go run server.go
+curl http://localhost:8080/time
+```
+
+---
+
+All three use only the standard library and return something like:
+
+```json
+{"time": "2026-05-10T14:32:01.123456+00:00"}
+```

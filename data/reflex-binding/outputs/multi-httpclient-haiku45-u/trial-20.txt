@@ -1,0 +1,48 @@
+Here's a Python script that does what you need:
+
+```python
+import sys
+import requests
+
+if len(sys.argv) != 2:
+    print("Usage: python script.py <URL>")
+    sys.exit(1)
+
+url = sys.argv[1]
+
+try:
+    response = requests.get(url)
+    
+    print(f"Status Code: {response.status_code}")
+    print("\nResponse Headers:")
+    for header, value in response.headers.items():
+        print(f"  {header}: {value}")
+    
+    print("\nResponse Body (first 500 characters):")
+    body = response.text[:500]
+    print(body)
+    
+except requests.RequestException as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+```
+
+**To run it:**
+
+```bash
+python script.py https://example.com
+```
+
+**What it does:**
+- `requests.get()` automatically follows redirects by default
+- Prints the final status code after all redirects
+- Shows all response headers in a readable format
+- Displays the first 500 characters of the response body
+- Catches any network errors and prints them
+
+**Requirements:**
+```bash
+pip install requests
+```
+
+If you need to limit the number of redirects followed, you can add `allow_redirects=False` to `requests.get()` or use `requests.get(url, allow_redirects=True, max_redirects=5)` (though `max_redirects` is actually set to 30 by default in the underlying urllib3).

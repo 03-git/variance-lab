@@ -1,0 +1,69 @@
+I'll show you an async TCP echo server using Python's `asyncio` module that handles multiple concurrent clients efficiently.
+
+```python
+import asyncio
+
+async def handle_client(reader, writer):
+    """Handle a single client connection."""
+    addr = writer.get_extra_info('peername')
+    print(f"Client connected: {addr}")
+    
+    try:
+        while True:
+            # Read a line of text from the client
+            data = await reader.readline()
+            
+            if not data:
+                # Client closed connection
+                break
+            
+            # Echo the data back
+            writer.write(data)
+            await writer.drain()
+            
+            print(f"Echo from {addr}: {data.decode().strip()}")
+    except Exception as e:
+        print(f"Error handling {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+        print(f"Client disconnected: {addr}")
+
+async def start_server(host='127.0.0.1', port=9999):
+    """Start the echo server."""
+    server = await asyncio.start_server(handle_client, host, port)
+    addr = server.sockets[0].getsockname()
+    print(f"Echo server listening on {addr}")
+    
+    async with server:
+        await server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.run(start_server())
+```
+
+**How to run it:**
+
+1. **Start the server:**
+   ```bash
+   python echo_server.py
+   ```
+   You'll see: `Echo server listening on ('127.0.0.1', 9999)`
+
+2. **Test with multiple clients** (in separate terminals):
+   ```bash
+   nc localhost 9999
+   # or using telnet
+   telnet localhost 9999
+   ```
+   Type a line and press Enter—it echoes back immediately.
+
+**How it works:**
+- `asyncio.start_server()` creates a server that accepts connections on `127.0.0.1:9999`
+- For each client, `handle_client()` runs concurrently
+- `reader.readline()` waits for a complete line without blocking other clients
+- `writer.write()` + `writer.drain()` sends the echoed line back
+- Handles client disconnections and errors gracefully
+- All clients are served concurrently by the same event loop—no threads needed
+
+You can connect dozens of clients simultaneously and each one will receive its echoes without affecting the others.

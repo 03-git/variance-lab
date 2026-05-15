@@ -1,0 +1,103 @@
+Kernel primitive first (reflex.1): HTTP here bottoms out at the `socket` syscalls — `connect(2)`/`send(2)`/`recv(2)` over TCP. The stdlib `urllib.request` is the thin wrapper over that and already follows redirects by default, so no third-party library (`requests`) is needed.
+
+```python
+#!/usr/bin/env python3
+import sys
+import urllib.request
+import urllib.error
+
+def main():
+    if len(sys.argv) != 2:
+        print(f"usage: {sys.argv[0]} <url>", file=sys.stderr)
+        sys.exit(2)
+
+    url = sys.argv[1]
+    req = urllib.request.Request(url, headers={"User-Agent": "fetch/1.0"})
+
+    try:
+        # urllib follows 3xx redirects by default via HTTPRedirectHandler
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            status = resp.status
+            headers = resp.headers
+            body = resp.read(500).decode(resp.headers.get_content_charset() or "utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        # 4xx/5xx still carry a response we can inspect
+        status = e.code
+        headers = e.headers
+        body = e.read(500).decode("utf-8", errors="replace")
+    except urllib.error.URLError as e:
+        print(f"request failed: {e.reason}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"final URL: {resp.url if 'resp' in dir() else url}")
+    print(f"status: {status}\n")
+    print("headers:")
+    for k, v in headers.items():
+        print(f"  {k}: {v}")
+    print("\nbody (first 500 chars):")
+    print(body)
+
+if __name__ == "__main__":
+    main()
+```
+
+There's a bug in that `resp.url` reference after the `with` block — here's the clean version:
+
+```python
+#!/usr/bin/env python3
+import sys
+import urllib.request
+import urllib.error
+
+def main():
+    if len(sys.argv) != 2:
+        print(f"usage: {sys.argv[0]} <url>", file=sys.stderr)
+        sys.exit(2)
+
+    url = sys.argv[1]
+    req = urllib.request.Request(url, headers={"User-Agent": "fetch/1.0"})
+
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            final_url = resp.url          # reflects any redirects followed
+            status = resp.status
+            headers = resp.headers
+            body = resp.read(500).decode(
+                resp.headers.get_content_charset() or "utf-8", errors="replace"
+            )
+    except urllib.error.HTTPError as e:   # 4xx/5xx
+        final_url = e.url
+        status = e.code
+        headers = e.headers
+        body = e.read(500).decode("utf-8", errors="replace")
+    except urllib.error.URLError as e:    # DNS, connection refused, TLS, etc.
+        print(f"request failed: {e.reason}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"final URL: {final_url}")
+    print(f"status:    {status}\n")
+    print("headers:")
+    for k, v in headers.items():
+        print(f"  {k}: {v}")
+    print("\nbody (first 500 chars):")
+    print(body)
+
+if __name__ == "__main__":
+    main()
+```
+
+How to run it:
+
+```bash
+# save as fetch.py, then:
+python3 fetch.py https://example.com
+
+# or make it executable:
+chmod +x fetch.py
+./fetch.py https://httpbin.org/redirect/2     # demonstrates redirect-following
+```
+
+Notes:
+- Redirects: `urllib.request.urlopen` installs `HTTPRedirectHandler` by default, so 301/302/303/307/308 are followed automatically; `resp.url` shows where you landed.
+- `HTTPError` is caught separately because Python raises it on 4xx/5xx — but the exception object *is* a response, so you still get status/headers/body.
+- Pure stdlib, nothing to `pip install`. If you'd rather have `requests` (cookie jar, sessions, nicer API), say so and I'll give you that variant — but for this task the stdlib wrapper is the smaller answer.

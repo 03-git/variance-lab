@@ -1,0 +1,105 @@
+I'll show you a complete REST API implementation with input validation.
+
+```python
+# app.py
+from flask import Flask, request, jsonify
+from dataclasses import dataclass
+import re
+
+app = Flask(__name__)
+
+@dataclass
+class User:
+    name: str
+    email: str
+    age: int
+
+    def to_dict(self):
+        return {"name": self.name, "email": self.email, "age": self.age}
+
+def validate_user(data):
+    errors = {}
+    
+    # Validate name
+    if "name" not in data:
+        errors["name"] = "required"
+    elif not isinstance(data["name"], str) or not data["name"].strip():
+        errors["name"] = "must be a non-empty string"
+    
+    # Validate email
+    if "email" not in data:
+        errors["email"] = "required"
+    elif not isinstance(data["email"], str) or "@" not in data["email"]:
+        errors["email"] = "must be a string containing @"
+    
+    # Validate age
+    if "age" not in data:
+        errors["age"] = "required"
+    elif not isinstance(data["age"], int) or not (1 <= data["age"] <= 150):
+        errors["age"] = "must be an integer between 1 and 150"
+    
+    return errors
+
+@app.route("/users", methods=["POST"])
+def create_user():
+    try:
+        data = request.get_json()
+    except Exception:
+        return jsonify({"error": "Invalid JSON"}), 400
+    
+    if data is None:
+        return jsonify({"error": "Request body must be JSON"}), 400
+    
+    errors = validate_user(data)
+    if errors:
+        return jsonify({"errors": errors}), 400
+    
+    user = User(
+        name=data["name"].strip(),
+        email=data["email"].strip(),
+        age=data["age"]
+    )
+    
+    return jsonify(user.to_dict()), 201
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)
+```
+
+**To run it:**
+
+```bash
+# Install Flask if needed
+pip install flask
+
+# Run the server
+python app.py
+```
+
+**Test it with curl:**
+
+```bash
+# Valid request
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice", "email": "alice@example.com", "age": 30}'
+
+# Missing required field
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Bob", "age": 25}'
+
+# Invalid email
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Charlie", "email": "invalid", "age": 35}'
+
+# Age out of range
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "David", "email": "david@example.com", "age": 200}'
+```
+
+The endpoint returns:
+- **201 Created** with the validated user object on success
+- **400 Bad Request** with an `errors` object detailing what's wrong on validation failure

@@ -1,0 +1,63 @@
+I'll show you a simple HTTP endpoint in a few different languages. Pick the one that fits your setup:
+
+**Node.js with Express:**
+```javascript
+const express = require('express');
+const app = express();
+
+app.get('/time', (req, res) => {
+  res.json({ time: new Date().toISOString() });
+});
+
+app.listen(3000, () => console.log('Server on http://localhost:3000'));
+```
+Run: `npm install express && node app.js`
+
+**Python with Flask:**
+```python
+from flask import Flask, jsonify
+from datetime import datetime
+
+app = Flask(__name__)
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    return jsonify(time=datetime.utcnow().isoformat() + 'Z')
+
+if __name__ == '__main__':
+    app.run(port=3000)
+```
+Run: `pip install flask && python app.py`
+
+**Go:**
+```go
+package main
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"time"
+)
+
+func timeHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"time": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+func main() {
+	http.HandleFunc("/time", timeHandler)
+	log.Println("Server on http://localhost:3000")
+	log.Fatal(http.ListenAndServe(":3000", nil))
+}
+```
+Run: `go run app.go`
+
+Test any of them with:
+```bash
+curl http://localhost:3000/time
+```
+
+Which language do you want to use?

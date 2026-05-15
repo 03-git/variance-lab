@@ -1,0 +1,79 @@
+I'll show you a REST API endpoint implementation in Python using Flask, which is lightweight and straightforward.
+
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route('/users', methods=['POST'])
+def create_user():
+    data = request.get_json()
+    
+    # Validate required fields
+    if not data:
+        return jsonify({'error': 'Request body must be JSON'}), 400
+    
+    # Validate name
+    name = data.get('name')
+    if not name or not isinstance(name, str) or not name.strip():
+        return jsonify({'error': 'name is required and must be a non-empty string'}), 400
+    
+    # Validate email
+    email = data.get('email')
+    if not email or not isinstance(email, str) or '@' not in email:
+        return jsonify({'error': 'email is required and must contain @'}), 400
+    
+    # Validate age
+    age = data.get('age')
+    if age is None:
+        return jsonify({'error': 'age is required'}), 400
+    if not isinstance(age, int) or age < 1 or age > 150:
+        return jsonify({'error': 'age must be an integer between 1 and 150'}), 400
+    
+    # All valid, return 201 with user data
+    user = {
+        'name': name.strip(),
+        'email': email,
+        'age': age
+    }
+    return jsonify(user), 201
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+**How to run it:**
+
+```bash
+# Install Flask (if not already installed)
+pip install flask
+
+# Run the server
+python app.py
+```
+
+**Test it with curl:**
+
+```bash
+# Valid request
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "john@example.com", "age": 30}'
+
+# Missing name
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "john@example.com", "age": 30}'
+
+# Invalid email (no @)
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John", "email": "johndomain.com", "age": 30}'
+
+# Age out of range
+curl -X POST http://localhost:5000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John", "email": "john@example.com", "age": 200}'
+```
+
+The endpoint validates all inputs and returns 400 with descriptive error messages for invalid data, or 201 with the validated user object on success.

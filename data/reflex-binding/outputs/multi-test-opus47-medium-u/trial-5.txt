@@ -1,0 +1,76 @@
+```python
+# test_temperature.py
+import pytest
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+@pytest.mark.parametrize("celsius, expected", [
+    (0, 32.0),
+    (100, 212.0),
+    (-40, -40.0),
+])
+def test_celsius_to_fahrenheit_known_values(celsius, expected):
+    assert celsius_to_fahrenheit(celsius) == expected
+
+
+def test_celsius_to_fahrenheit_non_numeric_raises():
+    with pytest.raises(TypeError):
+        celsius_to_fahrenheit("hot")
+```
+
+Notes:
+- `-40` is the point where both scales coincide (−40 °C = −40 °F), a nice sanity check.
+- Passing a string makes `"hot" * 9` produce a string and then `+ 32` raises `TypeError`, so `pytest.raises(TypeError)` is the right expectation. (If you wanted the function to validate input explicitly, you'd add an `isinstance` check and raise yourself — currently it relies on Python's built-in behavior.)
+
+If you keep `celsius_to_fahrenheit` in its own module (e.g. `temperature.py`), replace the inline `def` with `from temperature import celsius_to_fahrenheit`.
+
+## How to run
+
+```bash
+pip install pytest
+pytest test_temperature.py -v
+```
+
+Expected output (4 tests, all passing):
+
+```
+test_temperature.py::test_celsius_to_fahrenheit_known_values[0-32.0] PASSED
+test_temperature.py::test_celsius_to_fahrenheit_known_values[100-212.0] PASSED
+test_temperature.py::test_celsius_to_fahrenheit_known_values[-40--40.0] PASSED
+test_temperature.py::test_celsius_to_fahrenheit_non_numeric_raises PASSED
+```
+
+Without pytest, here's a stdlib `unittest` version runnable via `python -m unittest`:
+
+```python
+# test_temperature.py
+import unittest
+
+def celsius_to_fahrenheit(c):
+    return c * 9 / 5 + 32
+
+
+class TestCelsiusToFahrenheit(unittest.TestCase):
+    def test_zero(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32.0)
+
+    def test_boiling(self):
+        self.assertEqual(celsius_to_fahrenheit(100), 212.0)
+
+    def test_minus_forty(self):
+        self.assertEqual(celsius_to_fahrenheit(-40), -40.0)
+
+    def test_non_numeric(self):
+        with self.assertRaises(TypeError):
+            celsius_to_fahrenheit("hot")
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+```bash
+python -m unittest test_temperature.py -v
+```
