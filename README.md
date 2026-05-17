@@ -25,4 +25,4 @@ This repo needs cleanup — duplicated findings, stale snapshots, inconsistent n
 
 ## License
 
-GPL-3.0
+GPL-2.0
